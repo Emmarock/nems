@@ -1,0 +1,12 @@
+-- One-time: clears the 2025 dataset (residents/properties/levies/invoices/payments/vehicles)
+-- before loading 2026_residents_import.sql. Deliberately manual - not a Flyway migration, and
+-- deliberately NOT a blanket TRUNCATE CASCADE.
+--
+-- Leaves workers, visitors, access logs, complaints, announcements, and app_user accounts
+-- untouched, as instructed. Note: this schema has no DB-level foreign key constraints between
+-- these tables (all relationships are plain bigint columns, enforced at the application layer -
+-- see V1__phase1_core.sql), so this TRUNCATE cannot fail with an FK error, but any existing
+-- worker.sponsor_resident_id / visitor.host_resident_id / complaint.resident_id /
+-- app_user.resident_id value will be left pointing at a now-deleted resident. Those show up as
+-- an unresolved/blank resident reference afterward - a known, accepted side effect of this scope.
+TRUNCATE TABLE payment, invoice, vehicle, resident, property, levy RESTART IDENTITY;

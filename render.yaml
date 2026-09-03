@@ -1,0 +1,46 @@
+# Render Blueprint - https://render.com/docs/blueprint-spec
+# In the Render dashboard: New -> Blueprint -> point at this repo. Creates the web service and
+# the Postgres instance together, wired to each other, no manual env var copying needed.
+databases:
+  - name: nitel-estate-db
+    databaseName: nitel_estate
+    user: nitel
+    plan: free # Render's free Postgres is deleted after 30 days - upgrade before then for real use.
+
+services:
+  - type: web
+    name: nitel-estate
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter # avoids the free plan's ~30s cold start after idle, which matters for gate/QR scanning
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 8080
+      - key: NITEL_JWT_SECRET
+        generateValue: true # Render generates and stores a strong random secret - never committed
+      - key: NITEL_DB_HOST
+        fromDatabase:
+          name: nitel-estate-db
+          property: host
+      - key: NITEL_DB_PORT
+        fromDatabase:
+          name: nitel-estate-db
+          property: port
+      - key: NITEL_DB_NAME
+        fromDatabase:
+          name: nitel-estate-db
+          property: database
+      - key: NITEL_DB_USER
+        fromDatabase:
+          name: nitel-estate-db
+          property: user
+      - key: NITEL_DB_PASSWORD
+        fromDatabase:
+          name: nitel-estate-db
+          property: password
+      # NITEL_CORS_ORIGINS is deliberately left unset: frontend and backend are the same origin
+      # in this monolith deploy, so no cross-origin requests happen in production. The app's own
+      # default (localhost/ngrok, for local dev) applies harmlessly if left unset here.

@@ -1,0 +1,14 @@
+# Activated via SPRING_PROFILES_ACTIVE=prod (see render.yaml). Only overrides what genuinely
+# differs from application.yml's dev-oriented defaults - DEBUG app logging is fine on a laptop,
+# not on a paid-by-the-GB log drain.
+logging:
+  level:
+    com.cyrev.nitelestate: INFO
+    org.hibernate.SQL: WARN
+
+spring:
+  flyway:
+    # Excludes db/dev-seed - five login accounts (including SUPER_ADMIN) sharing one publicly
+    # documented password must never be created on a real database. Real staff accounts are
+    # created deliberately via /api/v1/users once the app is live (see UserController).
+    locations: classpath:db/migration

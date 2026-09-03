@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { vehiclesApi } from '../../api/endpoints'
+import type { PageResponse, Vehicle } from '../../api/types'
+import { DataTable } from '../../components/DataTable'
+import { FormModal, type FieldConfig } from '../../components/FormModal'
+import { StatusBadge } from '../../components/StatusBadge'
+import { SearchInput } from '../../components/SearchInput'
+import { Pagination } from '../../components/Pagination'
+import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+
+const EMPTY: PageResponse<Vehicle> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
+
+const FIELDS: FieldConfig[] = [
+  { name: 'plateNumber', label: 'Plate number', required: true },
+  { name: 'residentId', label: 'Resident ID', type: 'number', required: true },
+  { name: 'vehicleType', label: 'Vehicle type' },
+  { name: 'make', label: 'Make' },
+  { name: 'model', label: 'Model' },
+  { name: 'colour', label: 'Colour' },
+]
+
+export function VehiclesPage() {
+  const [result, setResult] = useState<PageResponse<Vehicle>>(EMPTY)
+  const [loading, setLoading] = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(0)
+  const debouncedQuery = useDebouncedValue(query)
+  const { openResident } = useEntityDetail()
+
+  async function load() {
+    setLoading(true)
+    setResult(await vehiclesApi.list({ q: debouncedQuery || undefined, page, size: 20 }))
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, page])
+
+  useEffect(() => {
+    setPage(0)
+  }, [debouncedQuery])
+
+  async function handleSubmit(values: Record<string, unknown>) {
+    await vehiclesApi.create({
+      plateNumber: (values.plateNumber as string).toUpperCase(),
+      residentId: Number(values.residentId),
+      vehicleType: (values.vehicleType as string) || null,
+      make: (values.make as string) || null,
+      model: (values.model as string) || null,
+      colour: (values.colour as string) || null,
+    })
+    setModalOpen(false)
+    await load()
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h1>Vehicles</h1>
+          <p className="page-subtitle">Registered ahead of ANPR (spec §3).</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+          + Register vehicle
+        </button>
+      </div>
+
+      <SearchInput value={query} onChange={setQuery} placeholder="Search vehicles by plate, make, model, colour…" />
+
+      <DataTable
+        loading={loading}
+        rows={result.content}
+        rowKey={(v) => v.id}
+        emptyMessage={query ? 'No vehicles match your search.' : 'No vehicles registered yet.'}
+        columns={[
+          { key: 'plateNumber', label: 'Plate' },
+          { key: 'make', label: 'Make' },
+          { key: 'model', label: 'Model' },
+          { key: 'colour', label: 'Colour' },
+          {
+            key: 'residentId',
+            label: 'Resident',
+            render: (v) => (
+              <button type="button" className="link-button" onClick={() => openResident(v.residentId)}>
+                Resident #{v.residentId}
+              </button>
+            ),
+          },
+          { key: 'status', label: 'Status', render: (v) => <StatusBadge value={v.status} /> },
+        ]}
+      />
+
+      <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
+
+      {modalOpen && (
+        <FormModal title="Register vehicle" fields={FIELDS} onSubmit={handleSubmit} onClose={() => setModalOpen(false)} />
+      )}
+    </div>
+  )
+}

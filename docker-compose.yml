@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nitel-estate-postgres
+    environment:
+      POSTGRES_DB: nitel_estate
+      POSTGRES_USER: nitel
+      POSTGRES_PASSWORD: nitel
+    ports:
+      - "55432:5432"
+    volumes:
+      - nitel-estate-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nitel -d nitel_estate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nitel-estate-pgdata:

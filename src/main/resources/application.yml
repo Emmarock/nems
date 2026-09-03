@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: nitel-estate
+
+  datasource:
+    # Individual fields (not one NITEL_DB_URL) so Render's Blueprint can wire each one straight
+    # from the managed Postgres instance's `host`/`port`/`database`/`user`/`password` properties
+    # without needing a jdbc:postgresql:// URI built by hand - see render.yaml.
+    url: jdbc:postgresql://${NITEL_DB_HOST:localhost}:${NITEL_DB_PORT:55432}/${NITEL_DB_NAME:nitel_estate}
+    username: ${NITEL_DB_USER:nitel}
+    password: ${NITEL_DB_PASSWORD:nitel}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  flyway:
+    enabled: true
+    # db/dev-seed (five login accounts sharing one known password, a fake demo resident) is
+    # deliberately included here but excluded in application-prod.yml's override - it must never
+    # run against a real database. See db/dev-seed/V4__seed_dev_data.sql.
+    locations: classpath:db/migration,classpath:db/dev-seed
+    baseline-on-migrate: true
+
+server:
+  # Render (and most PaaS hosts) assign the listen port via a PORT env var rather than letting
+  # you pick one - falls back to 8080 for local/Docker runs where nothing sets it.
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+nitel:
+  security:
+    jwt:
+      # Dev-only default secret. Override via NITEL_JWT_SECRET env var in real deployments.
+      secret: ${NITEL_JWT_SECRET:dev-only-secret-key-change-me-please-32bytes-min}
+      expiration-minutes: 480
+  cors:
+    # Wildcard patterns cover ngrok tunnels used to test on a phone (the free tier assigns a new
+    # random subdomain every restart, so a fixed hostname would need editing here every time).
+    allowed-origins: ${NITEL_CORS_ORIGINS:http://localhost:5173,https://*.ngrok-free.dev,https://*.ngrok-free.app}
+
+logging:
+  level:
+    com.cyrev.nitelestate: DEBUG
+    org.hibernate.SQL: WARN
