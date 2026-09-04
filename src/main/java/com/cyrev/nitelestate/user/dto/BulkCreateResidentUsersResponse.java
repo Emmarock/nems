@@ -12,6 +12,6 @@ public record BulkCreateResidentUsersResponse(
      * persisted). Every created account has mustChangePassword=true, so it's useless to anyone
      * but its holder beyond setting a real password.
      */
-    public record CreatedAccount(Long residentId, String fullName, String email, String temporaryPassword) {
+    public record CreatedAccount(Long residentId, String fullName, String email, String phone, String temporaryPassword) {
     }
 }

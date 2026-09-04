@@ -12,8 +12,8 @@ function csvEscape(value: string): string {
 
 function downloadCsv(result: BulkCreateResidentUsersResult) {
   const rows = [
-    ['Resident', 'Login email', 'Temporary password'],
-    ...result.created.map((a) => [a.fullName, a.email, a.temporaryPassword]),
+    ['Resident', 'Login email', 'Login phone', 'Temporary password'],
+    ...result.created.map((a) => [a.fullName, a.email, a.phone ?? '', a.temporaryPassword]),
   ]
   const csv = rows.map((row) => row.map(csvEscape).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -104,6 +104,7 @@ export function BulkCreateResidentAccountsModal({ onClose, onDone }: { onClose: 
                         <tr>
                           <th>Resident</th>
                           <th>Login email</th>
+                          <th>Login phone</th>
                           <th>Temporary password</th>
                         </tr>
                       </thead>
@@ -112,6 +113,7 @@ export function BulkCreateResidentAccountsModal({ onClose, onDone }: { onClose: 
                           <tr key={a.residentId}>
                             <td>{a.fullName}</td>
                             <td style={{ fontFamily: 'monospace' }}>{a.email}</td>
+                            <td style={{ fontFamily: 'monospace' }}>{a.phone ?? '—'}</td>
                             <td style={{ fontFamily: 'monospace' }}>{a.temporaryPassword}</td>
                           </tr>
                         ))}

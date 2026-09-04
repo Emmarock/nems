@@ -6,7 +6,7 @@ import { apiErrorMessage, consumeAuthMessage, consumePostLoginRedirect } from '.
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('admin@nitelestate.local')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -17,7 +17,7 @@ export function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      await login(email, password)
+      await login(identifier, password)
       navigate(consumePostLoginRedirect() || '/')
     } catch (err) {
       setError(apiErrorMessage(err))
@@ -34,8 +34,15 @@ export function LoginPage() {
         {sessionMessage && <div className="info-banner">{sessionMessage}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-field" style={{ marginBottom: 14 }}>
-            <label htmlFor="email">Email</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <label htmlFor="identifier">Email or phone number</label>
+            <input
+              id="identifier"
+              type="text"
+              autoComplete="username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+            />
           </div>
           <div className="form-field" style={{ marginBottom: 8 }}>
             <label htmlFor="password">Password</label>
@@ -52,6 +59,9 @@ export function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        <p className="muted" style={{ textAlign: 'center', fontSize: 13, marginTop: 16, marginBottom: 0 }}>
+          Forgot your password? Contact your estate administrator to have it reset.
+        </p>
       </div>
     </div>
   )

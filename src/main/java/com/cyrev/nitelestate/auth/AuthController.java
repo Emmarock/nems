@@ -30,7 +30,7 @@ public class AuthController {
     @SecurityRequirements
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+                new UsernamePasswordAuthenticationToken(request.identifier(), request.password()));
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
         String token = jwtService.generateToken(principal);
         return new LoginResponse(token, principal.getUsername(), principal.getFullName(), principal.getRole(),

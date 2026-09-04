@@ -15,6 +15,7 @@ const EMPTY: PageResponse<User> = { content: [], page: 0, size: 20, totalElement
 const FIELDS: FieldConfig[] = [
   { name: 'fullName', label: 'Full name', required: true, full: true },
   { name: 'email', label: 'Email', required: true },
+  { name: 'phone', label: 'Phone (optional, alternative login)' },
   { name: 'password', label: 'Password', required: true },
   {
     name: 'role',
@@ -62,6 +63,7 @@ export function UsersPage() {
   async function handleSubmit(values: Record<string, unknown>) {
     await usersApi.create({
       email: values.email as string,
+      phone: (values.phone as string) || undefined,
       password: values.password as string,
       fullName: values.fullName as string,
       role: values.role as string,
@@ -103,6 +105,7 @@ export function UsersPage() {
         columns={[
           { key: 'fullName', label: 'Name' },
           { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Phone', render: (u) => u.phone ?? <span className="muted">—</span> },
           { key: 'role', label: 'Role', render: (u) => <StatusBadge value={u.role} /> },
           { key: 'status', label: 'Status', render: (u) => <StatusBadge value={u.status} /> },
         ]}

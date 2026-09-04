@@ -34,8 +34,9 @@ import type {
 } from './types'
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    client.post<LoginResponse>('/auth/login', { email, password }).then((r) => r.data),
+  /** identifier is either the account's email or its registered phone number. */
+  login: (identifier: string, password: string) =>
+    client.post<LoginResponse>('/auth/login', { identifier, password }).then((r) => r.data),
   changePassword: (currentPassword: string, newPassword: string) =>
     client.put<void>('/auth/password', { currentPassword, newPassword }).then(() => undefined),
 }
@@ -43,7 +44,7 @@ export const authApi = {
 export const usersApi = {
   list: (params: { q?: string; page?: number; size?: number } = {}) =>
     client.get<PageResponse<User>>('/users', { params }).then((r) => r.data),
-  create: (body: { email: string; password: string; fullName: string; role: string; residentId?: number }) =>
+  create: (body: { email: string; phone?: string; password: string; fullName: string; role: string; residentId?: number }) =>
     client.post<User>('/users', body).then((r) => r.data),
   setStatus: (id: number, status: 'ACTIVE' | 'DISABLED') =>
     client.put<User>(`/users/${id}/status`, null, { params: { status } }).then((r) => r.data),

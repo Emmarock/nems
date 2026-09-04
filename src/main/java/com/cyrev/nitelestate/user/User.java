@@ -20,6 +20,10 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    /** Normalized (last-10-digit) phone number - an alternative login identifier. See PhoneNumbers. */
+    @Column(unique = true, length = 20)
+    private String phone;
+
     @Column(nullable = false)
     private String passwordHash;
 

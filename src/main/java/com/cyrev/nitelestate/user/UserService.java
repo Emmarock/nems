@@ -41,8 +41,13 @@ public class UserService {
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new ConflictException("A user with email " + request.email() + " already exists");
         }
+        String normalizedPhone = PhoneNumbers.normalize(request.phone());
+        if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
+            throw new ConflictException("A user with phone " + request.phone() + " already exists");
+        }
         User user = new User();
         user.setEmail(request.email());
+        user.setPhone(normalizedPhone);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setFullName(request.fullName());
         user.setRole(request.role());
@@ -112,14 +117,17 @@ public class UserService {
 
         Set<String> usedEmailsLower = new HashSet<>();
         userRepository.findAllEmails().forEach(email -> usedEmailsLower.add(email.toLowerCase()));
+        Set<String> usedPhones = new HashSet<>(userRepository.findAllPhones());
 
         List<BulkCreateResidentUsersResponse.CreatedAccount> created = new ArrayList<>();
         for (Resident resident : residentRepository.findAllById(toCreate)) {
             String email = buildLoginEmail(resident, usedEmailsLower);
+            String phone = resolveLoginPhone(resident, usedPhones);
             String temporaryPassword = generateTemporaryPassword();
 
             User user = new User();
             user.setEmail(email);
+            user.setPhone(phone);
             user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
             user.setFullName(resident.getFullName());
             user.setRole(Role.RESIDENT);
@@ -129,10 +137,20 @@ public class UserService {
             userRepository.save(user);
 
             created.add(new BulkCreateResidentUsersResponse.CreatedAccount(
-                    resident.getId(), resident.getFullName(), email, temporaryPassword));
+                    resident.getId(), resident.getFullName(), email, phone, temporaryPassword));
         }
 
         return new BulkCreateResidentUsersResponse(created, targetIds.size() - toCreate.size());
+    }
+
+    /** Real phone (not "UNKNOWN"), normalized, skipped if it would collide with another account's. */
+    private String resolveLoginPhone(Resident resident, Set<String> usedPhones) {
+        String normalized = PhoneNumbers.normalize(resident.getPhone());
+        if (normalized == null || usedPhones.contains(normalized)) {
+            return null;
+        }
+        usedPhones.add(normalized);
+        return normalized;
     }
 
     /** Prefers the resident's own phone number (memorable) over an arbitrary ID, falling back

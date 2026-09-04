@@ -15,6 +15,8 @@ import com.cyrev.nitelestate.resident.dto.ResidentArrearsResponse;
 import com.cyrev.nitelestate.resident.dto.ResidentLookupResponse;
 import com.cyrev.nitelestate.resident.dto.ResidentRequest;
 import com.cyrev.nitelestate.resident.dto.ResidentResponse;
+import com.cyrev.nitelestate.user.PhoneNumbers;
+import com.cyrev.nitelestate.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ public class ResidentService {
     private final AccessEventService accessEventService;
     private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
+    private final UserRepository userRepository;
 
     @Transactional
     public ResidentResponse create(ResidentRequest request) {
@@ -70,8 +73,28 @@ public class ResidentService {
         resident.setEmail(request.email());
         resident.setEmergencyContact(request.emergencyContact());
         resident = residentRepository.save(resident);
+        syncLoginPhone(resident);
         auditService.record("Resident", resident.getId(), "SELF_UPDATE", resident.getFullName());
         return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
+    }
+
+    /**
+     * Keeps a resident's login phone (if their account already uses one, or is eligible to start
+     * using one) in step with their profile - otherwise updating your contact number here could
+     * silently break, or never grant, phone-based login. Skipped if the new number would collide
+     * with another account's, same as bulk creation.
+     */
+    private void syncLoginPhone(Resident resident) {
+        String normalized = PhoneNumbers.normalize(resident.getPhone());
+        if (normalized == null) {
+            return;
+        }
+        userRepository.findByResidentId(resident.getId()).ifPresent(user -> {
+            if (!normalized.equals(user.getPhone()) && !userRepository.existsByPhone(normalized)) {
+                user.setPhone(normalized);
+                userRepository.save(user);
+            }
+        });
     }
 
     public PageResponse<ResidentResponse> search(String q, Long propertyId, Pageable pageable) {

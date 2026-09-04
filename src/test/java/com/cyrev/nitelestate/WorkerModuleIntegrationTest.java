@@ -54,7 +54,7 @@ class WorkerModuleIntegrationTest {
 
     private String login(String email, String password) {
         var response = restTemplate.postForEntity(baseUrl() + "/auth/login",
-                Map.of("email", email, "password", password), Map.class);
+                Map.of("identifier", email, "password", password), Map.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         return (String) response.getBody().get("token");
     }

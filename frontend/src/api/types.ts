@@ -27,6 +27,7 @@ export interface LoginResponse {
 export interface User {
   id: number
   email: string
+  phone: string | null
   fullName: string
   role: Role
   status: 'ACTIVE' | 'DISABLED'
@@ -53,6 +54,7 @@ export interface BulkCreatedAccount {
   residentId: number
   fullName: string
   email: string
+  phone: string | null
   temporaryPassword: string
 }
 

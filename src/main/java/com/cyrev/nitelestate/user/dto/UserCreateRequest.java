@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 
 public record UserCreateRequest(
         @NotBlank @Email String email,
+        String phone,
         @NotBlank @Size(min = 8) String password,
         @NotBlank String fullName,
         @NotNull Role role,
