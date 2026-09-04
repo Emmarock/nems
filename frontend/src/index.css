@@ -1291,6 +1291,66 @@ tbody tr:hover {
   background: var(--color-bg);
 }
 
+.resident-picker {
+  position: relative;
+}
+
+.resident-picker input {
+  width: 100%;
+}
+
+.resident-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 40;
+  padding: 4px 0;
+}
+
+.resident-picker-option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.resident-picker-option:hover {
+  background: var(--color-bg);
+}
+
+.resident-picker-empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.resident-picker-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  padding: 9px 12px;
+  font-size: 14px;
+}
+
 .search-result-title {
   font-weight: 600;
   white-space: nowrap;

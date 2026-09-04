@@ -45,6 +45,14 @@ public class UserService {
         if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
             throw new ConflictException("A user with phone " + request.phone() + " already exists");
         }
+        if (request.role() == Role.RESIDENT) {
+            if (request.residentId() == null) {
+                throw new BadRequestException("A resident-role account must be linked to a resident");
+            }
+            if (!residentRepository.existsById(request.residentId())) {
+                throw new BadRequestException("No resident found with id " + request.residentId());
+            }
+        }
         User user = new User();
         user.setEmail(request.email());
         user.setPhone(normalizedPhone);
