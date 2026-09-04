@@ -377,7 +377,7 @@ export function EntityDetailModal() {
                     className="link-button"
                     onClick={() => openResident(vehicleDetail.residentId)}
                   >
-                    View resident #{vehicleDetail.residentId} →
+                    {vehicleDetail.residentName ?? `Resident #${vehicleDetail.residentId}`}
                   </button>
                 }
               />

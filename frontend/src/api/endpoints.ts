@@ -88,7 +88,7 @@ export const vehiclesApi = {
   list: (params: { q?: string; residentId?: number; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Vehicle>>('/vehicles', { params }).then((r) => r.data),
   get: (id: number) => client.get<Vehicle>(`/vehicles/${id}`).then((r) => r.data),
-  create: (body: Omit<Vehicle, 'id' | 'status'>) => client.post<Vehicle>('/vehicles', body).then((r) => r.data),
+  create: (body: Omit<Vehicle, 'id' | 'status' | 'residentName'>) => client.post<Vehicle>('/vehicles', body).then((r) => r.data),
   lookup: (qrToken: string) => client.get<VehicleLookup>(`/vehicles/lookup/${qrToken}`).then((r) => r.data),
   checkIn: (qrToken: string, gateId?: number) =>
     client.post<Vehicle>(`/vehicles/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
@@ -147,7 +147,7 @@ export const meApi = {
       .then((r) => r.data),
   vehicles: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Vehicle>>('/me/vehicles', { params }).then((r) => r.data),
-  registerVehicle: (body: Omit<Vehicle, 'id' | 'status' | 'residentId'>) =>
+  registerVehicle: (body: Omit<Vehicle, 'id' | 'status' | 'residentId' | 'residentName'>) =>
     client.post<Vehicle>('/me/vehicles', body).then((r) => r.data),
   vehicleAccessPass: (id: number) =>
     client.get<{ qrToken: string }>(`/me/vehicles/${id}/access-pass`).then((r) => r.data.qrToken),

@@ -11,10 +11,11 @@ public record VehicleResponse(
         String model,
         String colour,
         Long residentId,
+        String residentName,
         VehicleStatus status
 ) {
-    public static VehicleResponse from(Vehicle v) {
+    public static VehicleResponse from(Vehicle v, String residentName) {
         return new VehicleResponse(v.getId(), v.getPlateNumber(), v.getVehicleType(), v.getMake(), v.getModel(),
-                v.getColour(), v.getResidentId(), v.getStatus());
+                v.getColour(), v.getResidentId(), residentName, v.getStatus());
     }
 }

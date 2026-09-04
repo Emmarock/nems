@@ -134,6 +134,7 @@ export interface Vehicle {
   model: string | null
   colour: string | null
   residentId: number
+  residentName: string | null
   status: VehicleStatus
 }
 

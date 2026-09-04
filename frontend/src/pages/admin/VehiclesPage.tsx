@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { vehiclesApi } from '../../api/endpoints'
 import type { PageResponse, Vehicle } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
-import { FormModal, type FieldConfig } from '../../components/FormModal'
+import { RegisterVehicleModal } from '../../components/RegisterVehicleModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
@@ -10,15 +10,6 @@ import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 
 const EMPTY: PageResponse<Vehicle> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
-
-const FIELDS: FieldConfig[] = [
-  { name: 'plateNumber', label: 'Plate number', required: true },
-  { name: 'residentId', label: 'Resident ID', type: 'number', required: true },
-  { name: 'vehicleType', label: 'Vehicle type' },
-  { name: 'make', label: 'Make' },
-  { name: 'model', label: 'Model' },
-  { name: 'colour', label: 'Colour' },
-]
 
 export function VehiclesPage() {
   const [result, setResult] = useState<PageResponse<Vehicle>>(EMPTY)
@@ -43,19 +34,6 @@ export function VehiclesPage() {
   useEffect(() => {
     setPage(0)
   }, [debouncedQuery])
-
-  async function handleSubmit(values: Record<string, unknown>) {
-    await vehiclesApi.create({
-      plateNumber: (values.plateNumber as string).toUpperCase(),
-      residentId: Number(values.residentId),
-      vehicleType: (values.vehicleType as string) || null,
-      make: (values.make as string) || null,
-      model: (values.model as string) || null,
-      colour: (values.colour as string) || null,
-    })
-    setModalOpen(false)
-    await load()
-  }
 
   return (
     <div>
@@ -86,7 +64,7 @@ export function VehiclesPage() {
             label: 'Resident',
             render: (v) => (
               <button type="button" className="link-button" onClick={() => openResident(v.residentId)}>
-                Resident #{v.residentId}
+                {v.residentName ?? `Resident #${v.residentId}`}
               </button>
             ),
           },
@@ -96,9 +74,7 @@ export function VehiclesPage() {
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
 
-      {modalOpen && (
-        <FormModal title="Register vehicle" fields={FIELDS} onSubmit={handleSubmit} onClose={() => setModalOpen(false)} />
-      )}
+      {modalOpen && <RegisterVehicleModal onClose={() => setModalOpen(false)} onCreated={load} />}
     </div>
   )
 }

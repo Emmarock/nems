@@ -23,7 +23,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class VehicleService {
@@ -62,7 +66,7 @@ public class VehicleService {
         apply(vehicle, request);
         vehicle = vehicleRepository.save(vehicle);
         auditService.record("Vehicle", vehicle.getId(), "CREATE", vehicle.getPlateNumber());
-        return VehicleResponse.from(vehicle);
+        return VehicleResponse.from(vehicle, resolveResidentName(vehicle.getResidentId()));
     }
 
     @Transactional
@@ -71,23 +75,30 @@ public class VehicleService {
         apply(vehicle, request);
         vehicle = vehicleRepository.save(vehicle);
         auditService.record("Vehicle", vehicle.getId(), "UPDATE", vehicle.getPlateNumber());
-        return VehicleResponse.from(vehicle);
+        return VehicleResponse.from(vehicle, resolveResidentName(vehicle.getResidentId()));
     }
 
     public VehicleResponse findById(Long id) {
-        return VehicleResponse.from(get(id));
+        Vehicle vehicle = get(id);
+        return VehicleResponse.from(vehicle, resolveResidentName(vehicle.getResidentId()));
     }
 
     public VehicleResponse findByPlate(String plate) {
-        return vehicleRepository.findByPlateNumberIgnoreCase(plate)
-                .map(VehicleResponse::from)
+        Vehicle vehicle = vehicleRepository.findByPlateNumberIgnoreCase(plate)
                 .orElseThrow(() -> NotFoundException.of("Vehicle", plate));
+        return VehicleResponse.from(vehicle, resolveResidentName(vehicle.getResidentId()));
     }
 
     public PageResponse<VehicleResponse> search(String q, Long residentId, Pageable pageable) {
         Specification<Vehicle> spec = Specification.<Vehicle>where(Specs.contains(q, "plateNumber", "make", "model", "colour"))
                 .and(Specs.eq(residentId, "residentId"));
-        return PageResponse.of(vehicleRepository.findAll(spec, pageable), VehicleResponse::from);
+        var page = vehicleRepository.findAll(spec, pageable);
+
+        List<Long> residentIds = page.getContent().stream().map(Vehicle::getResidentId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, String> residentNames = residentRepository.findAllById(residentIds).stream()
+                .collect(Collectors.toMap(Resident::getId, Resident::getFullName));
+
+        return PageResponse.of(page.map(v -> VehicleResponse.from(v, residentNames.get(v.getResidentId()))));
     }
 
     /**
@@ -143,7 +154,7 @@ public class VehicleService {
         accessEventService.record(AccessSubjectType.VEHICLE, vehicle.getId(), AccessDirection.IN, gateId,
                 verifiedByUserId, flag);
         auditService.record("Vehicle", vehicle.getId(), "CHECK_IN", flag);
-        return VehicleResponse.from(vehicle);
+        return VehicleResponse.from(vehicle, resident != null ? resident.getFullName() : null);
     }
 
     @Transactional
@@ -154,7 +165,11 @@ public class VehicleService {
         accessEventService.record(AccessSubjectType.VEHICLE, vehicle.getId(), AccessDirection.OUT, gateId,
                 verifiedByUserId, null);
         auditService.record("Vehicle", vehicle.getId(), "CHECK_OUT", null);
-        return VehicleResponse.from(vehicle);
+        return VehicleResponse.from(vehicle, resolveResidentName(vehicle.getResidentId()));
+    }
+
+    private String resolveResidentName(Long residentId) {
+        return residentId == null ? null : residentRepository.findById(residentId).map(Resident::getFullName).orElse(null);
     }
 
     private String evaluateVehicle(Vehicle vehicle, Resident resident) {
@@ -169,6 +184,9 @@ public class VehicleService {
     }
 
     private void apply(Vehicle vehicle, VehicleRequest request) {
+        if (!residentRepository.existsById(request.residentId())) {
+            throw new BadRequestException("No resident found with id " + request.residentId());
+        }
         vehicle.setPlateNumber(request.plateNumber().toUpperCase());
         vehicle.setVehicleType(request.vehicleType());
         vehicle.setMake(request.make());
