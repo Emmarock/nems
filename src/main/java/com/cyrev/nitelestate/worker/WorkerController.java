@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/** The Worker Module (spec Phase 2 §4): /api/v1/workers + approve/access-pass/checkin/checkout/logs. */
+/** The Worker Module (spec Phase 2 §4): /api/v1/workers + access-pass/checkin/checkout/logs. */
 @RestController
 @RequestMapping("/api/v1/workers")
 @RequiredArgsConstructor
@@ -28,12 +28,6 @@ public class WorkerController {
     @PreAuthorize("hasRole('RESIDENT')")
     public WorkerResponse request(@Valid @RequestBody WorkerRequest request) {
         return workerService.request(currentUser.residentId(), request);
-    }
-
-    @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN')")
-    public WorkerResponse approve(@PathVariable Long id) {
-        return workerService.approve(id);
     }
 
     @PostMapping("/{id}/suspend")

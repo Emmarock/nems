@@ -10,7 +10,7 @@ import { Pagination } from '../../components/Pagination'
 import { apiErrorMessage } from '../../api/client'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 
-const CAN_APPROVE = new Set(['SUPER_ADMIN', 'CDA_ADMIN'])
+const CAN_MANAGE = new Set(['SUPER_ADMIN', 'CDA_ADMIN'])
 const EMPTY: PageResponse<Worker> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 export function WorkersAdminPage() {
@@ -59,7 +59,8 @@ export function WorkersAdminPage() {
         <div>
           <h1>Workers</h1>
           <p className="page-subtitle">
-            Approve and manage contractor/labourer access requests (spec Phase 2 §4 — Worker Module).
+            Contractor/labourer access, issued immediately by the sponsoring resident (spec Phase 2 §4 — Worker
+            Module).
           </p>
         </div>
       </div>
@@ -109,17 +110,12 @@ export function WorkersAdminPage() {
         ]}
         actions={(w) => (
           <div style={{ display: 'flex', gap: 6 }}>
-            {w.status === 'PENDING' && user && CAN_APPROVE.has(user.role) && (
-              <button className="btn btn-sm" disabled={busyId === w.id} onClick={() => run(w.id, workersApi.approve)}>
-                Approve
-              </button>
-            )}
             {w.status !== 'SUSPENDED' && w.status !== 'COMPLETED' && (
               <button className="btn btn-sm" disabled={busyId === w.id} onClick={() => run(w.id, workersApi.suspend)}>
                 Suspend
               </button>
             )}
-            {w.status !== 'COMPLETED' && user && CAN_APPROVE.has(user.role) && (
+            {w.status !== 'COMPLETED' && user && CAN_MANAGE.has(user.role) && (
               <button className="btn btn-sm" disabled={busyId === w.id} onClick={() => run(w.id, workersApi.complete)}>
                 Complete
               </button>

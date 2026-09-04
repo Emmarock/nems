@@ -193,7 +193,6 @@ export const workersApi = {
     expectedEndDate: string
     photo?: string
   }) => client.post<Worker>('/workers', body).then((r) => r.data),
-  approve: (id: number) => client.post<Worker>(`/workers/${id}/approve`).then((r) => r.data),
   suspend: (id: number) => client.post<Worker>(`/workers/${id}/suspend`).then((r) => r.data),
   complete: (id: number) => client.post<Worker>(`/workers/${id}/complete`).then((r) => r.data),
   logs: (id: number, params: { page?: number; size?: number } = {}) =>

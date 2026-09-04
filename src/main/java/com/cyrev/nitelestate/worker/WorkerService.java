@@ -43,9 +43,10 @@ public class WorkerService {
     private static final int MAX_PHOTO_LENGTH = 2_000_000;
 
     /**
-     * A resident (or the estate developer) requests worker access — starts as PENDING (spec §4).
-     * The site is always the sponsoring resident's own property, resolved here rather than
-     * trusted from the request body — a resident cannot request access for another home.
+     * A resident (or the estate developer) requests worker access — issued immediately, same as
+     * a Visitor pass, with no administrator sign-off gate. The site is always the sponsoring
+     * resident's own property, resolved here rather than trusted from the request body — a
+     * resident cannot request access for another home.
      */
     @Transactional
     public WorkerResponse request(Long sponsorResidentId, WorkerRequest request) {
@@ -68,26 +69,12 @@ public class WorkerService {
         worker.setSponsorResidentId(sponsorResidentId);
         worker.setStartDate(request.startDate());
         worker.setExpectedEndDate(request.expectedEndDate());
-        worker.setStatus(WorkerStatus.PENDING);
+        worker.setStatus(WorkerStatus.APPROVED);
+        worker.setQrToken(UUID.randomUUID().toString());
         worker.setPhoto(request.photo());
         worker = workerRepository.save(worker);
 
         auditService.record("Worker", worker.getId(), "REQUEST", worker.getContractorName());
-        return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
-    }
-
-    /** CDA Administrator sign-off (spec §4 approval workflow); issues the QR access pass. */
-    @Transactional
-    public WorkerResponse approve(Long id) {
-        Worker worker = get(id);
-        if (worker.getStatus() != WorkerStatus.PENDING) {
-            throw new BadRequestException("Only PENDING worker requests can be approved");
-        }
-        worker.setStatus(WorkerStatus.APPROVED);
-        worker.setQrToken(UUID.randomUUID().toString());
-        worker = workerRepository.save(worker);
-
-        auditService.record("Worker", worker.getId(), "APPROVE", null);
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
     }
 

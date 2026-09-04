@@ -21,8 +21,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * End-to-end proof of the auth flow plus the Worker Module lifecycle (spec Phase 2 §4):
- * resident requests access -> CDA admin approves -> security checks the worker in ->
+ * End-to-end proof of the auth flow plus the Worker Module lifecycle: resident requests access
+ * (issued immediately, no administrator approval step) -> security checks the worker in ->
  * status flips to ACTIVE and is reflected on the Security Dashboard (spec Phase 3 §1).
  */
 @Testcontainers
@@ -67,9 +67,8 @@ class WorkerModuleIntegrationTest {
     }
 
     @Test
-    void workerLifecycle_requestApproveCheckIn_reflectsOnSecurityDashboard() {
+    void workerLifecycle_requestCheckIn_reflectsOnSecurityDashboard() {
         String residentToken = login("resident@nitelestate.local", "Passw0rd!");
-        String cdaToken = login("cda@nitelestate.local", "Passw0rd!");
         String securityToken = login("security@nitelestate.local", "Passw0rd!");
 
         Map<String, Object> workerRequest = Map.of(
@@ -83,14 +82,8 @@ class WorkerModuleIntegrationTest {
         var created = restTemplate.postForEntity(baseUrl() + "/workers",
                 new HttpEntity<>(workerRequest, authHeaders(residentToken)), Map.class);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(created.getBody().get("status")).isEqualTo("PENDING");
-        Integer workerId = (Integer) created.getBody().get("id");
-
-        var approved = restTemplate.exchange(baseUrl() + "/workers/" + workerId + "/approve",
-                org.springframework.http.HttpMethod.POST, new HttpEntity<>(authHeaders(cdaToken)), Map.class);
-        assertThat(approved.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(approved.getBody().get("status")).isEqualTo("APPROVED");
-        String qrToken = (String) approved.getBody().get("qrToken");
+        assertThat(created.getBody().get("status")).isEqualTo("APPROVED");
+        String qrToken = (String) created.getBody().get("qrToken");
         assertThat(qrToken).isNotBlank();
 
         var checkedIn = restTemplate.exchange(baseUrl() + "/workers/checkin/" + qrToken,
