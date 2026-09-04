@@ -123,6 +123,11 @@ export function SecurityDashboardPage() {
                 <span className="muted">—</span>
               ),
           },
+          {
+            key: 'vehicleResidentName',
+            label: 'Owner',
+            render: (e) => (e.subjectType === 'VEHICLE' ? e.vehicleResidentName ?? <span className="muted">—</span> : null),
+          },
           { key: 'direction', label: 'Direction', render: (e) => <StatusBadge value={e.direction} /> },
           {
             key: 'gateId',

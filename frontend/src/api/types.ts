@@ -373,7 +373,7 @@ export interface AccessEvent {
   occurredAt: string
   verifiedByUserId: number | null
   flagReason: string | null
-  // Populated for VISITOR rows only.
+  // Populated for VISITOR and WORKER rows (expectedCheckoutAt for VISITOR only).
   subjectName: string | null
   subjectPhone: string | null
   expectedCheckoutAt: string | null
@@ -382,6 +382,7 @@ export interface AccessEvent {
   vehicleMake: string | null
   vehicleModel: string | null
   vehicleColour: string | null
+  vehicleResidentName: string | null
 }
 
 export type RfidStatus = 'ACTIVE' | 'LOST' | 'REVOKED'
