@@ -70,6 +70,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Proper international phone parsing/normalization - residents have non-Nigerian
+             numbers too, so a hand-rolled "last 10 digits + hardcoded +234" scheme isn't safe. -->
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+            <version>8.13.52</version>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

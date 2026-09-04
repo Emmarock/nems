@@ -5,6 +5,8 @@ import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.ConflictException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
+import com.cyrev.nitelestate.notification.NotificationChannel;
+import com.cyrev.nitelestate.notification.NotificationService;
 import com.cyrev.nitelestate.resident.Resident;
 import com.cyrev.nitelestate.resident.ResidentRepository;
 import com.cyrev.nitelestate.user.dto.BulkCreateResidentUsersResponse;
@@ -35,6 +37,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ResidentRepository residentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     @Transactional
     public UserResponse create(UserCreateRequest request) {
@@ -61,7 +64,9 @@ public class UserService {
         user.setRole(request.role());
         user.setResidentId(request.residentId());
         user.setStatus(UserStatus.ACTIVE);
-        return UserResponse.from(userRepository.save(user));
+        user = userRepository.save(user);
+        notifyNewAccount(user, request.password(), user.isMustChangePassword());
+        return UserResponse.from(user);
     }
 
     public PageResponse<UserResponse> search(String q, Pageable pageable) {
@@ -143,6 +148,7 @@ public class UserService {
             user.setStatus(UserStatus.ACTIVE);
             user.setMustChangePassword(true);
             userRepository.save(user);
+            notifyNewAccount(user, temporaryPassword, true);
 
             created.add(new BulkCreateResidentUsersResponse.CreatedAccount(
                     resident.getId(), resident.getFullName(), email, phone, temporaryPassword));
@@ -162,21 +168,47 @@ public class UserService {
     }
 
     /** Prefers the resident's own phone number (memorable) over an arbitrary ID, falling back
-     * when the phone is missing/"UNKNOWN" or would collide with an email already in use. */
+     * when the phone is missing/unparseable or would collide with an email already in use. */
     private String buildLoginEmail(Resident resident, Set<String> usedEmailsLower) {
         String candidate = null;
-        String phone = resident.getPhone();
-        if (phone != null && !phone.equalsIgnoreCase("UNKNOWN")) {
-            String digits = phone.replaceAll("\\D", "");
-            if (!digits.isEmpty()) {
-                candidate = digits + SYNTHETIC_EMAIL_DOMAIN;
-            }
+        String normalizedPhone = PhoneNumbers.normalize(resident.getPhone());
+        if (normalizedPhone != null) {
+            candidate = normalizedPhone.substring(1) + SYNTHETIC_EMAIL_DOMAIN; // drop the leading "+"
         }
         if (candidate == null || usedEmailsLower.contains(candidate.toLowerCase())) {
             candidate = "resident" + resident.getId() + SYNTHETIC_EMAIL_DOMAIN;
         }
         usedEmailsLower.add(candidate.toLowerCase());
         return candidate;
+    }
+
+    /**
+     * Notifies a newly-created account holder of their login and password, on every channel
+     * they actually have a real contact method for. Skips email for the synthetic
+     * {@code @nitelestate.local} placeholder (see buildLoginEmail) - that's a login key, not a
+     * real inbox, so mailing it would just bounce. Phone is stored as a real E.164 number (see
+     * PhoneNumbers) so it's already dispatchable as-is, Nigerian or international.
+     */
+    private void notifyNewAccount(User user, String password, boolean mustChangePassword) {
+        String loginId = isRealEmail(user.getEmail())
+                ? user.getEmail()
+                : (user.getPhone() != null ? user.getPhone() : user.getEmail());
+        String passwordNote = mustChangePassword
+                ? "Temporary password: " + password + ". You'll be asked to set your own password on first login."
+                : "Your password: " + password;
+        String message = "Welcome to Nitel Estate Management System. Your login is " + loginId + ". " + passwordNote;
+
+        if (isRealEmail(user.getEmail())) {
+            notificationService.dispatch(NotificationChannel.EMAIL, user.getEmail(), message);
+        }
+        if (user.getPhone() != null) {
+            notificationService.dispatch(NotificationChannel.SMS, user.getPhone(), message);
+            notificationService.dispatch(NotificationChannel.WHATSAPP, user.getPhone(), message);
+        }
+    }
+
+    private boolean isRealEmail(String email) {
+        return email != null && !email.toLowerCase().endsWith(SYNTHETIC_EMAIL_DOMAIN);
     }
 
     private String generateTemporaryPassword() {

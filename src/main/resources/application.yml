@@ -50,6 +50,23 @@ nitel:
     # Wildcard patterns cover ngrok tunnels used to test on a phone (the free tier assigns a new
     # random subdomain every restart, so a fixed hostname would need editing here every time).
     allowed-origins: ${NITEL_CORS_ORIGINS:http://localhost:5173,https://*.ngrok-free.dev,https://*.ngrok-free.app}
+  notifications:
+    # SMS + WhatsApp both go through Twilio's Messages API (one account, one auth pair). Leave
+    # unset for local/dev - the senders fall back to logging instead of calling out. See
+    # TwilioSmsSender / TwilioWhatsAppSender for exactly what "unset" means (blank, not absent).
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      sms-from: ${TWILIO_SMS_FROM:}
+      # Plain E.164 number, no "whatsapp:" prefix - the sender adds that. Twilio's sandbox number
+      # (shown in the console under Messaging > Try it out > WhatsApp) works for testing before
+      # your own WhatsApp sender is Meta-approved.
+      whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
+    # Email via Twilio SendGrid - same vendor family, separate API key.
+    sendgrid:
+      api-key: ${SENDGRID_API_KEY:}
+      from-email: ${SENDGRID_FROM_EMAIL:noreply@nitelestate.local}
+      from-name: ${SENDGRID_FROM_NAME:Nitel Estate Management System}
 
 logging:
   level:
