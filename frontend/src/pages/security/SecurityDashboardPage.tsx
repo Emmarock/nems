@@ -124,9 +124,9 @@ export function SecurityDashboardPage() {
               ),
           },
           {
-            key: 'vehicleResidentName',
-            label: 'Owner',
-            render: (e) => (e.subjectType === 'VEHICLE' ? e.vehicleResidentName ?? <span className="muted">—</span> : null),
+            key: 'residentName',
+            label: 'Resident',
+            render: (e) => e.residentName ?? <span className="muted">—</span>,
           },
           { key: 'direction', label: 'Direction', render: (e) => <StatusBadge value={e.direction} /> },
           {

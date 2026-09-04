@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -61,21 +62,31 @@ public class AccessEventService {
         Map<Long, Vehicle> vehicles = vehicleRepository.findAllById(subjectIds(page, AccessSubjectType.VEHICLE))
                 .stream().collect(Collectors.toMap(Vehicle::getId, Function.identity()));
 
-        List<Long> vehicleResidentIds = vehicles.values().stream()
-                .map(Vehicle::getResidentId).filter(Objects::nonNull).distinct().toList();
-        Map<Long, String> vehicleResidentNames = residentRepository.findAllById(vehicleResidentIds).stream()
+        // The one resident relationship each subject type carries - host/sponsor/owner are
+        // different relationships elsewhere in the app, but all resolve through this one lookup.
+        List<Long> residentIds = Stream.of(
+                        visitors.values().stream().map(Visitor::getHostResidentId),
+                        workers.values().stream().map(Worker::getSponsorResidentId),
+                        vehicles.values().stream().map(Vehicle::getResidentId))
+                .flatMap(Function.identity())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> residentNames = residentRepository.findAllById(residentIds).stream()
                 .collect(Collectors.toMap(Resident::getId, Resident::getFullName));
 
         return PageResponse.of(page.map(e -> {
             if (e.getSubjectType() == AccessSubjectType.VISITOR && visitors.containsKey(e.getSubjectId())) {
-                return AccessEventResponse.ofVisitor(e, visitors.get(e.getSubjectId()));
+                Visitor visitor = visitors.get(e.getSubjectId());
+                return AccessEventResponse.ofVisitor(e, visitor, residentNames.get(visitor.getHostResidentId()));
             }
             if (e.getSubjectType() == AccessSubjectType.WORKER && workers.containsKey(e.getSubjectId())) {
-                return AccessEventResponse.ofWorker(e, workers.get(e.getSubjectId()));
+                Worker worker = workers.get(e.getSubjectId());
+                return AccessEventResponse.ofWorker(e, worker, residentNames.get(worker.getSponsorResidentId()));
             }
             if (e.getSubjectType() == AccessSubjectType.VEHICLE && vehicles.containsKey(e.getSubjectId())) {
                 Vehicle vehicle = vehicles.get(e.getSubjectId());
-                return AccessEventResponse.ofVehicle(e, vehicle, vehicleResidentNames.get(vehicle.getResidentId()));
+                return AccessEventResponse.ofVehicle(e, vehicle, residentNames.get(vehicle.getResidentId()));
             }
             return AccessEventResponse.from(e);
         }));

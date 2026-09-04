@@ -382,7 +382,8 @@ export interface AccessEvent {
   vehicleMake: string | null
   vehicleModel: string | null
   vehicleColour: string | null
-  vehicleResidentName: string | null
+  // The resident tied to this row: host (VISITOR), sponsor (WORKER), or owner (VEHICLE).
+  residentName: string | null
 }
 
 export type RfidStatus = 'ACTIVE' | 'LOST' | 'REVOKED'
