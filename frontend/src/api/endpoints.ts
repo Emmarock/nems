@@ -89,6 +89,7 @@ export const vehiclesApi = {
     client.get<PageResponse<Vehicle>>('/vehicles', { params }).then((r) => r.data),
   get: (id: number) => client.get<Vehicle>(`/vehicles/${id}`).then((r) => r.data),
   create: (body: Omit<Vehicle, 'id' | 'status' | 'residentName'>) => client.post<Vehicle>('/vehicles', body).then((r) => r.data),
+  accessPass: (id: number) => client.get<{ qrToken: string }>(`/vehicles/${id}/access-pass`).then((r) => r.data.qrToken),
   lookup: (qrToken: string) => client.get<VehicleLookup>(`/vehicles/lookup/${qrToken}`).then((r) => r.data),
   checkIn: (qrToken: string, gateId?: number) =>
     client.post<Vehicle>(`/vehicles/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),

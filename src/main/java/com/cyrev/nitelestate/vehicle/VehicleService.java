@@ -101,10 +101,22 @@ public class VehicleService {
         return PageResponse.of(page.map(v -> VehicleResponse.from(v, residentNames.get(v.getResidentId()))));
     }
 
+    /** Admin-issued QR pass for any vehicle — for printing/handing out, or for an enforcement lookup. No ownership check. */
+    @Transactional
+    public String getOrCreateQrToken(Long vehicleId) {
+        Vehicle vehicle = get(vehicleId);
+        if (vehicle.getQrToken() == null) {
+            vehicle.setQrToken(UUID.randomUUID().toString());
+            vehicle = vehicleRepository.save(vehicle);
+            auditService.record("Vehicle", vehicle.getId(), "ISSUE_ACCESS_PASS", null);
+        }
+        return vehicle.getQrToken();
+    }
+
     /**
-     * A resident's own QR pass for one of their registered vehicles, generated the first time
-     * it's asked for. Scoped to the caller's own vehicles — the id comes straight from the URL,
-     * unlike registerVehicle()'s resident id, so ownership has to be checked here.
+     * A resident's own QR pass for one of their registered vehicles. Scoped to the caller's own
+     * vehicles — the id comes straight from the URL, unlike registerVehicle()'s resident id, so
+     * ownership has to be checked here (getOrCreateQrToken has no such check, by design).
      */
     @Transactional
     public String getOrCreateQrTokenForResident(Long vehicleId, Long residentId) {
@@ -112,12 +124,7 @@ public class VehicleService {
         if (!vehicle.getResidentId().equals(residentId)) {
             throw new BadRequestException("You can only view the QR pass for your own vehicle");
         }
-        if (vehicle.getQrToken() == null) {
-            vehicle.setQrToken(UUID.randomUUID().toString());
-            vehicle = vehicleRepository.save(vehicle);
-            auditService.record("Vehicle", vehicle.getId(), "ISSUE_ACCESS_PASS", null);
-        }
-        return vehicle.getQrToken();
+        return getOrCreateQrToken(vehicleId);
     }
 
     /**

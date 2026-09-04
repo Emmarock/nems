@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/vehicles")
 @RequiredArgsConstructor
@@ -53,6 +55,13 @@ public class VehicleController {
                                                   @RequestParam(defaultValue = "0") int page,
                                                   @RequestParam(defaultValue = "20") int size) {
         return vehicleService.search(q, residentId, Paging.of(page, size, Sort.by("plateNumber")));
+    }
+
+    /** Admin-issued QR pass for a vehicle — for printing/handing out, or for enforcement lookups. */
+    @GetMapping("/{id}/access-pass")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
+    public Map<String, String> accessPass(@PathVariable Long id) {
+        return Map.of("qrToken", vehicleService.getOrCreateQrToken(id));
     }
 
     /** Gate-side QR scan: identifies the vehicle and its owner before deciding to grant access (spec §9). */

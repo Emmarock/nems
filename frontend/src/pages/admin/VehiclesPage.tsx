@@ -6,8 +6,10 @@ import { RegisterVehicleModal } from '../../components/RegisterVehicleModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
+import { QrCodeModal } from '../../components/QrCodeModal'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { buildScanUrl } from '../../utils/scanUrl'
 
 const EMPTY: PageResponse<Vehicle> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
@@ -19,6 +21,13 @@ export function VehiclesPage() {
   const [page, setPage] = useState(0)
   const debouncedQuery = useDebouncedValue(query)
   const { openResident } = useEntityDetail()
+  const [qrVehicle, setQrVehicle] = useState<Vehicle | null>(null)
+  const [qrToken, setQrToken] = useState<string | null>(null)
+
+  async function openAccessPass(v: Vehicle) {
+    setQrVehicle(v)
+    setQrToken(await vehiclesApi.accessPass(v.id))
+  }
 
   async function load() {
     setLoading(true)
@@ -70,11 +79,30 @@ export function VehiclesPage() {
           },
           { key: 'status', label: 'Status', render: (v) => <StatusBadge value={v.status} /> },
         ]}
+        actions={(v) => (
+          <button className="btn btn-sm" onClick={() => openAccessPass(v)}>
+            View QR pass
+          </button>
+        )}
       />
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
 
       {modalOpen && <RegisterVehicleModal onClose={() => setModalOpen(false)} onCreated={load} />}
+
+      {qrVehicle && qrToken && (
+        <QrCodeModal
+          title={`Vehicle pass — ${qrVehicle.plateNumber}`}
+          subtitle={qrVehicle.residentName ?? `Resident #${qrVehicle.residentId}`}
+          value={buildScanUrl('vehicle', qrToken)}
+          fileName={`vehicle-pass-${qrVehicle.plateNumber.toLowerCase()}`}
+          helpText="Scan this at the gate to identify the vehicle and its owner before granting access."
+          onClose={() => {
+            setQrVehicle(null)
+            setQrToken(null)
+          }}
+        />
+      )}
     </div>
   )
 }
