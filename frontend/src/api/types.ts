@@ -392,8 +392,11 @@ export interface RfidTag {
   id: number
   tagId: string
   assignedResidentId: number | null
+  assignedResidentName: string | null
   assignedWorkerId: number | null
+  assignedWorkerName: string | null
   vehicleId: number | null
+  vehiclePlateNumber: string | null
   status: RfidStatus
 }
 

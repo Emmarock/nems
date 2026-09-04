@@ -2,20 +2,15 @@ import { useEffect, useState } from 'react'
 import { rfidApi } from '../../api/endpoints'
 import type { PageResponse, RfidTag } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
-import { FormModal, type FieldConfig } from '../../components/FormModal'
+import { IssueRfidModal } from '../../components/IssueRfidModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
+import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 
 const EMPTY: PageResponse<RfidTag> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
-const FIELDS: FieldConfig[] = [
-  { name: 'tagId', label: 'Tag ID', required: true, full: true },
-  { name: 'assignedResidentId', label: 'Resident ID', type: 'number' },
-  { name: 'assignedWorkerId', label: 'Worker ID', type: 'number' },
-  { name: 'vehicleId', label: 'Vehicle ID', type: 'number' },
-]
-
 export function RfidPage() {
+  const { openResident, openWorker } = useEntityDetail()
   const [result, setResult] = useState<PageResponse<RfidTag>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
@@ -31,17 +26,6 @@ export function RfidPage() {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
-
-  async function handleSubmit(values: Record<string, unknown>) {
-    await rfidApi.issue({
-      tagId: values.tagId as string,
-      assignedResidentId: values.assignedResidentId ? Number(values.assignedResidentId) : undefined,
-      assignedWorkerId: values.assignedWorkerId ? Number(values.assignedWorkerId) : undefined,
-      vehicleId: values.vehicleId ? Number(values.vehicleId) : undefined,
-    })
-    setModalOpen(false)
-    await load()
-  }
 
   async function revoke(id: number) {
     await rfidApi.revoke(id)
@@ -67,9 +51,35 @@ export function RfidPage() {
         emptyMessage="No RFID tags issued yet."
         columns={[
           { key: 'tagId', label: 'Tag ID' },
-          { key: 'assignedResidentId', label: 'Resident ID' },
-          { key: 'assignedWorkerId', label: 'Worker ID' },
-          { key: 'vehicleId', label: 'Vehicle ID' },
+          {
+            key: 'assignedResidentId',
+            label: 'Resident',
+            render: (t) =>
+              t.assignedResidentId ? (
+                <button type="button" className="link-button" onClick={() => openResident(t.assignedResidentId!)}>
+                  {t.assignedResidentName ?? `Resident #${t.assignedResidentId}`}
+                </button>
+              ) : (
+                <span className="muted">—</span>
+              ),
+          },
+          {
+            key: 'assignedWorkerId',
+            label: 'Worker',
+            render: (t) =>
+              t.assignedWorkerId ? (
+                <button type="button" className="link-button" onClick={() => openWorker(t.assignedWorkerId!)}>
+                  {t.assignedWorkerName ?? `Worker #${t.assignedWorkerId}`}
+                </button>
+              ) : (
+                <span className="muted">—</span>
+              ),
+          },
+          {
+            key: 'vehicleId',
+            label: 'Vehicle',
+            render: (t) => t.vehiclePlateNumber ?? (t.vehicleId ? `#${t.vehicleId}` : <span className="muted">—</span>),
+          },
           { key: 'status', label: 'Status', render: (t) => <StatusBadge value={t.status} /> },
         ]}
         actions={(t) =>
@@ -83,9 +93,7 @@ export function RfidPage() {
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
 
-      {modalOpen && (
-        <FormModal title="Issue RFID tag" fields={FIELDS} onSubmit={handleSubmit} onClose={() => setModalOpen(false)} />
-      )}
+      {modalOpen && <IssueRfidModal onClose={() => setModalOpen(false)} onCreated={load} />}
     </div>
   )
 }
