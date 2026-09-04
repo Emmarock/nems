@@ -10,6 +10,8 @@ public record VisitorRequest(
         @NotBlank String phone,
         String vehiclePlate,
         @NotNull Instant validFrom,
-        @NotNull Instant validUntil
+        @NotNull Instant validUntil,
+        /** Optional base64 data URI, e.g. "data:image/jpeg;base64,...". Size-capped in VisitorService. */
+        String photo
 ) {
 }

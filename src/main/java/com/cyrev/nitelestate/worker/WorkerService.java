@@ -49,8 +49,8 @@ public class WorkerService {
      */
     @Transactional
     public WorkerResponse request(Long sponsorResidentId, WorkerRequest request) {
-        if (!request.expectedEndDate().isAfter(request.startDate())) {
-            throw new BadRequestException("expectedEndDate must be after startDate");
+        if (request.expectedEndDate().isBefore(request.startDate())) {
+            throw new BadRequestException("expectedEndDate cannot be before startDate");
         }
         if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
             throw new BadRequestException("Photo is too large — please use a smaller image");

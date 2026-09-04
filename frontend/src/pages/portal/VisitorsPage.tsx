@@ -11,6 +11,7 @@ import { buildScanUrl } from '../../utils/scanUrl'
 const EMPTY: PageResponse<Visitor> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
+  { name: 'photo', label: 'Visitor photo', type: 'image', full: true },
   { name: 'name', label: 'Visitor name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   { name: 'vehiclePlate', label: 'Vehicle plate (optional)' },
@@ -43,6 +44,7 @@ export function VisitorsPage() {
       vehiclePlate: (values.vehiclePlate as string) || undefined,
       validFrom: new Date(values.validFrom as string).toISOString(),
       validUntil: new Date(values.validUntil as string).toISOString(),
+      photo: (values.photo as string) || undefined,
     })
     setModalOpen(false)
     await load()
@@ -71,6 +73,16 @@ export function VisitorsPage() {
         rowKey={(v) => v.id}
         emptyMessage="No visitor passes yet."
         columns={[
+          {
+            key: 'photo',
+            label: '',
+            render: (v) =>
+              v.photo ? (
+                <img src={v.photo} alt="" className="avatar-thumb" />
+              ) : (
+                <div className="avatar-thumb avatar-thumb-empty" />
+              ),
+          },
           { key: 'name', label: 'Name' },
           { key: 'phone', label: 'Phone' },
           { key: 'vehiclePlate', label: 'Vehicle' },

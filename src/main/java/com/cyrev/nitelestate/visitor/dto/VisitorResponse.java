@@ -15,10 +15,11 @@ public record VisitorResponse(
         Instant validFrom,
         Instant validUntil,
         String qrToken,
-        VisitorStatus status
+        VisitorStatus status,
+        String photo
 ) {
     public static VisitorResponse from(Visitor v, String hostResidentName) {
         return new VisitorResponse(v.getId(), v.getName(), v.getPhone(), v.getVehiclePlate(), v.getHostResidentId(),
-                hostResidentName, v.getValidFrom(), v.getValidUntil(), v.getQrToken(), v.getStatus());
+                hostResidentName, v.getValidFrom(), v.getValidUntil(), v.getQrToken(), v.getStatus(), v.getPhoto());
     }
 }

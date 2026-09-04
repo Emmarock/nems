@@ -165,7 +165,7 @@ export const visitorsApi = {
   listAll: (params: { q?: string; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Visitor>>('/visitors', { params }).then((r) => r.data),
   get: (id: number) => client.get<Visitor>(`/visitors/${id}`).then((r) => r.data),
-  create: (body: { name: string; phone: string; vehiclePlate?: string; validFrom: string; validUntil: string }) =>
+  create: (body: { name: string; phone: string; vehiclePlate?: string; validFrom: string; validUntil: string; photo?: string }) =>
     client.post<Visitor>('/visitors', body).then((r) => r.data),
   cancel: (id: number) => client.put<Visitor>(`/visitors/${id}/cancel`).then((r) => r.data),
   lookup: (qrToken: string) => client.get<VisitorLookup>(`/visitors/lookup/${qrToken}`).then((r) => r.data),

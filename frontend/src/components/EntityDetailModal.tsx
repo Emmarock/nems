@@ -306,6 +306,7 @@ export function EntityDetailModal() {
 
           {!loading && !error && current.type === 'visitor' && visitor && (
             <dl className="detail-list">
+              {visitor.photo && <img src={visitor.photo} alt="" className="avatar-large" />}
               <Row label="Name" value={visitor.name} />
               <Row label="Phone" value={visitor.phone} />
               <Row label="Vehicle" value={visitor.vehiclePlate} />

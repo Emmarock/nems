@@ -51,6 +51,16 @@ export function VisitorsAdminPage() {
         emptyMessage={query ? 'No visitors match your search.' : 'No visitor passes have been issued yet.'}
         columns={[
           {
+            key: 'photo',
+            label: '',
+            render: (v) =>
+              v.photo ? (
+                <img src={v.photo} alt="" className="avatar-thumb" />
+              ) : (
+                <div className="avatar-thumb avatar-thumb-empty" />
+              ),
+          },
+          {
             key: 'name',
             label: 'Visitor',
             render: (v) => (

@@ -65,7 +65,7 @@ nitel:
     # Email via Twilio SendGrid - same vendor family, separate API key.
     sendgrid:
       api-key: ${SENDGRID_API_KEY:}
-      from-email: ${SENDGRID_FROM_EMAIL:noreply@nitelestate.local}
+      from-email: ${SENDGRID_FROM_EMAIL:noreply@nitelestate.com}
       from-name: ${SENDGRID_FROM_NAME:Nitel Estate Management System}
 
 logging:

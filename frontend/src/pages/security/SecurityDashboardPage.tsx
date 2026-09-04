@@ -97,12 +97,31 @@ export function SecurityDashboardPage() {
           { key: 'subjectType', label: 'Subject', render: (e) => <StatusBadge value={e.subjectType} /> },
           {
             key: 'subjectId',
-            label: 'ID',
+            label: 'Name',
             render: (e) => (
               <button type="button" className="link-button" onClick={() => openSubject(e)}>
-                #{e.subjectId}
+                {e.subjectName ?? `#${e.subjectId}`}
               </button>
             ),
+          },
+          {
+            key: 'subjectPhone',
+            label: 'Phone',
+            render: (e) => e.subjectPhone ?? <span className="muted">—</span>,
+          },
+          {
+            key: 'vehicle',
+            label: 'Vehicle',
+            render: (e) =>
+              e.vehiclePlateNumber ? (
+                <span>
+                  {e.vehiclePlateNumber}
+                  {(e.vehicleMake || e.vehicleModel) && ` — ${[e.vehicleMake, e.vehicleModel].filter(Boolean).join(' ')}`}
+                  {e.vehicleColour && ` (${e.vehicleColour})`}
+                </span>
+              ) : (
+                <span className="muted">—</span>
+              ),
           },
           { key: 'direction', label: 'Direction', render: (e) => <StatusBadge value={e.direction} /> },
           {
@@ -118,6 +137,11 @@ export function SecurityDashboardPage() {
               ),
           },
           { key: 'occurredAt', label: 'When', render: (e) => new Date(e.occurredAt).toLocaleString() },
+          {
+            key: 'expectedCheckoutAt',
+            label: 'Expected checkout',
+            render: (e) => (e.expectedCheckoutAt ? new Date(e.expectedCheckoutAt).toLocaleString() : <span className="muted">—</span>),
+          },
           { key: 'flagReason', label: 'Flag', render: (e) => (e.flagReason ? <StatusBadge value={e.flagReason} /> : '—') },
         ]}
       />
@@ -135,6 +159,7 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
   const [message, setMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
+  const { openVisitor, openWorker } = useEntityDetail()
 
   function apiFor(k: ScanKind) {
     return k === 'visitor' ? visitorsApi : k === 'worker' ? workersApi : k === 'vehicle' ? vehiclesApi : residentsApi
@@ -160,6 +185,10 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
       setMessage(
         `${action === 'checkin' ? 'Checked in' : 'Checked out'} ${kind}: ${nameOf(result)} (status ${result.status})`,
       )
+      // On check-in, pull up the full profile (photo included, for a worker) rather than leaving
+      // the officer with just this one-line summary to go on.
+      if (action === 'checkin' && kind === 'visitor') openVisitor(result.id)
+      if (action === 'checkin' && kind === 'worker') openWorker(result.id)
       setQrToken('')
       await onDone()
     } catch (err) {

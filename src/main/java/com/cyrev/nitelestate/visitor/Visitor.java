@@ -43,4 +43,12 @@ public class Visitor extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private VisitorStatus status = VisitorStatus.ACTIVE;
+
+    /**
+     * A photo of the visitor, submitted at pass-creation time — lets security visually confirm
+     * identity against the QR pass at the gate. Stored as a base64 data URI; the frontend
+     * downscales/compresses before upload to keep this small (see VisitorService.create).
+     */
+    @Column(columnDefinition = "text")
+    private String photo;
 }

@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class VisitorService {
 
+    /** ~1.5MB of base64 — comfortably covers a compressed photo (the frontend downscales before upload). */
+    private static final int MAX_PHOTO_LENGTH = 2_000_000;
+
     private final VisitorRepository visitorRepository;
     private final ResidentRepository residentRepository;
     private final PropertyRepository propertyRepository;
@@ -43,6 +46,9 @@ public class VisitorService {
         if (!request.validUntil().isAfter(request.validFrom())) {
             throw new BadRequestException("validUntil must be after validFrom");
         }
+        if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
+            throw new BadRequestException("Photo is too large — please use a smaller image");
+        }
         Visitor visitor = new Visitor();
         visitor.setName(request.name());
         visitor.setPhone(request.phone());
@@ -52,6 +58,7 @@ public class VisitorService {
         visitor.setValidUntil(request.validUntil());
         visitor.setQrToken(UUID.randomUUID().toString());
         visitor.setStatus(VisitorStatus.ACTIVE);
+        visitor.setPhoto(request.photo());
         visitor = visitorRepository.save(visitor);
 
         auditService.record("Visitor", visitor.getId(), "CREATE_PASS", visitor.getName());
@@ -107,6 +114,7 @@ public class VisitorService {
 
         return new VisitorLookupResponse(visitor.getId(), visitor.getName(), visitor.getPhone(),
                 visitor.getVehiclePlate(), visitor.getValidFrom(), visitor.getValidUntil(), visitor.getStatus(), flag,
+                visitor.getPhoto(),
                 visitor.getHostResidentId(), host != null ? host.getFullName() : null,
                 host != null ? host.getPhone() : null,
                 property != null ? property.getId() : null, property != null ? property.getHouseNumber() : null,

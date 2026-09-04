@@ -232,6 +232,8 @@ export interface Visitor {
   validUntil: string
   qrToken: string
   status: VisitorStatus
+  /** Base64 data URI, submitted at pass-creation time so security can confirm identity at the gate. */
+  photo: string | null
 }
 
 /** What security sees scanning a visitor's QR pass — includes the destination to confirm. */
@@ -244,6 +246,7 @@ export interface VisitorLookup {
   validUntil: string
   status: VisitorStatus
   flagReason: string | null
+  photo: string | null
   hostResidentId: number
   hostResidentName: string | null
   hostResidentPhone: string | null
@@ -370,6 +373,15 @@ export interface AccessEvent {
   occurredAt: string
   verifiedByUserId: number | null
   flagReason: string | null
+  // Populated for VISITOR rows only.
+  subjectName: string | null
+  subjectPhone: string | null
+  expectedCheckoutAt: string | null
+  // Populated for VEHICLE rows only.
+  vehiclePlateNumber: string | null
+  vehicleMake: string | null
+  vehicleModel: string | null
+  vehicleColour: string | null
 }
 
 export type RfidStatus = 'ACTIVE' | 'LOST' | 'REVOKED'
