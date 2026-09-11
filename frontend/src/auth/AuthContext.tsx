@@ -1,6 +1,6 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { authApi } from '../api/endpoints'
-import { clearToken, setToken } from '../api/client'
+import { cancelAutoLogout, clearToken, scheduleAutoLogout, setToken } from '../api/client'
 import type { Role } from '../api/types'
 
 interface AuthUser {
@@ -37,12 +37,20 @@ function loadStoredUser(): AuthUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadStoredUser)
 
+  // Covers a tab left open (or reopened) past the token's own expiry, rather than only reacting
+  // once the user triggers an API call that fails with 401 - see scheduleAutoLogout for why both
+  // matter. Runs once per app load, for whichever role is currently signed in (or not).
+  useEffect(() => {
+    scheduleAutoLogout()
+  }, [])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       login: async (email, password) => {
         const response = await authApi.login(email, password)
         setToken(response.token)
+        scheduleAutoLogout()
         const authUser: AuthUser = {
           email: response.email,
           fullName: response.fullName,
@@ -54,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(authUser)
       },
       logout: () => {
+        cancelAutoLogout()
         clearToken()
         localStorage.removeItem(USER_KEY)
         setUser(null)

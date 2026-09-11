@@ -50,6 +50,58 @@ export function consumeAuthMessage(): string | null {
   return message
 }
 
+/** Reads a JWT's exp claim (seconds since epoch) without a library — a JWT's payload is just
+ * base64url-encoded JSON, no signature verification needed here since this is purely a client-side
+ * UX timer; the backend is the one that actually enforces expiry on every request. */
+function decodeJwtExpiryMs(token: string): number | null {
+  try {
+    const payload = token.split('.')[1]
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { exp?: number }
+    return typeof json.exp === 'number' ? json.exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+let autoLogoutTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Proactively signs the user out the moment their token's own expiry is reached, rather than
+ * waiting for them to trigger an API call that then fails with 401 (the response interceptor
+ * below still handles that case as a fallback — e.g. clock skew, or the token being invalidated
+ * some other way). Called from AuthContext on app load (covers a tab left open/reopened past
+ * expiry) and after every login/logout, so it applies the same way regardless of role — every
+ * part of the app shares this one client and this one token.
+ */
+export function scheduleAutoLogout() {
+  if (autoLogoutTimer) {
+    clearTimeout(autoLogoutTimer)
+    autoLogoutTimer = null
+  }
+  const token = getToken()
+  if (!token) return
+  const expiryMs = decodeJwtExpiryMs(token)
+  if (expiryMs == null) return
+
+  const delay = expiryMs - Date.now()
+  if (delay <= 0) {
+    redirectToLogin('Your session has expired. Please log in again.')
+    return
+  }
+  // setTimeout's delay is a 32-bit signed int (~24.8 days max) - this app's tokens expire in
+  // hours, but re-checking on fire (rather than assuming the capped wait means "expired") keeps
+  // this correct even if expiration-minutes is ever configured much longer.
+  const MAX_DELAY = 2_147_000_000
+  autoLogoutTimer = setTimeout(scheduleAutoLogout, Math.min(delay, MAX_DELAY))
+}
+
+export function cancelAutoLogout() {
+  if (autoLogoutTimer) {
+    clearTimeout(autoLogoutTimer)
+    autoLogoutTimer = null
+  }
+}
+
 client.interceptors.response.use(
   (response) => response,
   (error) => {
