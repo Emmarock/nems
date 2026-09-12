@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
-import { invoicesApi, leviesApi } from '../../api/endpoints'
-import type { Invoice, Levy, PageResponse } from '../../api/types'
+import { useEffect, useState, type FormEvent } from 'react'
+import { invoicesApi, leviesApi, paymentAccountApi } from '../../api/endpoints'
+import type { Invoice, Levy, PageResponse, PaymentAccount, PaymentAccountChange } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { SearchInput } from '../../components/SearchInput'
+import { apiErrorMessage } from '../../api/client'
+import { useAuth } from '../../auth/AuthContext'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 
@@ -110,6 +112,8 @@ export function LeviesPage() {
         </div>
       </div>
 
+      <PaymentAccountCard />
+
       <div className="section-title">Levies</div>
       <DataTable
         loading={loading}
@@ -167,6 +171,222 @@ export function LeviesPage() {
           onSubmit={generateInvoice}
           onClose={() => setInvoiceModalOpen(false)}
         />
+      )}
+    </div>
+  )
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  CDA_ADMIN: 'CDA Administrator',
+  TREASURER: 'Treasurer',
+  FINANCIAL_SECRETARY: 'Financial Secretary',
+}
+
+/**
+ * The one account residents pay any levy into — shown to them on My Payments alongside a
+ * warning to only pay an account carrying the estate's name. Under multi-party control: a
+ * proposed change only takes effect once two roles OTHER than the proposer's own approve it, so
+ * this card is either "propose a change" (no pending change) or "review the pending change"
+ * (someone already proposed one) — never a plain edit-and-save form.
+ */
+function PaymentAccountCard() {
+  const { user } = useAuth()
+  const [account, setAccount] = useState<PaymentAccount | null>(null)
+  const [pending, setPending] = useState<PaymentAccountChange | null>(null)
+  const [proposing, setProposing] = useState(false)
+  const [form, setForm] = useState<PaymentAccount>({ bankName: '', accountNumber: '', accountName: '' })
+  const [notes, setNotes] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function load() {
+    const [acc, pend] = await Promise.all([paymentAccountApi.get(), paymentAccountApi.getPending()])
+    setAccount(acc)
+    setPending(pend)
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  function openProposeForm() {
+    setForm(account ?? { bankName: '', accountNumber: '', accountName: '' })
+    setError(null)
+    setProposing(true)
+  }
+
+  async function submitProposal(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      const change = await paymentAccountApi.propose(form)
+      setPending(change)
+      setProposing(false)
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function decide(decision: 'approve' | 'reject') {
+    if (!pending) return
+    setBusy(true)
+    setError(null)
+    try {
+      const updated = decision === 'approve' ? await paymentAccountApi.approve(pending.id, notes.trim() || undefined)
+        : await paymentAccountApi.reject(pending.id, notes.trim() || undefined)
+      setNotes('')
+      if (updated.status === 'PENDING') {
+        setPending(updated)
+      } else {
+        await load()
+      }
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!account) {
+    return null
+  }
+
+  const myRole = user?.role
+  const alreadyDecided = pending && myRole ? pending.approvals.some((a) => a.role === myRole) : false
+  const isProposerRole = pending?.proposedByRole === myRole
+  const canDecide = pending && !isProposerRole && !alreadyDecided
+
+  return (
+    <div className="card" style={{ marginBottom: 20, maxWidth: 520 }}>
+      <div className="section-title" style={{ marginTop: 0 }}>
+        Payment account
+      </div>
+      <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>
+        Shown to every resident as the one account to pay any levy into. Changing it needs
+        approval from two roles other than whoever proposes the change.
+      </p>
+
+      <dl className="detail-list">
+        <div className="detail-row">
+          <dt>Bank</dt>
+          <dd>{account.bankName || <span className="muted">Not set</span>}</dd>
+        </div>
+        <div className="detail-row">
+          <dt>Account number</dt>
+          <dd>{account.accountNumber || <span className="muted">Not set</span>}</dd>
+        </div>
+        <div className="detail-row">
+          <dt>Account name</dt>
+          <dd>{account.accountName || <span className="muted">Not set</span>}</dd>
+        </div>
+      </dl>
+
+      {error && <p className="error-text">{error}</p>}
+
+      {pending ? (
+        <div className="info-banner" style={{ marginTop: 12 }}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>Change pending approval</strong> — proposed by {pending.proposedByUserName ?? 'someone'} (
+            {ROLE_LABELS[pending.proposedByRole] ?? pending.proposedByRole}):
+          </p>
+          <dl className="detail-list">
+            <div className="detail-row">
+              <dt>New bank</dt>
+              <dd>{pending.bankName}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>New account number</dt>
+              <dd>{pending.accountNumber}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>New account name</dt>
+              <dd>{pending.accountName}</dd>
+            </div>
+          </dl>
+          {pending.approvals.length > 0 && (
+            <ul className="detail-sublist">
+              {pending.approvals.map((a) => (
+                <li key={a.role}>
+                  {ROLE_LABELS[a.role] ?? a.role} ({a.userName ?? 'unknown'}) — <StatusBadge value={a.decision} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <p style={{ margin: '8px 0 0' }}>
+            {pending.approvalsStillNeeded > 0
+              ? `${pending.approvalsStillNeeded} more approval(s) needed before this takes effect.`
+              : 'Fully approved.'}
+          </p>
+
+          {canDecide ? (
+            <div style={{ marginTop: 10 }}>
+              <div className="form-field full" style={{ marginBottom: 8 }}>
+                <label htmlFor="decisionNotes">Notes (optional)</label>
+                <input id="decisionNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-danger" disabled={busy} onClick={() => decide('reject')}>
+                  Reject
+                </button>
+                <button className="btn btn-primary" disabled={busy} onClick={() => decide('approve')}>
+                  Approve
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="muted" style={{ marginTop: 10 }}>
+              {isProposerRole ? "You proposed this change — it needs approval from other roles." : 'You have already responded to this change.'}
+            </p>
+          )}
+        </div>
+      ) : proposing ? (
+        <form onSubmit={submitProposal} style={{ marginTop: 12 }}>
+          <div className="form-grid">
+            <div className="form-field full">
+              <label htmlFor="bankName">Bank name</label>
+              <input
+                id="bankName"
+                value={form.bankName}
+                onChange={(e) => setForm({ ...form, bankName: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="accountNumber">Account number</label>
+              <input
+                id="accountNumber"
+                value={form.accountNumber}
+                onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="accountName">Account name</label>
+              <input
+                id="accountName"
+                value={form.accountName}
+                onChange={(e) => setForm({ ...form, accountName: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button type="button" className="btn" onClick={() => setProposing(false)} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Submitting…' : 'Propose change'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={openProposeForm}>
+          Propose a change
+        </button>
       )}
     </div>
   )

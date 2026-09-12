@@ -2,6 +2,8 @@ import { client } from './client'
 import type {
   AccessEvent,
   AccessPolicy,
+  PaymentAccount,
+  PaymentAccountChange,
   AccessSubjectType,
   AccountBalance,
   Announcement,
@@ -131,8 +133,6 @@ export const paymentsApi = {
     client.post<Payment>('/payments', body).then((r) => r.data),
   approve: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/approve`, { notes }).then((r) => r.data),
   reject: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/reject`, { notes }).then((r) => r.data),
-  webhook: (providerReference: string, status: string) =>
-    client.post<Payment>('/payments/webhook', { providerReference, status }).then((r) => r.data),
 }
 
 export const meApi = {
@@ -143,13 +143,6 @@ export const meApi = {
     client.get<PageResponse<Invoice>>('/me/account/invoices', { params }).then((r) => r.data),
   payments: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Payment>>('/me/account/payments', { params }).then((r) => r.data),
-  payOutstanding: (amount: number, invoiceId?: number) =>
-    client
-      .post<{ paymentId: number; providerReference: string; redirectUrl: string }>('/me/payments/initiate', {
-        amount,
-        invoiceId,
-      })
-      .then((r) => r.data),
   submitReceipt: (body: { levyId: number; amount: number; method: string; receiptImage?: string }) =>
     client.post<Payment>('/me/payments/receipts', body).then((r) => r.data),
   vehicles: (params: { page?: number; size?: number } = {}) =>
@@ -248,6 +241,17 @@ export const gatesApi = {
 export const accessPolicyApi = {
   get: () => client.get<AccessPolicy>('/access-policy').then((r) => r.data),
   update: (body: AccessPolicy) => client.put<AccessPolicy>('/access-policy', body).then((r) => r.data),
+}
+
+export const paymentAccountApi = {
+  get: () => client.get<PaymentAccount>('/payment-account').then((r) => r.data),
+  getPending: () => client.get<PaymentAccountChange | null>('/payment-account/pending').then((r) => r.data),
+  propose: (body: PaymentAccount) =>
+    client.post<PaymentAccountChange>('/payment-account/changes', body).then((r) => r.data),
+  approve: (id: number, notes?: string) =>
+    client.put<PaymentAccountChange>(`/payment-account/changes/${id}/approve`, { notes }).then((r) => r.data),
+  reject: (id: number, notes?: string) =>
+    client.put<PaymentAccountChange>(`/payment-account/changes/${id}/reject`, { notes }).then((r) => r.data),
 }
 
 export const accessEventsApi = {

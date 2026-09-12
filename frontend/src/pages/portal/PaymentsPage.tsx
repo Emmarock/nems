@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { leviesApi, meApi } from '../../api/endpoints'
-import type { Levy, LevyBalance, PageResponse, Payment } from '../../api/types'
+import { leviesApi, meApi, paymentAccountApi } from '../../api/endpoints'
+import type { Levy, LevyBalance, PageResponse, Payment, PaymentAccount } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -10,6 +10,7 @@ import { LoadingState } from '../../components/LoadingState'
 const EMPTY: PageResponse<Payment> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 export function PaymentsPage() {
+  const [account, setAccount] = useState<PaymentAccount | null>(null)
   const [breakdown, setBreakdown] = useState<LevyBalance[] | null>(null)
   const [levies, setLevies] = useState<Levy[]>([])
   const [result, setResult] = useState<PageResponse<Payment>>(EMPTY)
@@ -19,11 +20,13 @@ export function PaymentsPage() {
 
   async function load() {
     setLoading(true)
-    const [b, l, p] = await Promise.all([
+    const [acc, b, l, p] = await Promise.all([
+      paymentAccountApi.get(),
       meApi.balanceBreakdown(),
       leviesApi.list({ size: 100 }),
       meApi.payments({ page, size: 20 }),
     ])
+    setAccount(acc)
     setBreakdown(b)
     setLevies(l.content.filter((lv) => lv.active))
     setResult(p)
@@ -88,6 +91,36 @@ export function PaymentsPage() {
           + Submit payment receipt
         </button>
       </div>
+
+      {account && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="section-title" style={{ marginTop: 0 }}>
+            Where to pay
+          </div>
+          {account.accountNumber ? (
+            <dl className="detail-list">
+              <div className="detail-row">
+                <dt>Bank</dt>
+                <dd>{account.bankName}</dd>
+              </div>
+              <div className="detail-row">
+                <dt>Account number</dt>
+                <dd>{account.accountNumber}</dd>
+              </div>
+              <div className="detail-row">
+                <dt>Account name</dt>
+                <dd>{account.accountName}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="muted">The estate hasn't published payment account details yet — contact the estate office.</p>
+          )}
+          <div className="info-banner" style={{ marginTop: 12, marginBottom: 0 }}>
+            ⚠️ Only pay into an account that carries the estate's name — this applies to every levy above. Do not send
+            money to any other account, even if someone claims to be from the estate.
+          </div>
+        </div>
+      )}
 
       {breakdown && breakdown.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>

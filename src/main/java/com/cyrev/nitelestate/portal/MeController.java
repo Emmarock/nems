@@ -7,8 +7,6 @@ import com.cyrev.nitelestate.billing.dto.LevyBalanceResponse;
 import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.search.Paging;
 import com.cyrev.nitelestate.payment.PaymentService;
-import com.cyrev.nitelestate.payment.dto.OnlinePaymentInitiateRequest;
-import com.cyrev.nitelestate.payment.dto.OnlinePaymentInitiateResponse;
 import com.cyrev.nitelestate.payment.dto.PaymentReceiptRequest;
 import com.cyrev.nitelestate.payment.dto.PaymentResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
@@ -100,12 +98,8 @@ public class MeController {
         return accountService.getPayments(currentUser.residentId(), Paging.of(page, size, Sort.by(Sort.Direction.DESC, "paidAt")));
     }
 
-    @PostMapping("/payments/initiate")
-    public OnlinePaymentInitiateResponse payOutstanding(@Valid @RequestBody OnlinePaymentInitiateRequest request) {
-        return paymentService.initiateOnline(currentUser.residentId(), request);
-    }
-
-    /** "I paid this levy offline, here's my receipt" - awaits treasurer/financial-secretary review. */
+    /** "I paid this levy offline, here's my receipt" - awaits treasurer/financial-secretary review.
+     * The only way a resident can pay right now - there's no online gateway integration yet. */
     @PostMapping("/payments/receipts")
     @ResponseStatus(HttpStatus.CREATED)
     public PaymentResponse submitReceipt(@Valid @RequestBody PaymentReceiptRequest request) {

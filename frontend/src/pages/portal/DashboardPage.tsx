@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { meApi } from '../../api/endpoints'
 import type { MeDashboard } from '../../api/types'
 import { StatCard } from '../../components/StatCard'
@@ -9,8 +10,8 @@ import { apiErrorMessage } from '../../api/client'
 import { buildScanUrl } from '../../utils/scanUrl'
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const [dashboard, setDashboard] = useState<MeDashboard | null>(null)
-  const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null)
   const [qrOpen, setQrOpen] = useState(false)
   const [accessPassToken, setAccessPassToken] = useState<string | null>(null)
@@ -38,19 +39,6 @@ export function DashboardPage() {
       setVehicleQr({ plate, token })
     } catch (err) {
       setError(apiErrorMessage(err))
-    }
-  }
-
-  async function payNow() {
-    if (!dashboard) return
-    setPaying(true)
-    setError(null)
-    try {
-      const result = await meApi.payOutstanding(dashboard.account.outstanding)
-      window.location.href = result.redirectUrl
-    } catch (err) {
-      setError(apiErrorMessage(err))
-      setPaying(false)
     }
   }
 
@@ -96,8 +84,8 @@ export function DashboardPage() {
           <p style={{ margin: '0 0 10px' }}>
             You have an outstanding balance of <strong>₦{dashboard.account.outstanding.toLocaleString()}</strong>.
           </p>
-          <button className="btn btn-primary" onClick={payNow} disabled={paying}>
-            {paying ? 'Redirecting…' : 'Pay now'}
+          <button className="btn btn-primary" onClick={() => navigate('/portal/payments')}>
+            Submit payment receipt
           </button>
         </div>
       )}

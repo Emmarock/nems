@@ -385,6 +385,42 @@ export interface AccessPolicy {
   arrearsThreshold: number
 }
 
+/** The one bank account residents should pay any levy into — admin-configurable, no per-levy account. */
+export interface PaymentAccount {
+  bankName: string
+  accountNumber: string
+  accountName: string
+}
+
+export type ChangeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type ApprovalDecision = 'APPROVED' | 'REJECTED'
+
+export interface PaymentAccountApproval {
+  userId: number
+  userName: string | null
+  role: Role
+  decision: ApprovalDecision
+  notes: string | null
+  decidedAt: string
+}
+
+/** A proposed change to the payment account — see PaymentAccountService: takes effect only once
+ * two roles other than proposedByRole have approved it. */
+export interface PaymentAccountChange {
+  id: number
+  bankName: string
+  accountNumber: string
+  accountName: string
+  proposedByUserId: number
+  proposedByUserName: string | null
+  proposedByRole: Role
+  status: ChangeRequestStatus
+  approvals: PaymentAccountApproval[]
+  approvalsStillNeeded: number
+  createdAt: string
+  decidedAt: string | null
+}
+
 export type AccessSubjectType = 'RESIDENT' | 'VISITOR' | 'WORKER' | 'VEHICLE'
 export type AccessDirection = 'IN' | 'OUT'
 

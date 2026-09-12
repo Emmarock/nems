@@ -6,11 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
-
-    Optional<Payment> findByProviderReference(String providerReference);
 
     @Query("select coalesce(sum(p.amount), 0) from Payment p where p.residentId = :residentId and p.status = 'SUCCESS'")
     BigDecimal sumSuccessfulAmountByResident(Long residentId);

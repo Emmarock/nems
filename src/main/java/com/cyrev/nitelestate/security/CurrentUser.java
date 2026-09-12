@@ -1,6 +1,7 @@
 package com.cyrev.nitelestate.security;
 
 import com.cyrev.nitelestate.common.exception.BadRequestException;
+import com.cyrev.nitelestate.user.Role;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -26,5 +27,9 @@ public class CurrentUser {
 
     public Long userId() {
         return get().getUserId();
+    }
+
+    public Role role() {
+        return Role.valueOf(get().getRole());
     }
 }

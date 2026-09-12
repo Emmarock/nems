@@ -10,8 +10,6 @@ import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
 import com.cyrev.nitelestate.payment.dto.*;
-import com.cyrev.nitelestate.payment.provider.PaymentInitiationResult;
-import com.cyrev.nitelestate.payment.provider.PaymentProvider;
 import com.cyrev.nitelestate.resident.Resident;
 import com.cyrev.nitelestate.resident.ResidentRepository;
 import com.cyrev.nitelestate.sticker.StickerRequestService;
@@ -38,7 +36,6 @@ public class PaymentService {
     private static final int MAX_RECEIPT_LENGTH = 2_000_000;
 
     private final PaymentRepository paymentRepository;
-    private final PaymentProvider paymentProvider;
     private final ResidentRepository residentRepository;
     private final UserRepository userRepository;
     private final LevyRepository levyRepository;
@@ -134,48 +131,6 @@ public class PaymentService {
         payment.setReviewNotes(request.notes());
         payment = paymentRepository.save(payment);
         auditService.record("Payment", payment.getId(), "REJECT", request.notes());
-        return toResponse(payment);
-    }
-
-    @Transactional
-    public OnlinePaymentInitiateResponse initiateOnline(Long residentId, OnlinePaymentInitiateRequest request) {
-        Payment payment = new Payment();
-        payment.setResidentId(residentId);
-        payment.setInvoiceId(request.invoiceId());
-        payment.setAmount(request.amount());
-        payment.setMethod(PaymentMethod.ONLINE_GATEWAY);
-        payment.setProvider(paymentProvider.key());
-        payment.setStatus(PaymentStatus.PENDING);
-        payment = paymentRepository.save(payment);
-
-        PaymentInitiationResult result = paymentProvider.initiate(
-                residentId, request.invoiceId(), request.amount(), "PAYMENT-" + payment.getId());
-        payment.setProviderReference(result.providerReference());
-        payment = paymentRepository.save(payment);
-
-        auditService.record("Payment", payment.getId(), "INITIATE_ONLINE",
-                "resident=" + residentId + " amount=" + request.amount());
-        return new OnlinePaymentInitiateResponse(payment.getId(), result.providerReference(), result.redirectUrl());
-    }
-
-    @Transactional
-    public PaymentResponse handleWebhook(PaymentWebhookPayload payload) {
-        Payment payment = paymentRepository.findByProviderReference(payload.providerReference())
-                .orElseThrow(() -> new NotFoundException("No payment found for reference " + payload.providerReference()));
-
-        PaymentStatus newStatus = switch (payload.status().toUpperCase()) {
-            case "SUCCESS", "SUCCESSFUL" -> PaymentStatus.SUCCESS;
-            case "FAILED" -> PaymentStatus.FAILED;
-            default -> throw new BadRequestException("Unrecognised webhook status: " + payload.status());
-        };
-        payment.setStatus(newStatus);
-        payment.setPaidAt(Instant.now());
-        payment = paymentRepository.save(payment);
-
-        auditService.record("Payment", payment.getId(), "WEBHOOK_" + newStatus, payload.providerReference());
-        if (newStatus == PaymentStatus.SUCCESS) {
-            notifyStickerOfSuccess(payment);
-        }
         return toResponse(payment);
     }
 
