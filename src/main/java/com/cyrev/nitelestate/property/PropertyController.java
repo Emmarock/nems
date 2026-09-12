@@ -35,7 +35,7 @@ public class PropertyController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public PropertyResponse findById(@PathVariable Long id) {
         return propertyService.findById(id);
     }
@@ -49,13 +49,13 @@ public class PropertyController {
 
     /** Gate/enforcement-side QR scan: shows the building's owner and full payment history. */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'CDA_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN')")
     public PropertyLookupResponse lookup(@PathVariable String qrToken) {
         return propertyService.lookup(qrToken);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public PageResponse<PropertyResponse> findAll(@RequestParam(required = false) String q,
                                                    @RequestParam(defaultValue = "0") int page,
                                                    @RequestParam(defaultValue = "20") int size) {

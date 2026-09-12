@@ -36,13 +36,13 @@ public class ResidentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public ResidentResponse findById(@PathVariable Long id) {
         return residentService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public PageResponse<ResidentResponse> findAll(@RequestParam(required = false) String q,
                                                    @RequestParam(required = false) Long propertyId,
                                                    @RequestParam(defaultValue = "0") int page,
@@ -52,7 +52,7 @@ public class ResidentController {
 
     /** Drill-through for the security dashboard's "Accounts in arrears" stat card. */
     @GetMapping("/arrears")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public PageResponse<ResidentArrearsResponse> arrears(@RequestParam(required = false) String q,
                                                            @RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "20") int size) {

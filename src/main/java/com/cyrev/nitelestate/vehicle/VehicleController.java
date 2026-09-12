@@ -37,19 +37,19 @@ public class VehicleController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public VehicleResponse findById(@PathVariable Long id) {
         return vehicleService.findById(id);
     }
 
     @GetMapping("/plate/{plate}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public VehicleResponse findByPlate(@PathVariable String plate) {
         return vehicleService.findByPlate(plate);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
     public PageResponse<VehicleResponse> findAll(@RequestParam(required = false) String q,
                                                   @RequestParam(required = false) Long residentId,
                                                   @RequestParam(defaultValue = "0") int page,
