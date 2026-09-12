@@ -263,7 +263,15 @@ function PaymentAccountsSection({ onAccountsChanged }: { onAccountsChanged: () =
         Each levy pays into one of these — there isn't one shared account. Creating or changing an
         account needs approval from two roles other than whoever proposes it.
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: 16,
+          marginBottom: 16,
+          alignItems: 'start',
+        }}
+      >
         {accounts.map((account) => (
           <AccountPanel
             key={account.id}
@@ -272,19 +280,20 @@ function PaymentAccountsSection({ onAccountsChanged }: { onAccountsChanged: () =
             onChanged={refresh}
           />
         ))}
-        {newAccountPending || showNewAccountForm ? (
-          <AccountPanel
-            account={null}
-            pending={newAccountPending}
-            onChanged={refresh}
-            onCancelNew={() => setShowNewAccountForm(false)}
-          />
-        ) : (
-          <button className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setShowNewAccountForm(true)}>
-            + Propose a new account
-          </button>
-        )}
       </div>
+
+      {newAccountPending || showNewAccountForm ? (
+        <AccountPanel
+          account={null}
+          pending={newAccountPending}
+          onChanged={refresh}
+          onCancelNew={() => setShowNewAccountForm(false)}
+        />
+      ) : (
+        <button className="btn" onClick={() => setShowNewAccountForm(true)}>
+          + Propose a new account
+        </button>
+      )}
     </div>
   )
 }
@@ -416,7 +425,7 @@ function AccountPanel({
   )
 
   return (
-    <div className="card" style={{ maxWidth: 520 }}>
+    <div className="card">
       <div className="section-title" style={{ marginTop: 0 }}>
         {account ? account.label || `Account #${account.id}` : 'New account'}
       </div>
