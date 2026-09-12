@@ -75,7 +75,11 @@ button {
   gap: 4px;
 }
 
-.sidebar-toggle {
+/* .icon-btn.sidebar-toggle (not just .sidebar-toggle) so this reliably beats the plain .icon-btn
+   rule's display:inline-flex - same specificity plus later source order was letting .icon-btn win
+   on desktop, leaving the mobile-only hamburger visible (and non-functional, since .sidebar.open
+   only exists inside the mobile media query below) outside of mobile widths. */
+.icon-btn.sidebar-toggle {
   display: none;
 }
 
@@ -87,7 +91,7 @@ button {
 }
 
 @media (max-width: 768px) {
-  .sidebar-toggle {
+  .icon-btn.sidebar-toggle {
     display: inline-flex;
   }
 
@@ -727,7 +731,7 @@ select {
   -moz-appearance: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 8px 34px 8px 12px;
+  padding: 9px 34px 9px 12px;
   font-size: 13px;
   font-family: inherit;
   background-color: var(--color-surface);
@@ -1064,6 +1068,13 @@ select:disabled {
 
 .toolbar-search .global-search-input {
   box-shadow: none;
+}
+
+/* Nested directly in a .toolbar row alongside another control (e.g. a status <select>) - the
+   standalone margin-bottom above is for a search bar sitting alone above a table, and throws off
+   vertical alignment with whatever it's sharing a row with here. */
+.toolbar > .toolbar-search {
+  margin-bottom: 0;
 }
 
 .section-title {
