@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { paymentsApi } from '../../api/endpoints'
-import type { PageResponse, Payment } from '../../api/types'
+import type { PageResponse, Payment, PaymentStatus } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
+import { ReceiptReviewModal } from '../../components/ReceiptReviewModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { SearchInput } from '../../components/SearchInput'
@@ -28,29 +29,40 @@ const FIELDS: FieldConfig[] = [
   },
 ]
 
+const STATUS_OPTIONS: { value: PaymentStatus | ''; label: string }[] = [
+  { value: '', label: 'All statuses' },
+  { value: 'PENDING_APPROVAL', label: 'Pending approval' },
+  { value: 'SUCCESS', label: 'Success' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'FAILED', label: 'Failed' },
+  { value: 'PENDING', label: 'Pending (gateway)' },
+]
+
 export function PaymentsPage() {
   const [result, setResult] = useState<PageResponse<Payment>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [reviewing, setReviewing] = useState<Payment | null>(null)
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
+  const [status, setStatus] = useState<PaymentStatus | ''>('')
   const debouncedQuery = useDebouncedValue(query)
   const { openResident } = useEntityDetail()
 
   async function load() {
     setLoading(true)
-    setResult(await paymentsApi.list({ q: debouncedQuery || undefined, page, size: 20 }))
+    setResult(await paymentsApi.list({ q: debouncedQuery || undefined, status: status || undefined, page, size: 20 }))
     setLoading(false)
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, page])
+  }, [debouncedQuery, status, page])
 
   useEffect(() => {
     setPage(0)
-  }, [debouncedQuery])
+  }, [debouncedQuery, status])
 
   async function handleSubmit(values: Record<string, unknown>) {
     await paymentsApi.recordManual({
@@ -68,20 +80,31 @@ export function PaymentsPage() {
       <div className="page-header">
         <div>
           <h1>Payments</h1>
-          <p className="page-subtitle">Back-office payments recorded by Treasury (spec §5).</p>
+          <p className="page-subtitle">
+            Back-office payments and resident-submitted receipts awaiting review (spec §5).
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Record payment
         </button>
       </div>
 
-      <SearchInput value={query} onChange={setQuery} placeholder="Search payments by resident name or provider reference…" />
+      <div className="toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <SearchInput value={query} onChange={setQuery} placeholder="Search payments by resident name or provider reference…" />
+        <select value={status} onChange={(e) => setStatus(e.target.value as PaymentStatus | '')}>
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <DataTable
         loading={loading}
         rows={result.content}
         rowKey={(p) => p.id}
-        emptyMessage={query ? 'No payments match your search.' : 'No payments recorded yet.'}
+        emptyMessage={query || status ? 'No payments match this filter.' : 'No payments recorded yet.'}
         columns={[
           { key: 'id', label: 'ID' },
           {
@@ -95,10 +118,25 @@ export function PaymentsPage() {
           },
           { key: 'amount', label: 'Amount', render: (p) => `₦${p.amount.toLocaleString()}` },
           { key: 'method', label: 'Method', render: (p) => <StatusBadge value={p.method} /> },
-          { key: 'provider', label: 'Provider' },
           { key: 'status', label: 'Status', render: (p) => <StatusBadge value={p.status} /> },
+          {
+            key: 'approvedByUserName',
+            label: 'Approved by',
+            render: (p) => p.approvedByUserName ?? <span className="muted">—</span>,
+          },
           { key: 'paidAt', label: 'Paid at', render: (p) => new Date(p.paidAt).toLocaleString() },
         ]}
+        actions={(p) =>
+          p.status === 'PENDING_APPROVAL' ? (
+            <button className="btn btn-sm btn-primary" onClick={() => setReviewing(p)}>
+              Review
+            </button>
+          ) : p.receiptImage ? (
+            <button className="btn btn-sm" onClick={() => setReviewing(p)}>
+              View receipt
+            </button>
+          ) : null
+        }
       />
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
@@ -106,6 +144,8 @@ export function PaymentsPage() {
       {modalOpen && (
         <FormModal title="Record payment" fields={FIELDS} onSubmit={handleSubmit} onClose={() => setModalOpen(false)} />
       )}
+
+      {reviewing && <ReceiptReviewModal payment={reviewing} onClose={() => setReviewing(null)} onDone={load} />}
     </div>
   )
 }

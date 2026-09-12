@@ -9,6 +9,7 @@ import com.cyrev.nitelestate.common.search.Paging;
 import com.cyrev.nitelestate.payment.PaymentService;
 import com.cyrev.nitelestate.payment.dto.OnlinePaymentInitiateRequest;
 import com.cyrev.nitelestate.payment.dto.OnlinePaymentInitiateResponse;
+import com.cyrev.nitelestate.payment.dto.PaymentReceiptRequest;
 import com.cyrev.nitelestate.payment.dto.PaymentResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.portal.dto.MeDashboardResponse;
@@ -102,6 +103,13 @@ public class MeController {
     @PostMapping("/payments/initiate")
     public OnlinePaymentInitiateResponse payOutstanding(@Valid @RequestBody OnlinePaymentInitiateRequest request) {
         return paymentService.initiateOnline(currentUser.residentId(), request);
+    }
+
+    /** "I paid this levy offline, here's my receipt" - awaits treasurer/financial-secretary review. */
+    @PostMapping("/payments/receipts")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PaymentResponse submitReceipt(@Valid @RequestBody PaymentReceiptRequest request) {
+        return paymentService.submitReceipt(currentUser.residentId(), request);
     }
 
     @GetMapping("/vehicles")

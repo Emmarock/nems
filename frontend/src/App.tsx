@@ -14,6 +14,8 @@ import { VisitorsPage } from './pages/portal/VisitorsPage'
 import { ProfilePage } from './pages/portal/ProfilePage'
 import { WorkersPage } from './pages/portal/WorkersPage'
 import { ComplaintsPage } from './pages/portal/ComplaintsPage'
+import { PaymentsPage as PortalPaymentsPage } from './pages/portal/PaymentsPage'
+import { VehiclesPage as PortalVehiclesPage } from './pages/portal/VehiclesPage'
 import { ResidentsPage } from './pages/admin/ResidentsPage'
 import { PropertiesPage } from './pages/admin/PropertiesPage'
 import { VehiclesPage } from './pages/admin/VehiclesPage'
@@ -21,6 +23,7 @@ import { WorkersAdminPage } from './pages/admin/WorkersAdminPage'
 import { VisitorsAdminPage } from './pages/admin/VisitorsAdminPage'
 import { LeviesPage } from './pages/admin/LeviesPage'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
+import { StickerRequestsAdminPage } from './pages/admin/StickerRequestsAdminPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { ComplaintsAdminPage } from './pages/admin/ComplaintsAdminPage'
 import { AnnouncementsPage } from './pages/admin/AnnouncementsPage'
@@ -37,6 +40,7 @@ const STAFF_LANDING: Record<Exclude<Role, 'RESIDENT'>, string> = {
   SUPER_ADMIN: '/reports',
   CDA_ADMIN: '/reports',
   TREASURER: '/reports',
+  FINANCIAL_SECRETARY: '/payments',
   SECRETARY: '/residents',
   SECURITY: '/security',
   MAINTENANCE: '/complaints',
@@ -64,7 +68,7 @@ export default function App() {
         <Route
           path="/scan/:kind/:qrToken"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'SECURITY', 'TREASURER', 'CDA_ADMIN']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN']}>
               <ScanPage />
             </ProtectedRoute>
           }
@@ -83,7 +87,7 @@ export default function App() {
         <Route
           path="/reports"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY']}>
               {withLayout(<ReportsPage />)}
             </ProtectedRoute>
           }
@@ -91,7 +95,7 @@ export default function App() {
         <Route
           path="/residents"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY']}>
               {withLayout(<ResidentsPage />)}
             </ProtectedRoute>
           }
@@ -99,7 +103,7 @@ export default function App() {
         <Route
           path="/properties"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY']}>
               {withLayout(<PropertiesPage />)}
             </ProtectedRoute>
           }
@@ -107,8 +111,16 @@ export default function App() {
         <Route
           path="/vehicles"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY']}>
               {withLayout(<VehiclesPage />)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stickers"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY']}>
+              {withLayout(<StickerRequestsAdminPage />)}
             </ProtectedRoute>
           }
         />
@@ -131,7 +143,7 @@ export default function App() {
         <Route
           path="/levies"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY']}>
               {withLayout(<LeviesPage />)}
             </ProtectedRoute>
           }
@@ -139,7 +151,7 @@ export default function App() {
         <Route
           path="/payments"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY']}>
               {withLayout(<PaymentsPage />)}
             </ProtectedRoute>
           }
@@ -179,6 +191,14 @@ export default function App() {
           path="/portal/complaints"
           element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<ComplaintsPage />)}</ProtectedRoute>}
         />
+        <Route
+          path="/portal/payments"
+          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<PortalPaymentsPage />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/portal/vehicles"
+          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<PortalVehiclesPage />)}</ProtectedRoute>}
+        />
 
         <Route
           path="/security"
@@ -200,7 +220,7 @@ export default function App() {
         <Route
           path="/security/arrears"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'SECURITY']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY']}>
               {withLayout(<AccountsInArrearsPage />)}
             </ProtectedRoute>
           }

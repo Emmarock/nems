@@ -20,19 +20,19 @@ public class InvoiceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
     public InvoiceResponse generate(@Valid @RequestBody InvoiceGenerateRequest request) {
         return invoiceService.generate(request);
     }
 
     @PutMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
     public InvoiceResponse cancel(@PathVariable Long id) {
         return invoiceService.cancel(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
     public PageResponse<InvoiceResponse> findAll(@RequestParam(required = false) String q,
                                                   @RequestParam(required = false) Long residentId,
                                                   @RequestParam(defaultValue = "0") int page,

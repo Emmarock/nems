@@ -5,8 +5,15 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpecificationExecutor<Invoice> {
+
+    /** The most recent still-open invoice for this resident+levy, if any - lets a repeat receipt
+     * submission (e.g. after a rejection) attach to the same invoice instead of minting a new one
+     * each time, which would otherwise double-count "amount due" in the balance breakdown. */
+    Optional<Invoice> findFirstByResidentIdAndLevyIdAndStatusOrderByIssueDateDesc(
+            Long residentId, Long levyId, InvoiceStatus status);
 
     @org.springframework.data.jpa.repository.Query(
             "select coalesce(sum(i.amount), 0) from Invoice i where i.residentId = :residentId and i.status = 'ISSUED'")

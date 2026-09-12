@@ -131,7 +131,7 @@ public class PropertyService {
         if (owner != null) {
             balance = accountService.getBalance(owner.getId());
             levyBreakdown = accountService.getBalanceBreakdown(owner.getId());
-            recentPayments = paymentService.search(null, owner.getId(), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "paidAt")))
+            recentPayments = paymentService.search(null, owner.getId(), null, PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "paidAt")))
                     .content();
         }
 

@@ -32,4 +32,11 @@ public class Levy extends BaseEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    /** Marks this as *the* vehicle sticker fee, if any levy is - StickerRequestService resolves
+     * the active levy flagged here to know which levy/invoice a sticker request should charge
+     * against, without hardcoding a levy id or name. At most one should realistically be flagged
+     * active at a time; nothing in the schema enforces that, it's an operational convention. */
+    @Column(nullable = false)
+    private boolean vehicleStickerLevy = false;
 }

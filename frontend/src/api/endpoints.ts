@@ -24,6 +24,8 @@ import type {
   ResidentLookup,
   RfidTag,
   SecurityDashboard,
+  StickerRequest,
+  PaymentStatus,
   User,
   Vehicle,
   VehicleLookup,
@@ -123,10 +125,12 @@ export const accountsApi = {
 }
 
 export const paymentsApi = {
-  list: (params: { q?: string; residentId?: number; page?: number; size?: number } = {}) =>
+  list: (params: { q?: string; residentId?: number; status?: PaymentStatus; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Payment>>('/payments', { params }).then((r) => r.data),
   recordManual: (body: { residentId: number; invoiceId?: number; amount: number; method: string }) =>
     client.post<Payment>('/payments', body).then((r) => r.data),
+  approve: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/approve`, { notes }).then((r) => r.data),
+  reject: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/reject`, { notes }).then((r) => r.data),
   webhook: (providerReference: string, status: string) =>
     client.post<Payment>('/payments/webhook', { providerReference, status }).then((r) => r.data),
 }
@@ -146,6 +150,8 @@ export const meApi = {
         invoiceId,
       })
       .then((r) => r.data),
+  submitReceipt: (body: { levyId: number; amount: number; method: string; receiptImage?: string }) =>
+    client.post<Payment>('/me/payments/receipts', body).then((r) => r.data),
   vehicles: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Vehicle>>('/me/vehicles', { params }).then((r) => r.data),
   registerVehicle: (body: Omit<Vehicle, 'id' | 'status' | 'residentId' | 'residentName'>) =>
@@ -260,6 +266,15 @@ export const rfidApi = {
     client.post<RfidTag>('/rfid', body).then((r) => r.data),
   revoke: (id: number) => client.put<RfidTag>(`/rfid/${id}/revoke`).then((r) => r.data),
   markLost: (id: number) => client.put<RfidTag>(`/rfid/${id}/lost`).then((r) => r.data),
+}
+
+export const stickerRequestsApi = {
+  mine: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<StickerRequest>>('/sticker-requests/mine', { params }).then((r) => r.data),
+  list: (params: { residentId?: number; page?: number; size?: number } = {}) =>
+    client.get<PageResponse<StickerRequest>>('/sticker-requests', { params }).then((r) => r.data),
+  request: (vehicleId: number) =>
+    client.post<StickerRequest>('/sticker-requests', { vehicleId }).then((r) => r.data),
 }
 
 export const securityDashboardApi = {

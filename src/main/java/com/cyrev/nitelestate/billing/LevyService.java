@@ -48,5 +48,6 @@ public class LevyService {
         levy.setAmount(request.amount());
         levy.setFrequency(request.frequency());
         levy.setActive(request.active() == null || request.active());
+        levy.setVehicleStickerLevy(request.vehicleStickerLevy() != null && request.vehicleStickerLevy());
     }
 }

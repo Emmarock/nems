@@ -22,6 +22,12 @@ const LEVY_FIELDS: FieldConfig[] = [
       { value: 'ONE_TIME', label: 'One-time' },
     ],
   },
+  {
+    name: 'vehicleStickerLevy',
+    label: 'This is the vehicle sticker levy',
+    type: 'checkbox',
+    full: true,
+  },
 ]
 
 const INVOICE_FIELDS: FieldConfig[] = [
@@ -71,6 +77,7 @@ export function LeviesPage() {
       amount: Number(values.amount),
       frequency: values.frequency as Levy['frequency'],
       active: true,
+      vehicleStickerLevy: Boolean(values.vehicleStickerLevy),
     })
     setLevyModalOpen(false)
     await load()
@@ -115,6 +122,11 @@ export function LeviesPage() {
           { key: 'amount', label: 'Amount', render: (l) => `₦${l.amount.toLocaleString()}` },
           { key: 'frequency', label: 'Frequency', render: (l) => <StatusBadge value={l.frequency} /> },
           { key: 'active', label: 'Active', render: (l) => (l.active ? 'Yes' : 'No') },
+          {
+            key: 'vehicleStickerLevy',
+            label: 'Vehicle sticker',
+            render: (l) => (l.vehicleStickerLevy ? <StatusBadge value="STICKER LEVY" /> : <span className="muted">—</span>),
+          },
         ]}
       />
       <Pagination page={levies.page} totalPages={levies.totalPages} totalElements={levies.totalElements} onPageChange={setLevyPage} />

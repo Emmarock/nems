@@ -11,6 +11,7 @@ public record LevyRequest(
         @NotBlank String name,
         @NotNull @DecimalMin("0.00") BigDecimal amount,
         @NotNull LevyFrequency frequency,
-        Boolean active
+        Boolean active,
+        Boolean vehicleStickerLevy
 ) {
 }

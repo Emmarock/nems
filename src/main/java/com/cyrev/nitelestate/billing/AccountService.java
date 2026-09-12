@@ -66,6 +66,6 @@ public class AccountService {
     }
 
     public PageResponse<PaymentResponse> getPayments(Long residentId, Pageable pageable) {
-        return paymentService.search(null, residentId, pageable);
+        return paymentService.search(null, residentId, null, pageable);
     }
 }

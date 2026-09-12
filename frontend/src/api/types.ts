@@ -10,6 +10,7 @@ export type Role =
   | 'SUPER_ADMIN'
   | 'CDA_ADMIN'
   | 'TREASURER'
+  | 'FINANCIAL_SECRETARY'
   | 'SECRETARY'
   | 'SECURITY'
   | 'MAINTENANCE'
@@ -164,6 +165,8 @@ export interface Levy {
   amount: number
   frequency: LevyFrequency
   active: boolean
+  /** Marks this as *the* vehicle sticker fee, if any levy is — see StickerRequest. */
+  vehicleStickerLevy: boolean
 }
 
 export type InvoiceStatus = 'ISSUED' | 'CANCELLED'
@@ -181,7 +184,7 @@ export interface Invoice {
 }
 
 export type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'ONLINE_GATEWAY'
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED'
+export type PaymentStatus = 'PENDING' | 'PENDING_APPROVAL' | 'SUCCESS' | 'FAILED' | 'REJECTED'
 
 export interface Payment {
   id: number
@@ -194,6 +197,12 @@ export interface Payment {
   providerReference: string | null
   status: PaymentStatus
   paidAt: string
+  /** A resident-submitted proof of payment (base64 data URI) — set only for the receipt-review flow. */
+  receiptImage: string | null
+  approvedByUserId: number | null
+  approvedByUserName: string | null
+  approvedAt: string | null
+  reviewNotes: string | null
 }
 
 export interface LevyBalance {
@@ -217,6 +226,21 @@ export interface MeDashboard {
   property: Property | null
   account: AccountBalance
   vehicles: Vehicle[]
+}
+
+export type StickerStatus = 'PENDING_PAYMENT' | 'ISSUED'
+
+export interface StickerRequest {
+  id: number
+  vehicleId: number
+  plateNumber: string | null
+  residentId: number
+  residentName: string | null
+  invoiceId: number
+  invoiceAmount: number | null
+  status: StickerStatus
+  requestedAt: string
+  issuedAt: string | null
 }
 
 export type VisitorStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED'

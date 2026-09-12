@@ -7,6 +7,7 @@ public enum Role {
     SUPER_ADMIN,
     CDA_ADMIN,
     TREASURER,
+    FINANCIAL_SECRETARY,
     SECRETARY,
     SECURITY,
     MAINTENANCE,

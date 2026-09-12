@@ -50,6 +50,19 @@ public class InvoiceService {
         return InvoiceResponse.from(invoice, resolveResidentName(invoice.getResidentId()));
     }
 
+    /**
+     * Reuses the resident's existing open invoice for this levy if one exists, generating a new
+     * one only if there isn't - used by resident-initiated payment flows (receipt submission,
+     * sticker requests) so a retry (e.g. after a rejected receipt) attaches to the same invoice
+     * rather than minting a fresh one and inflating the resident's "amount due".
+     */
+    @Transactional
+    public InvoiceResponse findOrGenerate(Long residentId, Long levyId) {
+        return invoiceRepository.findFirstByResidentIdAndLevyIdAndStatusOrderByIssueDateDesc(residentId, levyId, InvoiceStatus.ISSUED)
+                .map(invoice -> InvoiceResponse.from(invoice, resolveResidentName(residentId)))
+                .orElseGet(() -> generate(new InvoiceGenerateRequest(residentId, levyId, null)));
+    }
+
     @Transactional
     public InvoiceResponse cancel(Long id) {
         Invoice invoice = get(id);

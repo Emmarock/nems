@@ -8,6 +8,7 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'SUPER_ADMIN', label: 'Super Admin' },
   { value: 'CDA_ADMIN', label: 'CDA Administrator' },
   { value: 'TREASURER', label: 'Treasurer' },
+  { value: 'FINANCIAL_SECRETARY', label: 'Financial Secretary' },
   { value: 'SECRETARY', label: 'Secretary' },
   { value: 'SECURITY', label: 'Security' },
   { value: 'MAINTENANCE', label: 'Maintenance' },

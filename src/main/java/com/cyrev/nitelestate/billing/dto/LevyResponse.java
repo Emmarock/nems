@@ -5,8 +5,10 @@ import com.cyrev.nitelestate.billing.LevyFrequency;
 
 import java.math.BigDecimal;
 
-public record LevyResponse(Long id, String name, BigDecimal amount, LevyFrequency frequency, boolean active) {
+public record LevyResponse(Long id, String name, BigDecimal amount, LevyFrequency frequency, boolean active,
+                            boolean vehicleStickerLevy) {
     public static LevyResponse from(Levy l) {
-        return new LevyResponse(l.getId(), l.getName(), l.getAmount(), l.getFrequency(), l.isActive());
+        return new LevyResponse(l.getId(), l.getName(), l.getAmount(), l.getFrequency(), l.isActive(),
+                l.isVehicleStickerLevy());
     }
 }
