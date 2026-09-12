@@ -91,7 +91,11 @@ export function PaymentsPage() {
 
       <div className="toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <SearchInput value={query} onChange={setQuery} placeholder="Search payments by resident name or provider reference…" />
-        <select value={status} onChange={(e) => setStatus(e.target.value as PaymentStatus | '')}>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as PaymentStatus | '')}
+          style={{ minWidth: 180 }}
+        >
           {STATUS_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
