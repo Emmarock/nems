@@ -167,6 +167,9 @@ export interface Levy {
   active: boolean
   /** Marks this as *the* vehicle sticker fee, if any levy is — see StickerRequest. */
   vehicleStickerLevy: boolean
+  /** Which payment account this levy's payments go to — there isn't one shared account. */
+  paymentAccountId: number | null
+  paymentAccountLabel: string | null
 }
 
 export type InvoiceStatus = 'ISSUED' | 'CANCELLED'
@@ -386,10 +389,15 @@ export interface AccessPolicy {
 }
 
 /** The one bank account residents should pay any levy into — admin-configurable, no per-levy account. */
+/** One of the estate's bank accounts — there isn't a single shared account, e.g. Electricity and
+ * Development are collected separately (see Levy.paymentAccountId). */
 export interface PaymentAccount {
+  id: number
+  label: string
   bankName: string
   accountNumber: string
   accountName: string
+  active: boolean
 }
 
 export type ChangeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
@@ -408,6 +416,9 @@ export interface PaymentAccountApproval {
  * two roles other than proposedByRole have approved it. */
 export interface PaymentAccountChange {
   id: number
+  /** Null when this proposes creating a brand new account rather than editing one. */
+  targetAccountId: number | null
+  label: string
   bankName: string
   accountNumber: string
   accountName: string

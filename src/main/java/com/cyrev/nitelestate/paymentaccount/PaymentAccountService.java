@@ -3,12 +3,12 @@ package com.cyrev.nitelestate.paymentaccount;
 import com.cyrev.nitelestate.audit.AuditService;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.ConflictException;
-import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.paymentaccount.dto.ApprovalResponse;
 import com.cyrev.nitelestate.paymentaccount.dto.PaymentAccountChangeResponse;
 import com.cyrev.nitelestate.paymentaccount.dto.PaymentAccountDecisionRequest;
 import com.cyrev.nitelestate.paymentaccount.dto.PaymentAccountRequest;
 import com.cyrev.nitelestate.paymentaccount.dto.PaymentAccountResponse;
+import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.user.Role;
 import com.cyrev.nitelestate.user.User;
 import com.cyrev.nitelestate.user.UserRepository;
@@ -22,12 +22,14 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The estate's payment account is under multi-party control: one eligible role proposes a
- * change, and it only takes effect once two OTHER eligible roles approve it (any single
- * rejection kills the proposal outright rather than requiring unanimous rejection - a red flag
- * from any financial officer should stop a suspicious change immediately). A second person
- * holding the same role as the proposer, or as an existing approval, doesn't add a new
- * sign-off - this is role-distinctness, not headcount.
+ * The estate operates several named payment accounts (e.g. one for Electricity, one for
+ * Development) rather than a single shared one - a Levy optionally links to whichever account
+ * its payments actually go to (see Levy.paymentAccountId). Every account is under multi-party
+ * control: one eligible role proposes creating or editing an account, and it only takes effect
+ * once two OTHER eligible roles approve it. A single rejection kills the proposal outright
+ * rather than requiring unanimous rejection - a red flag from any financial officer should stop
+ * a suspicious change immediately. A second person holding the same role as the proposer, or as
+ * an existing approval, doesn't add a new sign-off - this is role-distinctness, not headcount.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,31 +43,44 @@ public class PaymentAccountService {
 
     private static final int APPROVALS_REQUIRED = 2;
 
-    private final PaymentAccountSettingsRepository settingsRepository;
+    private final PaymentAccountRepository accountRepository;
     private final PaymentAccountChangeRequestRepository changeRequestRepository;
     private final PaymentAccountChangeApprovalRepository approvalRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
 
-    public PaymentAccountResponse getSettings() {
-        return PaymentAccountResponse.from(getOrCreateSettings());
+    public List<PaymentAccountResponse> listAccounts() {
+        return accountRepository.findAllByActiveTrue().stream().map(PaymentAccountResponse::from).toList();
     }
 
-    /** Null (not an exception) when nothing is pending - that's the normal, common state. */
-    public PaymentAccountChangeResponse getPendingChange() {
-        return changeRequestRepository.findFirstByStatusOrderByCreatedAtDesc(ChangeRequestStatus.PENDING)
-                .map(this::toResponse)
-                .orElse(null);
+    public List<PaymentAccountChangeResponse> listPendingChanges() {
+        return changeRequestRepository.findAllByStatus(ChangeRequestStatus.PENDING).stream()
+                .map(this::toResponse).toList();
     }
 
     @Transactional
     public PaymentAccountChangeResponse proposeChange(Long userId, Role role, PaymentAccountRequest request) {
         requireEligible(role);
-        changeRequestRepository.findFirstByStatusOrderByCreatedAtDesc(ChangeRequestStatus.PENDING).ifPresent(existing -> {
-            throw new ConflictException("A payment account change is already pending approval - resolve it first");
-        });
+        Long targetAccountId = request.targetAccountId();
+
+        if (targetAccountId == null) {
+            changeRequestRepository.findFirstByTargetAccountIdIsNullAndStatus(ChangeRequestStatus.PENDING)
+                    .ifPresent(existing -> {
+                        throw new ConflictException("A proposal to create a new account is already pending approval");
+                    });
+        } else {
+            if (!accountRepository.existsById(targetAccountId)) {
+                throw new BadRequestException("No payment account found with id " + targetAccountId);
+            }
+            changeRequestRepository.findFirstByTargetAccountIdAndStatus(targetAccountId, ChangeRequestStatus.PENDING)
+                    .ifPresent(existing -> {
+                        throw new ConflictException("A change to this account is already pending approval - resolve it first");
+                    });
+        }
 
         PaymentAccountChangeRequest change = new PaymentAccountChangeRequest();
+        change.setTargetAccountId(targetAccountId);
+        change.setLabel(request.label());
         change.setBankName(request.bankName());
         change.setAccountNumber(request.accountNumber());
         change.setAccountName(request.accountName());
@@ -75,7 +90,8 @@ public class PaymentAccountService {
         change = changeRequestRepository.save(change);
 
         auditService.record("PaymentAccountChangeRequest", change.getId(), "PROPOSE",
-                "role=" + role + " bank=" + request.bankName() + " account=" + request.accountNumber());
+                "role=" + role + " target=" + (targetAccountId == null ? "NEW" : targetAccountId)
+                        + " label=" + request.label());
         return toResponse(change);
     }
 
@@ -121,17 +137,22 @@ public class PaymentAccountService {
 
         long approvalCount = existing.stream().filter(a -> a.getDecision() == ApprovalDecision.APPROVED).count() + 1;
         if (approvalCount >= APPROVALS_REQUIRED) {
-            PaymentAccountSettings settings = getOrCreateSettings();
-            settings.setBankName(change.getBankName());
-            settings.setAccountNumber(change.getAccountNumber());
-            settings.setAccountName(change.getAccountName());
-            settingsRepository.save(settings);
+            Long targetAccountId = change.getTargetAccountId();
+            PaymentAccount account = targetAccountId != null
+                    ? accountRepository.findById(targetAccountId)
+                            .orElseThrow(() -> NotFoundException.of("PaymentAccount", targetAccountId))
+                    : new PaymentAccount();
+            account.setLabel(change.getLabel());
+            account.setBankName(change.getBankName());
+            account.setAccountNumber(change.getAccountNumber());
+            account.setAccountName(change.getAccountName());
+            account = accountRepository.save(account);
 
             change.setStatus(ChangeRequestStatus.APPROVED);
             change.setDecidedAt(Instant.now());
             change = changeRequestRepository.save(change);
-            auditService.record("PaymentAccountSettings", settings.getId(), "APPLY_CHANGE",
-                    "bank=" + settings.getBankName() + " account=" + settings.getAccountNumber());
+            auditService.record("PaymentAccount", account.getId(), "APPLY_CHANGE",
+                    "label=" + account.getLabel() + " bank=" + account.getBankName() + " account=" + account.getAccountNumber());
         }
         return toResponse(change);
     }
@@ -160,10 +181,5 @@ public class PaymentAccountService {
 
     private String resolveUserName(Long userId) {
         return userRepository.findById(userId).map(User::getFullName).orElse(null);
-    }
-
-    private PaymentAccountSettings getOrCreateSettings() {
-        return settingsRepository.findAll().stream().findFirst()
-                .orElseGet(() -> settingsRepository.save(new PaymentAccountSettings()));
     }
 }

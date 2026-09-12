@@ -10,7 +10,7 @@ import { LoadingState } from '../../components/LoadingState'
 const EMPTY: PageResponse<Payment> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 export function PaymentsPage() {
-  const [account, setAccount] = useState<PaymentAccount | null>(null)
+  const [accounts, setAccounts] = useState<PaymentAccount[]>([])
   const [breakdown, setBreakdown] = useState<LevyBalance[] | null>(null)
   const [levies, setLevies] = useState<Levy[]>([])
   const [result, setResult] = useState<PageResponse<Payment>>(EMPTY)
@@ -20,13 +20,13 @@ export function PaymentsPage() {
 
   async function load() {
     setLoading(true)
-    const [acc, b, l, p] = await Promise.all([
-      paymentAccountApi.get(),
+    const [accs, b, l, p] = await Promise.all([
+      paymentAccountApi.list(),
       meApi.balanceBreakdown(),
       leviesApi.list({ size: 100 }),
       meApi.payments({ page, size: 20 }),
     ])
-    setAccount(acc)
+    setAccounts(accs)
     setBreakdown(b)
     setLevies(l.content.filter((lv) => lv.active))
     setResult(p)
@@ -92,32 +92,50 @@ export function PaymentsPage() {
         </button>
       </div>
 
-      {account && (
+      {accounts.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="section-title" style={{ marginTop: 0 }}>
             Where to pay
           </div>
-          {account.accountNumber ? (
-            <dl className="detail-list">
-              <div className="detail-row">
-                <dt>Bank</dt>
-                <dd>{account.bankName}</dd>
-              </div>
-              <div className="detail-row">
-                <dt>Account number</dt>
-                <dd>{account.accountNumber}</dd>
-              </div>
-              <div className="detail-row">
-                <dt>Account name</dt>
-                <dd>{account.accountName}</dd>
-              </div>
-            </dl>
-          ) : (
-            <p className="muted">The estate hasn't published payment account details yet — contact the estate office.</p>
-          )}
-          <div className="info-banner" style={{ marginTop: 12, marginBottom: 0 }}>
-            ⚠️ Only pay into an account that carries the estate's name — this applies to every levy above. Do not send
-            money to any other account, even if someone claims to be from the estate.
+          <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>
+            Different levies go into different accounts — check which one applies before you pay.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {accounts.map((acc) => {
+              const leviesForAccount = levies.filter((lv) => lv.paymentAccountId === acc.id)
+              return (
+                <div key={acc.id}>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>{acc.label || `Account #${acc.id}`}</div>
+                  {acc.accountNumber ? (
+                    <dl className="detail-list">
+                      <div className="detail-row">
+                        <dt>Bank</dt>
+                        <dd>{acc.bankName}</dd>
+                      </div>
+                      <div className="detail-row">
+                        <dt>Account number</dt>
+                        <dd>{acc.accountNumber}</dd>
+                      </div>
+                      <div className="detail-row">
+                        <dt>Account name</dt>
+                        <dd>{acc.accountName}</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="muted">Not yet published — contact the estate office.</p>
+                  )}
+                  {leviesForAccount.length > 0 && (
+                    <p className="muted" style={{ margin: '6px 0 0' }}>
+                      Used for: {leviesForAccount.map((lv) => lv.name).join(', ')}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div className="info-banner" style={{ marginTop: 14, marginBottom: 0 }}>
+            ⚠️ Only pay into an account that carries the estate's name. Do not send money to any other account, even
+            if someone claims to be from the estate.
           </div>
         </div>
       )}

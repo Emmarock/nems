@@ -9,6 +9,9 @@ import java.util.List;
 
 public record PaymentAccountChangeResponse(
         Long id,
+        /** Null when this proposes creating a brand new account rather than editing one. */
+        Long targetAccountId,
+        String label,
         String bankName,
         String accountNumber,
         String accountName,
@@ -24,8 +27,8 @@ public record PaymentAccountChangeResponse(
 ) {
     public static PaymentAccountChangeResponse from(PaymentAccountChangeRequest r, String proposedByUserName,
                                                       List<ApprovalResponse> approvals, int approvalsStillNeeded) {
-        return new PaymentAccountChangeResponse(r.getId(), r.getBankName(), r.getAccountNumber(), r.getAccountName(),
-                r.getProposedByUserId(), proposedByUserName, r.getProposedByRole(), r.getStatus(), approvals,
-                approvalsStillNeeded, r.getCreatedAt(), r.getDecidedAt());
+        return new PaymentAccountChangeResponse(r.getId(), r.getTargetAccountId(), r.getLabel(), r.getBankName(),
+                r.getAccountNumber(), r.getAccountName(), r.getProposedByUserId(), proposedByUserName,
+                r.getProposedByRole(), r.getStatus(), approvals, approvalsStillNeeded, r.getCreatedAt(), r.getDecidedAt());
     }
 }

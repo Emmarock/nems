@@ -2,19 +2,29 @@ package com.cyrev.nitelestate.billing;
 
 import com.cyrev.nitelestate.audit.AuditService;
 import com.cyrev.nitelestate.common.dto.PageResponse;
+import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.billing.dto.LevyRequest;
 import com.cyrev.nitelestate.billing.dto.LevyResponse;
+import com.cyrev.nitelestate.paymentaccount.PaymentAccount;
+import com.cyrev.nitelestate.paymentaccount.PaymentAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class LevyService {
 
     private final LevyRepository levyRepository;
+    private final PaymentAccountRepository paymentAccountRepository;
     private final AuditService auditService;
 
     @Transactional
@@ -23,7 +33,7 @@ public class LevyService {
         apply(levy, request);
         levy = levyRepository.save(levy);
         auditService.record("Levy", levy.getId(), "CREATE", levy.getName());
-        return LevyResponse.from(levy);
+        return LevyResponse.from(levy, resolvePaymentAccountLabel(levy.getPaymentAccountId()));
     }
 
     @Transactional
@@ -32,11 +42,18 @@ public class LevyService {
         apply(levy, request);
         levy = levyRepository.save(levy);
         auditService.record("Levy", levy.getId(), "UPDATE", levy.getName());
-        return LevyResponse.from(levy);
+        return LevyResponse.from(levy, resolvePaymentAccountLabel(levy.getPaymentAccountId()));
     }
 
     public PageResponse<LevyResponse> search(Pageable pageable) {
-        return PageResponse.of(levyRepository.findAll(pageable), LevyResponse::from);
+        var page = levyRepository.findAll(pageable);
+
+        List<Long> accountIds = page.getContent().stream()
+                .map(Levy::getPaymentAccountId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, String> accountLabels = paymentAccountRepository.findAllById(accountIds).stream()
+                .collect(Collectors.toMap(PaymentAccount::getId, PaymentAccount::getLabel));
+
+        return PageResponse.of(page.map(l -> LevyResponse.from(l, accountLabels.get(l.getPaymentAccountId()))));
     }
 
     Levy get(Long id) {
@@ -49,5 +66,14 @@ public class LevyService {
         levy.setFrequency(request.frequency());
         levy.setActive(request.active() == null || request.active());
         levy.setVehicleStickerLevy(request.vehicleStickerLevy() != null && request.vehicleStickerLevy());
+        if (request.paymentAccountId() != null && !paymentAccountRepository.existsById(request.paymentAccountId())) {
+            throw new BadRequestException("No payment account found with id " + request.paymentAccountId());
+        }
+        levy.setPaymentAccountId(request.paymentAccountId());
+    }
+
+    private String resolvePaymentAccountLabel(Long paymentAccountId) {
+        return paymentAccountId == null ? null
+                : paymentAccountRepository.findById(paymentAccountId).map(PaymentAccount::getLabel).orElse(null);
     }
 }

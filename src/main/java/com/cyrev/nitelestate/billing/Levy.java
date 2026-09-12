@@ -39,4 +39,9 @@ public class Levy extends BaseEntity {
      * active at a time; nothing in the schema enforces that, it's an operational convention. */
     @Column(nullable = false)
     private boolean vehicleStickerLevy = false;
+
+    /** Which of the estate's payment accounts (see PaymentAccount) this levy's payments go to -
+     * there isn't one shared account, e.g. Electricity and Development are collected separately.
+     * Nullable: a levy can go unassigned until an admin links it to the right account. */
+    private Long paymentAccountId;
 }

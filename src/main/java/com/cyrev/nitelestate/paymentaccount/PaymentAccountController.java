@@ -11,10 +11,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
- * The one bank account residents pay any levy into. Viewable by any authenticated user; changing
- * it is multi-party: SUPER_ADMIN/CDA_ADMIN/TREASURER/FINANCIAL_SECRETARY can propose a change,
- * but it only takes effect once two OTHER of those roles approve it (see PaymentAccountService).
+ * The estate's payment accounts (e.g. Electricity, Development) - viewable by any authenticated
+ * user; changing or creating one is multi-party: SUPER_ADMIN/CDA_ADMIN/TREASURER/
+ * FINANCIAL_SECRETARY can propose, but it only takes effect once two OTHER of those roles
+ * approve it (see PaymentAccountService).
  */
 @RestController
 @RequestMapping("/api/v1/payment-account")
@@ -27,14 +30,14 @@ public class PaymentAccountController {
     private final CurrentUser currentUser;
 
     @GetMapping
-    public PaymentAccountResponse get() {
-        return paymentAccountService.getSettings();
+    public List<PaymentAccountResponse> list() {
+        return paymentAccountService.listAccounts();
     }
 
     @GetMapping("/pending")
     @PreAuthorize(ELIGIBLE_ROLES)
-    public PaymentAccountChangeResponse pending() {
-        return paymentAccountService.getPendingChange();
+    public List<PaymentAccountChangeResponse> pending() {
+        return paymentAccountService.listPendingChanges();
     }
 
     @PostMapping("/changes")

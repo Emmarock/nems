@@ -1,9 +1,11 @@
 package com.cyrev.nitelestate.paymentaccount.dto;
 
-import com.cyrev.nitelestate.paymentaccount.PaymentAccountSettings;
+import com.cyrev.nitelestate.paymentaccount.PaymentAccount;
 
-public record PaymentAccountResponse(String bankName, String accountNumber, String accountName) {
-    public static PaymentAccountResponse from(PaymentAccountSettings s) {
-        return new PaymentAccountResponse(s.getBankName(), s.getAccountNumber(), s.getAccountName());
+public record PaymentAccountResponse(Long id, String label, String bankName, String accountNumber,
+                                      String accountName, boolean active) {
+    public static PaymentAccountResponse from(PaymentAccount a) {
+        return new PaymentAccountResponse(a.getId(), a.getLabel(), a.getBankName(), a.getAccountNumber(),
+                a.getAccountName(), a.isActive());
     }
 }

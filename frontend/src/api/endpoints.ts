@@ -104,8 +104,9 @@ export const vehiclesApi = {
 export const leviesApi = {
   list: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Levy>>('/levies', { params }).then((r) => r.data),
-  create: (body: Omit<Levy, 'id'>) => client.post<Levy>('/levies', body).then((r) => r.data),
-  update: (id: number, body: Omit<Levy, 'id'>) => client.put<Levy>(`/levies/${id}`, body).then((r) => r.data),
+  create: (body: Omit<Levy, 'id' | 'paymentAccountLabel'>) => client.post<Levy>('/levies', body).then((r) => r.data),
+  update: (id: number, body: Omit<Levy, 'id' | 'paymentAccountLabel'>) =>
+    client.put<Levy>(`/levies/${id}`, body).then((r) => r.data),
 }
 
 export const invoicesApi = {
@@ -244,9 +245,9 @@ export const accessPolicyApi = {
 }
 
 export const paymentAccountApi = {
-  get: () => client.get<PaymentAccount>('/payment-account').then((r) => r.data),
-  getPending: () => client.get<PaymentAccountChange | null>('/payment-account/pending').then((r) => r.data),
-  propose: (body: PaymentAccount) =>
+  list: () => client.get<PaymentAccount[]>('/payment-account').then((r) => r.data),
+  listPending: () => client.get<PaymentAccountChange[]>('/payment-account/pending').then((r) => r.data),
+  propose: (body: { targetAccountId?: number; label: string; bankName: string; accountNumber: string; accountName: string }) =>
     client.post<PaymentAccountChange>('/payment-account/changes', body).then((r) => r.data),
   approve: (id: number, notes?: string) =>
     client.put<PaymentAccountChange>(`/payment-account/changes/${id}/approve`, { notes }).then((r) => r.data),

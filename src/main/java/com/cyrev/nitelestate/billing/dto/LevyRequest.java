@@ -12,6 +12,8 @@ public record LevyRequest(
         @NotNull @DecimalMin("0.00") BigDecimal amount,
         @NotNull LevyFrequency frequency,
         Boolean active,
-        Boolean vehicleStickerLevy
+        Boolean vehicleStickerLevy,
+        /** Which payment account this levy's payments go to - null leaves it unassigned. */
+        Long paymentAccountId
 ) {
 }
