@@ -61,7 +61,7 @@ export function AnnouncementsPage() {
       <div className="page-header">
         <div>
           <h1>Announcements</h1>
-          <p className="page-subtitle">Estate-wide notices via portal, email, SMS, WhatsApp (spec §8). Click a title to read it in full.</p>
+          <p className="page-subtitle">Estate-wide notices via portal, email, SMS, WhatsApp. Click a title to read it in full.</p>
         </div>
         {user && CAN_CREATE.has(user.role) && (
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>

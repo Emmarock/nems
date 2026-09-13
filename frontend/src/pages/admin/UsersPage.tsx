@@ -47,7 +47,7 @@ export function UsersPage() {
       <div className="page-header">
         <div>
           <h1>Users</h1>
-          <p className="page-subtitle">Staff and resident login accounts (spec §10, Super Admin only).</p>
+          <p className="page-subtitle">Staff and resident login accounts (Super Admin only).</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn" onClick={() => setBulkCreateOpen(true)}>

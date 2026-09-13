@@ -29,7 +29,7 @@ const VEHICLE_FIELDS: FieldConfig[] = [
   { name: 'colour', label: 'Colour' },
 ]
 
-/** Resident self-service: personal details, house number, and vehicle registration (spec §6). */
+/** Resident self-service: personal details, house number, and vehicle registration. */
 export function ProfilePage() {
   const [dashboard, setDashboard] = useState<MeDashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +99,7 @@ export function ProfilePage() {
       <div className="page-header">
         <div>
           <h1>My Profile</h1>
-          <p className="page-subtitle">Your personal details, house number, and registered vehicles (spec §6).</p>
+          <p className="page-subtitle">Your personal details, house number, and registered vehicles.</p>
         </div>
       </div>
 

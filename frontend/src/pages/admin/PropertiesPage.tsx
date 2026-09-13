@@ -102,7 +102,7 @@ export function PropertiesPage() {
       <div className="page-header">
         <div>
           <h1>Properties</h1>
-          <p className="page-subtitle">The estate's property registry (spec §2).</p>
+          <p className="page-subtitle">The estate's property registry.</p>
         </div>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
           + New property

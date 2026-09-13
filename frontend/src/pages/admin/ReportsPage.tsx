@@ -24,7 +24,7 @@ export function ReportsPage() {
       <div className="page-header">
         <div>
           <h1>Reports</h1>
-          <p className="page-subtitle">CDA dashboard (spec §11), extended with worker/visitor activity.</p>
+          <p className="page-subtitle">CDA dashboard, extended with worker/visitor activity.</p>
         </div>
       </div>
 

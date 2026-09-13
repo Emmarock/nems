@@ -49,7 +49,7 @@ export function VehiclesPage() {
       <div className="page-header">
         <div>
           <h1>Vehicles</h1>
-          <p className="page-subtitle">Registered ahead of ANPR (spec §3).</p>
+          <p className="page-subtitle">Registered ahead of ANPR.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Register vehicle

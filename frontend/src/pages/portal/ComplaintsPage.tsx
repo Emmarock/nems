@@ -71,7 +71,7 @@ export function ComplaintsPage() {
       <div className="page-header">
         <div>
           <h1>My Complaints</h1>
-          <p className="page-subtitle">Report electricity, water, security and other issues (spec §7).</p>
+          <p className="page-subtitle">Report electricity, water, security and other issues.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + File complaint

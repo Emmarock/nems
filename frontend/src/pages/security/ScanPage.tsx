@@ -21,7 +21,7 @@ const TITLES: Record<ScanKind, string> = {
 /**
  * What opens when security scans a QR pass (via camera or a shared link).
  * Visitor/worker/resident/vehicle passes are about gate entry: identity + destination +
- * Check In/Out (spec §9 / Phase 2 §4 / Phase 3 §4-5). A building pass is about enforcement, not
+ * Check In/Out. A building pass is about enforcement, not
  * entry: it shows the owning resident's payment history/outstanding balance, read-only, no
  * check-in/out.
  */

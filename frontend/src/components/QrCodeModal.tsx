@@ -13,7 +13,7 @@ interface QrCodeModalProps {
 /**
  * Shows a scannable QR pass a resident can download or share with their visitor/worker to
  * present at the gate. The QR encodes a URL into the security-only scan page, so any phone
- * camera opening it lands straight on the destination-confirmation screen (spec §9 / Phase 2 §4).
+ * camera opening it lands straight on the destination-confirmation screen.
  */
 export function QrCodeModal({ title, subtitle, value, fileName, helpText, onClose }: QrCodeModalProps) {
   const [dataUrl, setDataUrl] = useState<string | null>(null)

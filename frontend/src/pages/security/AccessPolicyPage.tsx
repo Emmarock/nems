@@ -41,7 +41,7 @@ export function AccessPolicyPage() {
         <div>
           <h1>Access Policy</h1>
           <p className="page-subtitle">
-            Configurable settings, not a rule engine (spec Phase 3 §3) — flags residents whose outstanding balance
+            Configurable settings, not a rule engine — flags residents whose outstanding balance
             exceeds the threshold at the gate.
           </p>
         </div>

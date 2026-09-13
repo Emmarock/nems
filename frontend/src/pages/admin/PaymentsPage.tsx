@@ -81,7 +81,7 @@ export function PaymentsPage() {
         <div>
           <h1>Payments</h1>
           <p className="page-subtitle">
-            Back-office payments and resident-submitted receipts awaiting review (spec §5).
+            Back-office payments and resident-submitted receipts awaiting review.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>

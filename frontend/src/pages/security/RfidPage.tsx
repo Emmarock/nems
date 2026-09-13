@@ -37,7 +37,7 @@ export function RfidPage() {
       <div className="page-header">
         <div>
           <h1>RFID Tags</h1>
-          <p className="page-subtitle">Physical credentials for residents/long-term workers (spec Phase 3 §6).</p>
+          <p className="page-subtitle">Physical credentials for residents/long-term workers.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Issue tag

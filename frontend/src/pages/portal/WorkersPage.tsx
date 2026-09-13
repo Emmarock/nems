@@ -60,8 +60,7 @@ export function WorkersPage() {
         <div>
           <h1>My Workers</h1>
           <p className="page-subtitle">
-            Request access for contractors/labourers while the estate is under development (spec Phase 2 §4 —
-            Worker Module).
+            Request access for contractors/labourers while the estate is under development.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>

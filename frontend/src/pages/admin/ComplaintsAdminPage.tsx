@@ -37,7 +37,7 @@ export function ComplaintsAdminPage() {
       <div className="page-header">
         <div>
           <h1>Complaints</h1>
-          <p className="page-subtitle">OPEN → ASSIGNED → IN PROGRESS → RESOLVED → CLOSED (spec §7).</p>
+          <p className="page-subtitle">OPEN → ASSIGNED → IN PROGRESS → RESOLVED → CLOSED.</p>
         </div>
       </div>
 

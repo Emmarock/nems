@@ -79,7 +79,7 @@ export function ResidentsPage() {
       <div className="page-header">
         <div>
           <h1>Residents</h1>
-          <p className="page-subtitle">Owner/tenant profiles linked to properties (spec §1).</p>
+          <p className="page-subtitle">Owner/tenant profiles linked to properties.</p>
         </div>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
           + New resident

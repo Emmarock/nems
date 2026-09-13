@@ -38,7 +38,7 @@ export function VisitorsAdminPage() {
       <div className="page-header">
         <div>
           <h1>Visitors</h1>
-          <p className="page-subtitle">Every visitor pass issued by residents estate-wide (spec Phase 2 §4 — Visitor Module).</p>
+          <p className="page-subtitle">Every visitor pass issued by residents estate-wide (Visitor Module).</p>
         </div>
       </div>
 

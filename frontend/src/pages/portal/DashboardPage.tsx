@@ -51,7 +51,7 @@ export function DashboardPage() {
       <div className="page-header">
         <div>
           <h1>Welcome, {dashboard.resident.fullName}</h1>
-          <p className="page-subtitle">Resident portal (spec §6).</p>
+          <p className="page-subtitle">Resident portal.</p>
         </div>
       </div>
 

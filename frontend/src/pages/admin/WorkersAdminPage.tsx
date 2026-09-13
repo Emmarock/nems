@@ -59,8 +59,7 @@ export function WorkersAdminPage() {
         <div>
           <h1>Workers</h1>
           <p className="page-subtitle">
-            Contractor/labourer access, issued immediately by the sponsoring resident (spec Phase 2 §4 — Worker
-            Module).
+            Contractor/labourer access, issued immediately by the sponsoring resident.
           </p>
         </div>
       </div>

@@ -119,7 +119,7 @@ export function LeviesPage() {
       <div className="page-header">
         <div>
           <h1>Levies &amp; Invoices</h1>
-          <p className="page-subtitle">Define estate charges and raise invoices against residents (spec §4).</p>
+          <p className="page-subtitle">Define estate charges and raise invoices against residents.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn" onClick={() => setInvoiceModalOpen(true)}>

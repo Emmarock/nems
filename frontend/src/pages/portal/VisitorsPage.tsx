@@ -60,7 +60,7 @@ export function VisitorsPage() {
       <div className="page-header">
         <div>
           <h1>My Visitors</h1>
-          <p className="page-subtitle">Create QR visitor passes for guests (spec §9).</p>
+          <p className="page-subtitle">Create QR visitor passes for guests.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Create visitor pass

@@ -59,7 +59,7 @@ export function GatesPage() {
       <div className="page-header">
         <div>
           <h1>Gates</h1>
-          <p className="page-subtitle">Register the estate's physical gates (spec Phase 3 §2).</p>
+          <p className="page-subtitle">Register the estate's physical gates.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + New gate

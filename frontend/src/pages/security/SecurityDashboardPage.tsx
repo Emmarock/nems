@@ -62,7 +62,7 @@ export function SecurityDashboardPage() {
       <div className="page-header">
         <div>
           <h1>Security Dashboard</h1>
-          <p className="page-subtitle">Live operational view for the gate team (spec Phase 3 §1/§4/§5).</p>
+          <p className="page-subtitle">Live operational view for the gate team.</p>
         </div>
       </div>
 
