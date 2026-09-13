@@ -729,6 +729,7 @@ select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  height: 38px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 9px 34px 9px 12px;
@@ -1250,6 +1251,7 @@ select:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 38px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
