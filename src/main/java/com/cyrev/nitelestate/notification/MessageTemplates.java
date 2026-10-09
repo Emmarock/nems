@@ -29,6 +29,12 @@ public final class MessageTemplates {
                 + "\n\n" + actionLabel + actionUrl;
     }
 
+    /** Sent to a landlord when a tenant shares a payment receipt (see PaymentService.shareReceiptWithLandlord). */
+    public static String receiptShared(String tenantFullName) {
+        return tenantFullName + " shared a payment receipt with you on " + BRAND
+                + ". Review it and submit it from your Payments page if it checks out.";
+    }
+
     /** Sent on every successful login — see UserService.notifyLogin for how device/location are resolved. */
     public static String loginAlert(String fullName, String device, String ipAddress, String location) {
         StringBuilder message = new StringBuilder()

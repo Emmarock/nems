@@ -47,6 +47,12 @@ public class AccountService {
         }
         Map<Long, BigDecimal> paid = new LinkedHashMap<>();
         for (Object[] row : paymentRepository.sumSuccessfulAmountByResidentGroupedByLevy(residentId)) {
+            // row[0] is null for a general/unapplied payment (no invoice, see Payment.invoiceId) -
+            // nothing to attribute it to in a PER-LEVY breakdown, so it's excluded here (it still
+            // counts in getBalance's resident-wide total, which doesn't group by levy at all).
+            if (row[0] == null) {
+                continue;
+            }
             paid.put(((Number) row[0]).longValue(), (BigDecimal) row[1]);
         }
 

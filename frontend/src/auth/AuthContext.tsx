@@ -1,14 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { authApi } from '../api/endpoints'
 import { cancelAutoLogout, clearToken, scheduleAutoLogout, setToken } from '../api/client'
-import type { Role } from '../api/types'
+import type { ResidentType, Role } from '../api/types'
 
 interface AuthUser {
   email: string
   fullName: string
   role: Role
   residentId: number | null
+  /** Null for non-resident roles. See isLandlord — a tenant isn't billed on their own account. */
+  residentType: ResidentType | null
   mustChangePassword: boolean
+}
+
+/** OWNER and LANDLORD both own their property; TENANT doesn't — see ResidentType. */
+export function isLandlord(user: Pick<AuthUser, 'residentType'> | null | undefined): boolean {
+  return user?.residentType === 'OWNER' || user?.residentType === 'LANDLORD'
 }
 
 interface AuthContextValue {
@@ -56,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fullName: response.fullName,
           role: response.role,
           residentId: response.residentId,
+          residentType: response.residentType,
           mustChangePassword: response.mustChangePassword,
         }
         localStorage.setItem(USER_KEY, JSON.stringify(authUser))

@@ -166,6 +166,25 @@ public class ResidentService {
         return ResidentResponse.from(tenant, property.getHouseNumber());
     }
 
+    /**
+     * The forward direction of requireOwnedProperty: given a resident who OCCUPIES a property,
+     * resolve the resident id of whoever OWNS it — a tenant's landlord. Called by the landlord
+     * themselves it just returns their own id (property.ownerId == their own residentId),
+     * which is harmless — see MeController's "my landlord's account" endpoints.
+     */
+    public Long resolveLandlordResidentId(Long residentId) {
+        Resident resident = get(residentId);
+        if (resident.getPropertyId() == null) {
+            throw new BadRequestException("You don't have a property on file yet — contact an admin to get one linked");
+        }
+        Property property = propertyRepository.findById(resident.getPropertyId())
+                .orElseThrow(() -> NotFoundException.of("Property", resident.getPropertyId()));
+        if (property.getOwnerId() == null) {
+            throw new BadRequestException("Your property doesn't have a landlord on file yet — contact an admin");
+        }
+        return property.getOwnerId();
+    }
+
     /** The single property the caller owns — v1 doesn't support a landlord owning more than one. */
     private Property requireOwnedProperty(Long landlordResidentId) {
         List<Property> owned = propertyRepository.findByOwnerId(landlordResidentId);

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
+import { isLandlord, useAuth } from '../auth/AuthContext'
 import { NotificationBell } from './NotificationBell'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import {
@@ -27,6 +27,8 @@ interface NavItem {
   label: string
   roles: Role[]
   icon: ComponentType<SVGProps<SVGSVGElement>>
+  /** Hidden from a RESIDENT whose residentType is TENANT — see isLandlord. */
+  landlordOnly?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -52,8 +54,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/portal/visitors', label: 'My Visitors', roles: ['RESIDENT'], icon: PersonBadgeIcon },
   { to: '/portal/workers', label: 'My Workers', roles: ['RESIDENT'], icon: WrenchIcon },
   { to: '/portal/household', label: 'My Household', roles: ['RESIDENT'], icon: PersonBadgeIcon },
-  { to: '/portal/tenants', label: 'My Tenants', roles: ['RESIDENT'], icon: UsersIcon },
-  { to: '/portal/household-approvals', label: 'Household Approvals', roles: ['RESIDENT'], icon: PersonBadgeIcon },
+  { to: '/portal/tenants', label: 'My Tenants', roles: ['RESIDENT'], icon: UsersIcon, landlordOnly: true },
+  { to: '/portal/household-approvals', label: 'Household Approvals', roles: ['RESIDENT'], icon: PersonBadgeIcon, landlordOnly: true },
   { to: '/portal/vehicles', label: 'My Vehicles', roles: ['RESIDENT'], icon: CarIcon },
   { to: '/portal/payments', label: 'My Payments', roles: ['RESIDENT'], icon: CoinsIcon },
   { to: '/portal/complaints', label: 'My Complaints', roles: ['RESIDENT'], icon: ComplaintIcon },
@@ -71,7 +73,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   if (!user) return null
 
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role))
+  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role) && (!item.landlordOnly || isLandlord(user)))
 
   return (
     <div className="app-shell">

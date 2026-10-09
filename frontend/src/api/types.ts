@@ -22,6 +22,8 @@ export interface LoginResponse {
   fullName: string
   role: Role
   residentId: number | null
+  /** Null for non-resident roles — lets the frontend tell a tenant from an owner/landlord. */
+  residentType: ResidentType | null
   mustChangePassword: boolean
 }
 
@@ -218,6 +220,23 @@ export interface Payment {
   approvedByUserName: string | null
   approvedAt: string | null
   reviewNotes: string | null
+}
+
+export type SharedReceiptStatus = 'PENDING' | 'SUBMITTED' | 'DISMISSED'
+
+/** What a tenant hands over instead of submitting a receipt directly — see PaymentsPage. */
+export interface SharedReceipt {
+  id: number
+  tenantResidentId: number
+  tenantName: string | null
+  landlordResidentId: number
+  levyId: number
+  levyName: string | null
+  amount: number
+  method: PaymentMethod
+  receiptImage: string | null
+  status: SharedReceiptStatus
+  createdAt: string
 }
 
 export interface LevyBalance {

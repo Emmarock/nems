@@ -1,5 +1,7 @@
 package com.cyrev.nitelestate.auth;
 
+import com.cyrev.nitelestate.resident.ResidentRepository;
+import com.cyrev.nitelestate.resident.ResidentType;
 import com.cyrev.nitelestate.security.CurrentUser;
 import com.cyrev.nitelestate.security.CustomUserDetails;
 import com.cyrev.nitelestate.security.JwtService;
@@ -25,6 +27,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
+    private final ResidentRepository residentRepository;
     private final CurrentUser currentUser;
 
     @PostMapping("/login")
@@ -35,8 +38,10 @@ public class AuthController {
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
         String token = jwtService.generateToken(principal);
         userService.notifyLogin(principal.getUserId(), clientIp(httpRequest), httpRequest.getHeader("User-Agent"));
+        ResidentType residentType = principal.getResidentId() == null ? null
+                : residentRepository.findById(principal.getResidentId()).map(r -> r.getResidentType()).orElse(null);
         return new LoginResponse(token, principal.getUsername(), principal.getFullName(), principal.getRole(),
-                principal.getResidentId(), principal.isMustChangePassword());
+                principal.getResidentId(), residentType, principal.isMustChangePassword());
     }
 
     /** Render (and most PaaS hosts) proxy every request, so the real client IP rides X-Forwarded-For, not getRemoteAddr(). */

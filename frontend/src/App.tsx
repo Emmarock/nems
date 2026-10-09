@@ -205,11 +205,19 @@ export default function App() {
         />
         <Route
           path="/portal/tenants"
-          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<TenantsPage />)}</ProtectedRoute>}
+          element={
+            <ProtectedRoute roles={['RESIDENT']} landlordOnly>
+              {withLayout(<TenantsPage />)}
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/portal/household-approvals"
-          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<HouseholdApprovalsPage />)}</ProtectedRoute>}
+          element={
+            <ProtectedRoute roles={['RESIDENT']} landlordOnly>
+              {withLayout(<HouseholdApprovalsPage />)}
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/portal/complaints"

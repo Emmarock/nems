@@ -30,6 +30,7 @@ import type {
   SecurityDashboard,
   StickerRequest,
   PaymentStatus,
+  SharedReceipt,
   TenantAddResult,
   User,
   Vehicle,
@@ -168,6 +169,22 @@ export const meApi = {
   addTenant: (body: { fullName: string; phone: string; email?: string; emergencyContact?: string }) =>
     client.post<TenantAddResult>('/me/tenants', body).then((r) => r.data),
   deactivateTenant: (id: number) => client.put<Resident>(`/me/tenants/${id}/deactivate`).then((r) => r.data),
+  /** Tenant self-service: their landlord's account, read-only — billing lives on the landlord's account, not theirs. */
+  landlordBalance: () => client.get<AccountBalance>('/me/landlord/account/balance').then((r) => r.data),
+  landlordBalanceBreakdown: () =>
+    client.get<LevyBalance[]>('/me/landlord/account/balance-breakdown').then((r) => r.data),
+  landlordInvoices: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<Invoice>>('/me/landlord/account/invoices', { params }).then((r) => r.data),
+  landlordPayments: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<Payment>>('/me/landlord/account/payments', { params }).then((r) => r.data),
+  /** What a tenant does instead of submitReceipt — hands it to their landlord to review and submit. */
+  shareReceipt: (body: { levyId: number; amount: number; method: string; receiptImage?: string }) =>
+    client.post<SharedReceipt>('/me/receipts/share', body).then((r) => r.data),
+  /** Landlord self-service: receipts tenants have shared, awaiting review. */
+  sharedReceipts: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<SharedReceipt>>('/me/receipts/shared', { params }).then((r) => r.data),
+  submitSharedReceipt: (id: number) => client.post<Payment>(`/me/receipts/shared/${id}/submit`).then((r) => r.data),
+  dismissSharedReceipt: (id: number) => client.post<void>(`/me/receipts/shared/${id}/dismiss`).then(() => undefined),
 }
 
 export const visitorsApi = {

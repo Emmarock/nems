@@ -9,6 +9,7 @@ import com.cyrev.nitelestate.common.search.Paging;
 import com.cyrev.nitelestate.payment.PaymentService;
 import com.cyrev.nitelestate.payment.dto.PaymentReceiptRequest;
 import com.cyrev.nitelestate.payment.dto.PaymentResponse;
+import com.cyrev.nitelestate.payment.dto.SharedReceiptResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.portal.dto.MeDashboardResponse;
 import com.cyrev.nitelestate.property.PropertyService;
@@ -100,12 +101,67 @@ public class MeController {
         return accountService.getPayments(currentUser.residentId(), Paging.of(page, size, Sort.by(Sort.Direction.DESC, "paidAt")));
     }
 
-    /** "I paid this levy offline, here's my receipt" - awaits treasurer/financial-secretary review.
-     * The only way a resident can pay right now - there's no online gateway integration yet. */
+    /**
+     * "I paid this levy offline, here's my receipt" - awaits treasurer/financial-secretary review.
+     * Landlord/owner only — a tenant isn't billed on their own account (see PaymentService), so
+     * for them this throws; they use /me/receipts/share instead.
+     */
     @PostMapping("/payments/receipts")
     @ResponseStatus(HttpStatus.CREATED)
     public PaymentResponse submitReceipt(@Valid @RequestBody PaymentReceiptRequest request) {
         return paymentService.submitReceipt(currentUser.residentId(), request);
+    }
+
+    /** Tenant self-service: their landlord's balance, read-only — billing lives on the landlord's account, not theirs. */
+    @GetMapping("/landlord/account/balance")
+    public AccountBalanceResponse landlordBalance() {
+        return accountService.getBalance(residentService.resolveLandlordResidentId(currentUser.residentId()));
+    }
+
+    @GetMapping("/landlord/account/balance-breakdown")
+    public List<LevyBalanceResponse> landlordBalanceBreakdown() {
+        return accountService.getBalanceBreakdown(residentService.resolveLandlordResidentId(currentUser.residentId()));
+    }
+
+    @GetMapping("/landlord/account/invoices")
+    public PageResponse<InvoiceResponse> landlordInvoices(@RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "20") int size) {
+        Long landlordId = residentService.resolveLandlordResidentId(currentUser.residentId());
+        return accountService.getInvoices(landlordId, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "issueDate")));
+    }
+
+    @GetMapping("/landlord/account/payments")
+    public PageResponse<PaymentResponse> landlordPayments(@RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "20") int size) {
+        Long landlordId = residentService.resolveLandlordResidentId(currentUser.residentId());
+        return accountService.getPayments(landlordId, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "paidAt")));
+    }
+
+    /** What a tenant does instead of submitting a receipt directly — hands it to their landlord. */
+    @PostMapping("/receipts/share")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SharedReceiptResponse shareReceipt(@Valid @RequestBody PaymentReceiptRequest request) {
+        return paymentService.shareReceiptWithLandlord(currentUser.residentId(), request);
+    }
+
+    /** Landlord self-service: receipts tenants have shared, awaiting review. */
+    @GetMapping("/receipts/shared")
+    public PageResponse<SharedReceiptResponse> sharedReceipts(@RequestParam(defaultValue = "0") int page,
+                                                               @RequestParam(defaultValue = "20") int size) {
+        return paymentService.listSharedReceiptsForLandlord(currentUser.residentId(),
+                Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+    }
+
+    /** Landlord reviewed a shared receipt and confirmed it — submits it as a normal payment under their own account. */
+    @PostMapping("/receipts/shared/{id}/submit")
+    public PaymentResponse submitSharedReceipt(@PathVariable Long id) {
+        return paymentService.submitSharedReceipt(currentUser.residentId(), id);
+    }
+
+    /** Landlord decided a shared receipt doesn't need submitting (e.g. a duplicate). */
+    @PostMapping("/receipts/shared/{id}/dismiss")
+    public void dismissSharedReceipt(@PathVariable Long id) {
+        paymentService.dismissSharedReceipt(currentUser.residentId(), id);
     }
 
     @GetMapping("/vehicles")

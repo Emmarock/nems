@@ -1,42 +1,61 @@
 import { useEffect, useState } from 'react'
 import { leviesApi, meApi, paymentAccountApi } from '../../api/endpoints'
-import type { Levy, LevyBalance, PageResponse, Payment, PaymentAccount } from '../../api/types'
+import type { Levy, LevyBalance, PageResponse, Payment, PaymentAccount, SharedReceipt } from '../../api/types'
+import { isLandlord, useAuth } from '../../auth/AuthContext'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { LoadingState } from '../../components/LoadingState'
+import { apiErrorMessage } from '../../api/client'
 
 const EMPTY: PageResponse<Payment> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
+const EMPTY_SHARED: PageResponse<SharedReceipt> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
+/**
+ * One route for every resident, branched by isLandlord(user): billing lives on the landlord's
+ * account (see AccountService — it's purely resident-id-keyed, with "the resident who's billed"
+ * decided entirely by estate-office convention), so a tenant sees their LANDLORD's balance and
+ * payment history, read-only, and hands over a receipt instead of submitting one directly (see
+ * PaymentService.submitReceipt's TENANT guard). A landlord sees their own account, exactly as
+ * before, plus a queue of receipts their tenants have shared for review.
+ */
 export function PaymentsPage() {
+  const { user } = useAuth()
+  const landlord = isLandlord(user)
+
   const [accounts, setAccounts] = useState<PaymentAccount[]>([])
   const [breakdown, setBreakdown] = useState<LevyBalance[] | null>(null)
   const [levies, setLevies] = useState<Levy[]>([])
   const [result, setResult] = useState<PageResponse<Payment>>(EMPTY)
+  const [shared, setShared] = useState<PageResponse<SharedReceipt>>(EMPTY_SHARED)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<number | null>(null)
 
   async function load() {
     setLoading(true)
-    const [accs, b, l, p] = await Promise.all([
+    const [accs, b, l, p, s] = await Promise.all([
       paymentAccountApi.list(),
-      meApi.balanceBreakdown(),
+      landlord ? meApi.balanceBreakdown() : meApi.landlordBalanceBreakdown(),
       leviesApi.list({ size: 100 }),
-      meApi.payments({ page, size: 20 }),
+      landlord ? meApi.payments({ page, size: 20 }) : meApi.landlordPayments({ page, size: 20 }),
+      landlord ? meApi.sharedReceipts({ size: 20 }) : Promise.resolve(EMPTY_SHARED),
     ])
     setAccounts(accs)
     setBreakdown(b)
     setLevies(l.content.filter((lv) => lv.active))
     setResult(p)
+    setShared(s)
     setLoading(false)
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+  }, [page, landlord])
 
   const FIELDS: FieldConfig[] = [
     {
@@ -63,14 +82,45 @@ export function PaymentsPage() {
   ]
 
   async function handleSubmit(values: Record<string, unknown>) {
-    await meApi.submitReceipt({
+    const body = {
       levyId: Number(values.levyId),
       amount: Number(values.amount),
       method: values.method as string,
       receiptImage: (values.receiptImage as string) || undefined,
-    })
+    }
+    if (landlord) {
+      await meApi.submitReceipt(body)
+    } else {
+      await meApi.shareReceipt(body)
+    }
     setModalOpen(false)
     await load()
+  }
+
+  async function handleSubmitShared(id: number) {
+    setBusyId(id)
+    setError(null)
+    try {
+      await meApi.submitSharedReceipt(id)
+      await load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleDismissShared(id: number) {
+    setBusyId(id)
+    setError(null)
+    try {
+      await meApi.dismissSharedReceipt(id)
+      await load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusyId(null)
+    }
   }
 
   if (loading && !breakdown) {
@@ -81,16 +131,19 @@ export function PaymentsPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1>My Payments</h1>
+          <h1>{landlord ? 'My Payments' : "My Landlord's Payments"}</h1>
           <p className="page-subtitle">
-            Submit a receipt for any levy — a treasurer or financial secretary reviews it against the bank alert
-            before it counts as paid.
+            {landlord
+              ? 'Submit a receipt for any levy — a treasurer or financial secretary reviews it against the bank alert before it counts as paid.'
+              : "Billing is on your landlord's account. Pay as usual, then share your receipt here — your landlord reviews and submits it from their own account."}
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          + Submit payment receipt
+          {landlord ? '+ Submit payment receipt' : '+ Share receipt with landlord'}
         </button>
       </div>
+
+      {error && <p className="error-text">{error}</p>}
 
       {accounts.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
@@ -143,7 +196,7 @@ export function PaymentsPage() {
       {breakdown && breakdown.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="section-title" style={{ marginTop: 0 }}>
-            Balance by levy
+            {landlord ? 'Balance by levy' : "Your landlord's balance by levy"}
           </div>
           <dl className="detail-list">
             {breakdown.map((b) => (
@@ -162,7 +215,42 @@ export function PaymentsPage() {
         </div>
       )}
 
-      <div className="section-title">Payment history</div>
+      {landlord && shared.content.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="section-title" style={{ marginTop: 0 }}>
+            Receipts shared by your tenants
+          </div>
+          <DataTable
+            loading={false}
+            rows={shared.content}
+            rowKey={(r) => r.id}
+            emptyMessage="No shared receipts awaiting review."
+            columns={[
+              { key: 'tenantName', label: 'Tenant', render: (r) => r.tenantName ?? <span className="muted">—</span> },
+              { key: 'levyName', label: 'Levy', render: (r) => r.levyName ?? <span className="muted">—</span> },
+              { key: 'amount', label: 'Amount', render: (r) => `₦${r.amount.toLocaleString()}` },
+              { key: 'method', label: 'Method', render: (r) => <StatusBadge value={r.method} /> },
+              { key: 'createdAt', label: 'Shared', render: (r) => new Date(r.createdAt).toLocaleString() },
+            ]}
+            actions={(r) => (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  className="btn btn-sm btn-primary"
+                  disabled={busyId === r.id}
+                  onClick={() => handleSubmitShared(r.id)}
+                >
+                  Submit
+                </button>
+                <button className="btn btn-sm" disabled={busyId === r.id} onClick={() => handleDismissShared(r.id)}>
+                  Dismiss
+                </button>
+              </div>
+            )}
+          />
+        </div>
+      )}
+
+      <div className="section-title">{landlord ? 'Payment history' : "Your landlord's payment history"}</div>
       <DataTable
         loading={loading}
         rows={result.content}
@@ -180,7 +268,7 @@ export function PaymentsPage() {
 
       {modalOpen && (
         <FormModal
-          title="Submit payment receipt"
+          title={landlord ? 'Submit payment receipt' : 'Share receipt with your landlord'}
           fields={FIELDS}
           onSubmit={handleSubmit}
           onClose={() => setModalOpen(false)}

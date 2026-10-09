@@ -9,14 +9,21 @@ import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
+import com.cyrev.nitelestate.notification.MessageTemplates;
+import com.cyrev.nitelestate.notification.NotificationChannel;
+import com.cyrev.nitelestate.notification.NotificationService;
 import com.cyrev.nitelestate.payment.dto.*;
+import com.cyrev.nitelestate.property.Property;
+import com.cyrev.nitelestate.property.PropertyRepository;
 import com.cyrev.nitelestate.resident.Resident;
 import com.cyrev.nitelestate.resident.ResidentRepository;
+import com.cyrev.nitelestate.resident.ResidentType;
 import com.cyrev.nitelestate.sticker.StickerRequestService;
 import com.cyrev.nitelestate.user.User;
 import com.cyrev.nitelestate.user.UserRepository;
 import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -36,11 +43,14 @@ public class PaymentService {
     private static final int MAX_RECEIPT_LENGTH = 2_000_000;
 
     private final PaymentRepository paymentRepository;
+    private final SharedReceiptRepository sharedReceiptRepository;
     private final ResidentRepository residentRepository;
+    private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final LevyRepository levyRepository;
     private final InvoiceService invoiceService;
     private final StickerRequestService stickerRequestService;
+    private final NotificationService notificationService;
     private final AuditService auditService;
 
     /**
@@ -75,6 +85,12 @@ public class PaymentService {
      */
     @Transactional
     public PaymentResponse submitReceipt(Long residentId, PaymentReceiptRequest request) {
+        Resident resident = residentRepository.findById(residentId)
+                .orElseThrow(() -> NotFoundException.of("Resident", residentId));
+        if (resident.getResidentType() == ResidentType.TENANT) {
+            throw new BadRequestException(
+                    "Tenants can't submit a payment receipt directly — share it with your landlord from the Payments page; they'll submit it.");
+        }
         Levy levy = levyRepository.findById(request.levyId())
                 .orElseThrow(() -> NotFoundException.of("Levy", request.levyId()));
         if (!levy.isActive()) {
@@ -98,6 +114,122 @@ public class PaymentService {
         auditService.record("Payment", payment.getId(), "SUBMIT_RECEIPT",
                 "resident=" + residentId + " levy=" + levy.getName() + " amount=" + request.amount());
         return toResponse(payment);
+    }
+
+    /**
+     * What a tenant does instead of submitReceipt: hands the receipt to their landlord (resolved
+     * server-side, never trusted from the request) rather than minting a payment under their own
+     * (unbilled) resident id. Notifies the landlord on every channel they have a real contact
+     * method for, same convention as every other notification in this codebase.
+     */
+    @Transactional
+    public SharedReceiptResponse shareReceiptWithLandlord(Long tenantResidentId, PaymentReceiptRequest request) {
+        if (request.receiptImage() != null && request.receiptImage().length() > MAX_RECEIPT_LENGTH) {
+            throw new BadRequestException("Receipt image is too large — please use a smaller image");
+        }
+        Levy levy = levyRepository.findById(request.levyId())
+                .orElseThrow(() -> NotFoundException.of("Levy", request.levyId()));
+        Long landlordResidentId = resolveLandlordResidentId(tenantResidentId);
+
+        SharedReceipt shared = new SharedReceipt();
+        shared.setTenantResidentId(tenantResidentId);
+        shared.setLandlordResidentId(landlordResidentId);
+        shared.setLevyId(levy.getId());
+        shared.setAmount(request.amount());
+        shared.setMethod(request.method());
+        shared.setReceiptImage(request.receiptImage());
+        shared = sharedReceiptRepository.save(shared);
+
+        auditService.record("SharedReceipt", shared.getId(), "SHARE",
+                "tenant=" + tenantResidentId + " landlord=" + landlordResidentId + " levy=" + levy.getName());
+        notifyLandlordOfSharedReceipt(tenantResidentId, landlordResidentId);
+        return SharedReceiptResponse.from(shared, resolveResidentName(tenantResidentId), levy.getName());
+    }
+
+    /** Pending shares awaiting the landlord's review — see submitSharedReceipt/dismissSharedReceipt. */
+    public PageResponse<SharedReceiptResponse> listSharedReceiptsForLandlord(Long landlordResidentId, Pageable pageable) {
+        Page<SharedReceipt> page = sharedReceiptRepository.findByLandlordResidentIdAndStatus(
+                landlordResidentId, SharedReceiptStatus.PENDING, pageable);
+        return PageResponse.of(page.map(r -> SharedReceiptResponse.from(r, resolveResidentName(r.getTenantResidentId()),
+                levyRepository.findById(r.getLevyId()).map(Levy::getName).orElse(null))));
+    }
+
+    /**
+     * The landlord reviewed a shared receipt and confirmed it's legitimate — submits it exactly
+     * as if they'd filled in the form themselves (same method, same resulting PENDING_APPROVAL
+     * Payment under their own account), then marks the share consumed.
+     */
+    @Transactional
+    public PaymentResponse submitSharedReceipt(Long landlordResidentId, Long sharedReceiptId) {
+        SharedReceipt shared = getSharedReceipt(sharedReceiptId);
+        requireOwnedShare(shared, landlordResidentId);
+
+        PaymentResponse payment = submitReceipt(landlordResidentId,
+                new PaymentReceiptRequest(shared.getLevyId(), shared.getAmount(), shared.getMethod(), shared.getReceiptImage()));
+
+        shared.setStatus(SharedReceiptStatus.SUBMITTED);
+        sharedReceiptRepository.save(shared);
+        auditService.record("SharedReceipt", shared.getId(), "SUBMIT", "payment=" + payment.id());
+        return payment;
+    }
+
+    /** The landlord decided a shared receipt doesn't need submitting (e.g. a duplicate) — clears it from their queue. */
+    @Transactional
+    public void dismissSharedReceipt(Long landlordResidentId, Long sharedReceiptId) {
+        SharedReceipt shared = getSharedReceipt(sharedReceiptId);
+        requireOwnedShare(shared, landlordResidentId);
+        shared.setStatus(SharedReceiptStatus.DISMISSED);
+        sharedReceiptRepository.save(shared);
+        auditService.record("SharedReceipt", shared.getId(), "DISMISS", null);
+    }
+
+    private void requireOwnedShare(SharedReceipt shared, Long landlordResidentId) {
+        if (!shared.getLandlordResidentId().equals(landlordResidentId)) {
+            throw new BadRequestException("That shared receipt isn't yours to act on");
+        }
+        if (shared.getStatus() != SharedReceiptStatus.PENDING) {
+            throw new BadRequestException("That shared receipt has already been handled");
+        }
+    }
+
+    private SharedReceipt getSharedReceipt(Long id) {
+        return sharedReceiptRepository.findById(id).orElseThrow(() -> NotFoundException.of("SharedReceipt", id));
+    }
+
+    /**
+     * Duplicated from ResidentService.resolveLandlordResidentId (same logic, same two
+     * exceptions) rather than injecting ResidentService here — that would close a dependency
+     * cycle: AccessPolicyService -> AccountService -> PaymentService -> ResidentService ->
+     * AccessPolicyService. PropertyRepository alone carries no such risk.
+     */
+    private Long resolveLandlordResidentId(Long residentId) {
+        Resident resident = residentRepository.findById(residentId)
+                .orElseThrow(() -> NotFoundException.of("Resident", residentId));
+        if (resident.getPropertyId() == null) {
+            throw new BadRequestException("You don't have a property on file yet — contact an admin to get one linked");
+        }
+        Property property = propertyRepository.findById(resident.getPropertyId())
+                .orElseThrow(() -> NotFoundException.of("Property", resident.getPropertyId()));
+        if (property.getOwnerId() == null) {
+            throw new BadRequestException("Your property doesn't have a landlord on file yet — contact an admin");
+        }
+        return property.getOwnerId();
+    }
+
+    private void notifyLandlordOfSharedReceipt(Long tenantResidentId, Long landlordResidentId) {
+        Resident tenant = residentRepository.findById(tenantResidentId).orElse(null);
+        Resident landlord = residentRepository.findById(landlordResidentId).orElse(null);
+        if (tenant == null || landlord == null) {
+            return;
+        }
+        String message = MessageTemplates.receiptShared(tenant.getFullName());
+        if (landlord.getEmail() != null) {
+            notificationService.dispatch(NotificationChannel.EMAIL, landlord.getEmail(), message);
+        }
+        if (landlord.getPhone() != null) {
+            notificationService.dispatch(NotificationChannel.SMS, landlord.getPhone(), message);
+            notificationService.dispatch(NotificationChannel.WHATSAPP, landlord.getPhone(), message);
+        }
     }
 
     /** Treasurer/financial secretary confirms the bank alert matches - the payment counts as paid. */
