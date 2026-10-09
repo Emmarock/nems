@@ -38,12 +38,13 @@ public class ResendEmailSender implements NotificationSender {
     public ResendEmailSender(
             @Value("${nitel.notifications.resend.api-key:}") String apiKey,
             @Value("${nitel.notifications.resend.from-email}") String fromEmail,
-            @Value("${nitel.notifications.resend.from-name}") String fromName) {
+            @Value("${nitel.notifications.resend.from-name}") String fromName,
+            @Value("${nitel.notifications.resend.base-url}") String baseUrl) {
         this.apiKey = apiKey;
         this.fromEmail = fromEmail;
         this.fromName = fromName;
         this.restClient = RestClient.builder()
-                .baseUrl("https://api.resend.com")
+                .baseUrl(baseUrl)
                 .build();
     }
 
