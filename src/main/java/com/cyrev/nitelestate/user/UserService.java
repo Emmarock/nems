@@ -20,8 +20,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +40,7 @@ public class UserService {
     private static final int TEMP_PASSWORD_LENGTH = 10;
     private static final String SYNTHETIC_EMAIL_DOMAIN = "@nitelestate.local";
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final int RESET_TOKEN_VALIDITY_HOURS = 24;
 
     private final UserRepository userRepository;
     private final ResidentRepository residentRepository;
@@ -127,6 +134,24 @@ public class UserService {
     }
 
     /**
+     * Consumes a "set your password" link token (see issueResetToken / the account-provisioned
+     * email) — no prior login needed, the token itself is the credential. Rejects an unknown,
+     * already-used, or expired token with the same message either way, so there's nothing to
+     * learn from the failure. Clears the token on success so the link can't be replayed.
+     */
+    @Transactional
+    public void resetPasswordWithToken(String rawToken, String newPassword) {
+        User user = userRepository.findByResetTokenHash(hashToken(rawToken))
+                .filter(u -> u.getResetTokenExpiresAt() != null && u.getResetTokenExpiresAt().isAfter(Instant.now()))
+                .orElseThrow(() -> new BadRequestException("This link is invalid or has expired — ask for a new one"));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        user.setResetTokenHash(null);
+        user.setResetTokenExpiresAt(null);
+        userRepository.save(user);
+    }
+
+    /**
      * Creates a RESIDENT-role login for every given resident who doesn't already have one (or
      * every resident with no account at all, if residentIds is empty) — the mechanism behind
      * "share credentials with existing residents" regardless of how they end up handed out.
@@ -207,7 +232,12 @@ public class UserService {
         String loginId = isRealEmail(user.getEmail())
                 ? user.getEmail()
                 : (user.getPhone() != null ? user.getPhone() : user.getEmail());
-        String message = MessageTemplates.accountProvisioned(loginId, password, mustChangePassword, appBaseUrl + "/login");
+        // A forced-reset account gets a one-click "set your password" link (no need to retype the
+        // temp password); an admin-chosen, ready-to-use password just links to the ordinary login.
+        String actionUrl = mustChangePassword
+                ? appBaseUrl + "/reset-password?token=" + issueResetToken(user)
+                : appBaseUrl + "/login";
+        String message = MessageTemplates.accountProvisioned(loginId, password, mustChangePassword, actionUrl);
 
         if (isRealEmail(user.getEmail())) {
             notificationService.dispatch(NotificationChannel.EMAIL, user.getEmail(), message);
@@ -261,6 +291,27 @@ public class UserService {
             sb.append(PASSWORD_ALPHABET.charAt(RANDOM.nextInt(PASSWORD_ALPHABET.length())));
         }
         return sb.toString();
+    }
+
+    /** Mints a fresh random token for this user's "set your password" link, storing only its hash. */
+    private String issueResetToken(User user) {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        user.setResetTokenHash(hashToken(rawToken));
+        user.setResetTokenExpiresAt(Instant.now().plus(RESET_TOKEN_VALIDITY_HOURS, ChronoUnit.HOURS));
+        userRepository.save(user);
+        return rawToken;
+    }
+
+    /** SHA-256 is fine here (unlike passwordHash's bcrypt) — the token is already 256 bits of random entropy, not a human-chosen secret to protect against brute force. */
+    private static String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return Base64.getEncoder().encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is always available on the JVM", e);
+        }
     }
 
     private User get(Long id) {

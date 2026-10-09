@@ -15,15 +15,18 @@ public final class MessageTemplates {
 
     /**
      * Sent the moment a login is provisioned for someone — admin-created, bulk-created, or
-     * landlord-added tenant alike. loginUrl is plain text here (SMS/WhatsApp show it as-is);
-     * EmailTemplate auto-linkifies it into a clickable button for the HTML version.
+     * landlord-added tenant alike. actionUrl is plain text here (SMS/WhatsApp show it as-is);
+     * EmailTemplate auto-linkifies it into a clickable link for the HTML version. It's a one-time
+     * "set your password" link (see UserService.issueResetToken) when mustChangePassword is true,
+     * otherwise just the ordinary login page — see UserService.notifyNewAccount.
      */
-    public static String accountProvisioned(String loginId, String password, boolean mustChangePassword, String loginUrl) {
+    public static String accountProvisioned(String loginId, String password, boolean mustChangePassword, String actionUrl) {
         String passwordNote = mustChangePassword
                 ? "Temporary password: " + password + ". You'll be asked to set your own password on first login."
                 : "Your password: " + password;
+        String actionLabel = mustChangePassword ? "Set your password here: " : "Log in here: ";
         return "Welcome to " + BRAND + ". Your login is " + loginId + ". " + passwordNote
-                + "\n\nLog in here: " + loginUrl;
+                + "\n\n" + actionLabel + actionUrl;
     }
 
     /** Sent on every successful login — see UserService.notifyLogin for how device/location are resolved. */

@@ -39,6 +39,8 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/auth/login",
+            // The token itself is the credential for this one - see UserService.resetPasswordWithToken.
+            "/api/v1/auth/reset-password",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",

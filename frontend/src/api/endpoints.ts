@@ -46,6 +46,9 @@ export const authApi = {
     client.post<LoginResponse>('/auth/login', { identifier, password }).then((r) => r.data),
   changePassword: (currentPassword: string, newPassword: string) =>
     client.put<void>('/auth/password', { currentPassword, newPassword }).then(() => undefined),
+  /** The one-time link from an onboarding email — token is the credential, no prior login needed. */
+  resetPassword: (token: string, newPassword: string) =>
+    client.put<void>('/auth/reset-password', { token, newPassword }).then(() => undefined),
 }
 
 export const usersApi = {

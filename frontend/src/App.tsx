@@ -8,6 +8,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/auth/LoginPage'
 import { ForcePasswordChangePage } from './pages/auth/ForcePasswordChangePage'
+import { SetPasswordPage } from './pages/auth/SetPasswordPage'
 import { DashboardPage } from './pages/portal/DashboardPage'
 import { VisitorsPage } from './pages/portal/VisitorsPage'
 import { ProfilePage } from './pages/portal/ProfilePage'
@@ -67,6 +68,7 @@ export default function App() {
       <EntityDetailProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<SetPasswordPage />} />
         <Route
           path="/scan/:kind/:qrToken"
           element={

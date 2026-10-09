@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -50,4 +52,15 @@ public class User extends BaseEntity {
      */
     @Column(nullable = false)
     private boolean mustChangePassword = false;
+
+    /**
+     * One-time "set your password" link token (see UserService.issueResetToken /
+     * resetPasswordWithToken) - only the SHA-256 hash is stored, same reasoning as passwordHash:
+     * a DB leak must not hand out usable tokens. Cleared the moment it's used or superseded by a
+     * newer one; resetTokenExpiresAt null or in the past means no link is currently valid.
+     */
+    @Column(length = 64)
+    private String resetTokenHash;
+
+    private Instant resetTokenExpiresAt;
 }

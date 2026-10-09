@@ -53,4 +53,11 @@ public class AuthController {
     public void changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(currentUser.userId(), request.currentPassword(), request.newPassword());
     }
+
+    /** The one-time link in an onboarding email — unauthenticated, the token itself is the credential. */
+    @PutMapping("/reset-password")
+    @SecurityRequirements
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPasswordWithToken(request.token(), request.newPassword());
+    }
 }
