@@ -206,13 +206,23 @@ public class UserService {
         return normalized;
     }
 
-    /** Prefers the resident's own phone number (memorable) over an arbitrary ID, falling back
-     * when the phone is missing/unparseable or would collide with an email already in use. */
+    /**
+     * Prefers the resident's own real email (recognizable, and lets notifyNewAccount actually
+     * deliver the welcome message by EMAIL instead of just SMS/WhatsApp), then their phone number,
+     * falling back to an arbitrary synthetic id only when neither is available or both collide
+     * with a login already in use.
+     */
     private String buildLoginEmail(Resident resident, Set<String> usedEmailsLower) {
         String candidate = null;
-        String normalizedPhone = PhoneNumbers.normalize(resident.getPhone());
-        if (normalizedPhone != null) {
-            candidate = normalizedPhone.substring(1) + SYNTHETIC_EMAIL_DOMAIN; // drop the leading "+"
+        if (resident.getEmail() != null && !resident.getEmail().isBlank()
+                && !usedEmailsLower.contains(resident.getEmail().toLowerCase())) {
+            candidate = resident.getEmail();
+        }
+        if (candidate == null) {
+            String normalizedPhone = PhoneNumbers.normalize(resident.getPhone());
+            if (normalizedPhone != null) {
+                candidate = normalizedPhone.substring(1) + SYNTHETIC_EMAIL_DOMAIN; // drop the leading "+"
+            }
         }
         if (candidate == null || usedEmailsLower.contains(candidate.toLowerCase())) {
             candidate = "resident" + resident.getId() + SYNTHETIC_EMAIL_DOMAIN;
