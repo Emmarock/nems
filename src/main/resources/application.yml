@@ -41,6 +41,13 @@ springdoc:
     path: /v3/api-docs
 
 nitel:
+  app:
+    # Used to build links in emails (e.g. "log in" in the account-provisioned message) - the
+    # frontend and backend are the same origin in this monolith deploy, so the backend's own
+    # public URL is also the frontend's. RENDER_EXTERNAL_URL is set automatically by Render for
+    # every web service, so production needs no extra configuration; APP_BASE_URL overrides it
+    # (e.g. behind a custom domain), and local/dev falls back to the Vite dev server.
+    base-url: ${APP_BASE_URL:${RENDER_EXTERNAL_URL:http://localhost:5173}}
   security:
     jwt:
       # Dev-only default secret. Override via NITEL_JWT_SECRET env var in real deployments.

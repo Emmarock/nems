@@ -16,7 +16,9 @@ import java.util.Map;
 /**
  * Sends email through Resend's Emails API — used for every outbound email, including the
  * "your account is ready" message a resident/tenant gets the moment UserService provisions
- * their login (see UserService.notifyNewAccount).
+ * their login (see UserService.notifyNewAccount). The plain-text message every caller already
+ * builds is wrapped in EmailTemplate's branded HTML layout and sent alongside a plain-text
+ * fallback, so every email this sends looks the same regardless of which caller dispatched it.
  *
  * Only registered when nitel.notifications.resend.api-key is actually set (see
  * ResendConfiguredCondition) - MockEmailSender takes over otherwise, same as TwilioSmsSender.
@@ -60,6 +62,7 @@ public class ResendEmailSender implements NotificationSender {
                 "from", fromName + " <" + fromEmail + ">",
                 "to", List.of(recipient),
                 "subject", SUBJECT,
+                "html", EmailTemplate.render(message),
                 "text", message);
 
         restClient.post()

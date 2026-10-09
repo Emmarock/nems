@@ -5,6 +5,7 @@ import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.ConflictException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
+import com.cyrev.nitelestate.notification.MessageTemplates;
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationService;
 import com.cyrev.nitelestate.resident.Resident;
@@ -12,8 +13,9 @@ import com.cyrev.nitelestate.resident.ResidentRepository;
 import com.cyrev.nitelestate.user.dto.BulkCreateResidentUsersResponse;
 import com.cyrev.nitelestate.user.dto.UserCreateRequest;
 import com.cyrev.nitelestate.user.dto.UserResponse;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +27,6 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     /** Excludes 0/O and 1/I/l - this gets printed on handout slips, so ambiguous glyphs are a real problem. */
@@ -38,6 +39,19 @@ public class UserService {
     private final ResidentRepository residentRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final GeoLocationService geoLocationService;
+    private final String appBaseUrl;
+
+    public UserService(UserRepository userRepository, ResidentRepository residentRepository,
+                        PasswordEncoder passwordEncoder, NotificationService notificationService,
+                        GeoLocationService geoLocationService, @Value("${nitel.app.base-url}") String appBaseUrl) {
+        this.userRepository = userRepository;
+        this.residentRepository = residentRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
+        this.geoLocationService = geoLocationService;
+        this.appBaseUrl = appBaseUrl;
+    }
 
     @Transactional
     public UserResponse create(UserCreateRequest request) {
@@ -193,10 +207,7 @@ public class UserService {
         String loginId = isRealEmail(user.getEmail())
                 ? user.getEmail()
                 : (user.getPhone() != null ? user.getPhone() : user.getEmail());
-        String passwordNote = mustChangePassword
-                ? "Temporary password: " + password + ". You'll be asked to set your own password on first login."
-                : "Your password: " + password;
-        String message = "Welcome to Nitel Estate Management System. Your login is " + loginId + ". " + passwordNote;
+        String message = MessageTemplates.accountProvisioned(loginId, password, mustChangePassword, appBaseUrl + "/login");
 
         if (isRealEmail(user.getEmail())) {
             notificationService.dispatch(NotificationChannel.EMAIL, user.getEmail(), message);
@@ -205,6 +216,39 @@ public class UserService {
             notificationService.dispatch(NotificationChannel.SMS, user.getPhone(), message);
             notificationService.dispatch(NotificationChannel.WHATSAPP, user.getPhone(), message);
         }
+    }
+
+    /**
+     * "You just signed in" email, fired on every successful login (see AuthController.login).
+     * For a resident-linked account, targets Resident.email — their real contact address -
+     * rather than the login identifier, which is usually a synthetic placeholder (see
+     * buildLoginEmail/resolveLoginPhone) that would otherwise never pass isRealEmail and silently
+     * never notify anyone. Does nothing if no real address is on file either way.
+     *
+     * Runs off the request thread (same executor NotificationService itself uses) because the
+     * geo-IP lookup is a real outbound HTTP call - it must never add latency, let alone a
+     * failure mode, to the login request itself.
+     */
+    @Async("notificationExecutor")
+    public void notifyLogin(Long userId, String ipAddress, String userAgent) {
+        User user = get(userId);
+        String targetEmail = resolveNotificationEmail(user);
+        if (targetEmail == null) {
+            return;
+        }
+        String location = geoLocationService.lookup(ipAddress);
+        String message = MessageTemplates.loginAlert(user.getFullName(), UserAgents.describe(userAgent), ipAddress, location);
+        notificationService.dispatch(NotificationChannel.EMAIL, targetEmail, message);
+    }
+
+    private String resolveNotificationEmail(User user) {
+        if (user.getResidentId() != null) {
+            return residentRepository.findById(user.getResidentId())
+                    .map(Resident::getEmail)
+                    .filter(email -> email != null && !email.isBlank())
+                    .orElse(null);
+        }
+        return isRealEmail(user.getEmail()) ? user.getEmail() : null;
     }
 
     private boolean isRealEmail(String email) {
