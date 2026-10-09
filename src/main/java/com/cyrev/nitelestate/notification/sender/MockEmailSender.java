@@ -6,11 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
-/** Local/dev default - takes over automatically whenever SendGridEmailSender isn't registered
- * (i.e. nitel.notifications.sendgrid.api-key isn't set). See SendGridConfiguredCondition. */
+/** Local/dev default - takes over automatically whenever ResendEmailSender isn't registered
+ * (i.e. nitel.notifications.resend.api-key isn't set). See ResendConfiguredCondition. */
 @Slf4j
 @Component
-@ConditionalOnMissingBean(SendGridEmailSender.class)
+@ConditionalOnMissingBean(ResendEmailSender.class)
 public class MockEmailSender implements NotificationSender {
     @Override
     public NotificationChannel channel() {

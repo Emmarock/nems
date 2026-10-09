@@ -17,6 +17,8 @@ import com.cyrev.nitelestate.property.dto.PropertyResponse;
 import com.cyrev.nitelestate.resident.ResidentService;
 import com.cyrev.nitelestate.resident.dto.MeProfileUpdateRequest;
 import com.cyrev.nitelestate.resident.dto.ResidentResponse;
+import com.cyrev.nitelestate.resident.dto.TenantRequest;
+import com.cyrev.nitelestate.resident.dto.TenantResponse;
 import com.cyrev.nitelestate.security.CurrentUser;
 import com.cyrev.nitelestate.vehicle.VehicleService;
 import com.cyrev.nitelestate.vehicle.dto.MeVehicleRequest;
@@ -130,5 +132,25 @@ public class MeController {
     @GetMapping("/vehicles/{id}/access-pass")
     public Map<String, String> vehicleAccessPass(@PathVariable Long id) {
         return Map.of("qrToken", vehicleService.getOrCreateQrTokenForResident(id, currentUser.residentId()));
+    }
+
+    /** Landlord self-service: tenants currently on the caller's own property. */
+    @GetMapping("/tenants")
+    public PageResponse<ResidentResponse> tenants(@RequestParam(defaultValue = "0") int page,
+                                                    @RequestParam(defaultValue = "20") int size) {
+        return residentService.listTenants(currentUser.residentId(), Paging.of(page, size, Sort.by("fullName")));
+    }
+
+    /** Landlord self-service: add a tenant to the caller's own property and provision their login. */
+    @PostMapping("/tenants")
+    @ResponseStatus(HttpStatus.CREATED)
+    public TenantResponse addTenant(@Valid @RequestBody TenantRequest request) {
+        return residentService.createTenant(currentUser.residentId(), request);
+    }
+
+    /** Landlord self-service: deactivate a tenant on the caller's own property (soft-remove). */
+    @PutMapping("/tenants/{id}/deactivate")
+    public ResidentResponse deactivateTenant(@PathVariable Long id) {
+        return residentService.deactivateTenant(currentUser.residentId(), id);
     }
 }

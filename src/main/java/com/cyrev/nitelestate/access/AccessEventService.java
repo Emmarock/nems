@@ -4,6 +4,8 @@ import com.cyrev.nitelestate.access.dto.AccessEventResponse;
 import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.search.Specs;
+import com.cyrev.nitelestate.household.HouseholdMember;
+import com.cyrev.nitelestate.household.HouseholdMemberRepository;
 import com.cyrev.nitelestate.resident.Resident;
 import com.cyrev.nitelestate.resident.ResidentRepository;
 import com.cyrev.nitelestate.vehicle.Vehicle;
@@ -34,6 +36,7 @@ public class AccessEventService {
     private final VisitorRepository visitorRepository;
     private final WorkerRepository workerRepository;
     private final VehicleRepository vehicleRepository;
+    private final HouseholdMemberRepository householdMemberRepository;
     private final ResidentRepository residentRepository;
 
     /**
@@ -94,13 +97,16 @@ public class AccessEventService {
                 .stream().collect(Collectors.toMap(Worker::getId, Function.identity()));
         Map<Long, Vehicle> vehicles = vehicleRepository.findAllById(subjectIds(page, AccessSubjectType.VEHICLE))
                 .stream().collect(Collectors.toMap(Vehicle::getId, Function.identity()));
+        Map<Long, HouseholdMember> householdMembers = householdMemberRepository.findAllById(subjectIds(page, AccessSubjectType.HOUSEHOLD_MEMBER))
+                .stream().collect(Collectors.toMap(HouseholdMember::getId, Function.identity()));
 
         // The one resident relationship each subject type carries - host/sponsor/owner are
         // different relationships elsewhere in the app, but all resolve through this one lookup.
         List<Long> residentIds = Stream.of(
                         visitors.values().stream().map(Visitor::getHostResidentId),
                         workers.values().stream().map(Worker::getSponsorResidentId),
-                        vehicles.values().stream().map(Vehicle::getResidentId))
+                        vehicles.values().stream().map(Vehicle::getResidentId),
+                        householdMembers.values().stream().map(HouseholdMember::getSponsorResidentId))
                 .flatMap(Function.identity())
                 .filter(Objects::nonNull)
                 .distinct()
@@ -120,6 +126,10 @@ public class AccessEventService {
             if (e.getSubjectType() == AccessSubjectType.VEHICLE && vehicles.containsKey(e.getSubjectId())) {
                 Vehicle vehicle = vehicles.get(e.getSubjectId());
                 return AccessEventResponse.ofVehicle(e, vehicle, residentNames.get(vehicle.getResidentId()));
+            }
+            if (e.getSubjectType() == AccessSubjectType.HOUSEHOLD_MEMBER && householdMembers.containsKey(e.getSubjectId())) {
+                HouseholdMember member = householdMembers.get(e.getSubjectId());
+                return AccessEventResponse.ofHouseholdMember(e, member, residentNames.get(member.getSponsorResidentId()));
             }
             return AccessEventResponse.from(e);
         }));

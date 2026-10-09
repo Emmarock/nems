@@ -4,5 +4,6 @@ public enum AccessSubjectType {
     RESIDENT,
     VISITOR,
     WORKER,
-    VEHICLE
+    VEHICLE,
+    HOUSEHOLD_MEMBER
 }

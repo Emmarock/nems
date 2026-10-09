@@ -14,16 +14,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Sends email through Twilio SendGrid's v3 Mail Send API. Same vendor family as the SMS/WhatsApp
- * sender (Twilio owns SendGrid) but a separate API key/product, so it's configured independently.
+ * Sends email through Resend's Emails API — used for every outbound email, including the
+ * "your account is ready" message a resident/tenant gets the moment UserService provisions
+ * their login (see UserService.notifyNewAccount).
  *
- * Only registered when nitel.notifications.sendgrid.api-key is actually set (see
- * SendGridConfiguredCondition) - MockEmailSender takes over otherwise, same as TwilioSmsSender.
+ * Only registered when nitel.notifications.resend.api-key is actually set (see
+ * ResendConfiguredCondition) - MockEmailSender takes over otherwise, same as TwilioSmsSender.
  */
 @Slf4j
 @Component
-@Conditional(SendGridConfiguredCondition.class)
-public class SendGridEmailSender implements NotificationSender {
+@Conditional(ResendConfiguredCondition.class)
+public class ResendEmailSender implements NotificationSender {
 
     private static final String SUBJECT = "Nitel Estate Management System";
 
@@ -32,15 +33,15 @@ public class SendGridEmailSender implements NotificationSender {
     private final String fromEmail;
     private final String fromName;
 
-    public SendGridEmailSender(
-            @Value("${nitel.notifications.sendgrid.api-key:}") String apiKey,
-            @Value("${nitel.notifications.sendgrid.from-email}") String fromEmail,
-            @Value("${nitel.notifications.sendgrid.from-name}") String fromName) {
+    public ResendEmailSender(
+            @Value("${nitel.notifications.resend.api-key:}") String apiKey,
+            @Value("${nitel.notifications.resend.from-email}") String fromEmail,
+            @Value("${nitel.notifications.resend.from-name}") String fromName) {
         this.apiKey = apiKey;
         this.fromEmail = fromEmail;
         this.fromName = fromName;
         this.restClient = RestClient.builder()
-                .baseUrl("https://api.sendgrid.com/v3")
+                .baseUrl("https://api.resend.com")
                 .build();
     }
 
@@ -56,13 +57,13 @@ public class SendGridEmailSender implements NotificationSender {
             return;
         }
         Map<String, Object> body = Map.of(
-                "personalizations", List.of(Map.of("to", List.of(Map.of("email", recipient)))),
-                "from", Map.of("email", fromEmail, "name", fromName),
+                "from", fromName + " <" + fromEmail + ">",
+                "to", List.of(recipient),
                 "subject", SUBJECT,
-                "content", List.of(Map.of("type", "text/plain", "value", message)));
+                "text", message);
 
         restClient.post()
-                .uri("/mail/send")
+                .uri("/emails")
                 .header("Authorization", "Bearer " + apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)

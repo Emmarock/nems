@@ -11,6 +11,8 @@ import type {
   ComplaintStatus,
   Dashboard,
   Gate,
+  HouseholdMember,
+  HouseholdMemberLookup,
   Invoice,
   LoginResponse,
   Levy,
@@ -28,6 +30,7 @@ import type {
   SecurityDashboard,
   StickerRequest,
   PaymentStatus,
+  TenantAddResult,
   User,
   Vehicle,
   VehicleLookup,
@@ -157,6 +160,11 @@ export const meApi = {
     client.put<Resident>('/me/profile', body).then((r) => r.data),
   updateProperty: (body: { houseNumber: string; address?: string }) =>
     client.put<Property>('/me/property', body).then((r) => r.data),
+  tenants: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<Resident>>('/me/tenants', { params }).then((r) => r.data),
+  addTenant: (body: { fullName: string; phone: string; email?: string; emergencyContact?: string }) =>
+    client.post<TenantAddResult>('/me/tenants', body).then((r) => r.data),
+  deactivateTenant: (id: number) => client.put<Resident>(`/me/tenants/${id}/deactivate`).then((r) => r.data),
 }
 
 export const visitorsApi = {
@@ -202,6 +210,29 @@ export const workersApi = {
     client.post<Worker>(`/workers/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
   checkOut: (qrToken: string, gateId?: number) =>
     client.post<Worker>(`/workers/checkout/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
+}
+
+export const householdMembersApi = {
+  mine: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<HouseholdMember>>('/household-members/mine', { params }).then((r) => r.data),
+  /** Household members awaiting the caller's (landlord's) approval — empty if they own no property. */
+  pendingApproval: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<HouseholdMember>>('/household-members/pending-approval', { params }).then((r) => r.data),
+  listAll: (params: { q?: string; propertyId?: number; sponsorResidentId?: number; page?: number; size?: number } = {}) =>
+    client.get<PageResponse<HouseholdMember>>('/household-members', { params }).then((r) => r.data),
+  get: (id: number) => client.get<HouseholdMember>(`/household-members/${id}`).then((r) => r.data),
+  request: (body: { fullName: string; phone: string; relationship: string; photo?: string }) =>
+    client.post<HouseholdMember>('/household-members', body).then((r) => r.data),
+  approve: (id: number, body: { validFrom: string; validUntil: string }) =>
+    client.put<HouseholdMember>(`/household-members/${id}/approve`, body).then((r) => r.data),
+  revoke: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/revoke`).then((r) => r.data),
+  logs: (id: number, params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<AccessEvent>>(`/household-members/${id}/logs`, { params }).then((r) => r.data),
+  lookup: (qrToken: string) => client.get<HouseholdMemberLookup>(`/household-members/lookup/${qrToken}`).then((r) => r.data),
+  checkIn: (qrToken: string, gateId?: number) =>
+    client.post<HouseholdMember>(`/household-members/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
+  checkOut: (qrToken: string, gateId?: number) =>
+    client.post<HouseholdMember>(`/household-members/checkout/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
 }
 
 export const complaintsApi = {

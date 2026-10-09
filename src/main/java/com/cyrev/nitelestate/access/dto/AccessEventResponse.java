@@ -3,6 +3,7 @@ package com.cyrev.nitelestate.access.dto;
 import com.cyrev.nitelestate.access.AccessDirection;
 import com.cyrev.nitelestate.access.AccessEvent;
 import com.cyrev.nitelestate.access.AccessSubjectType;
+import com.cyrev.nitelestate.household.HouseholdMember;
 import com.cyrev.nitelestate.vehicle.Vehicle;
 import com.cyrev.nitelestate.visitor.Visitor;
 import com.cyrev.nitelestate.worker.Worker;
@@ -62,5 +63,11 @@ public record AccessEventResponse(
                 e.getDirection(), e.getOccurredAt(), e.getVerifiedByUserId(), e.getFlagReason(),
                 null, null, null, vehicle.getPlateNumber(), vehicle.getMake(), vehicle.getModel(), vehicle.getColour(),
                 ownerResidentName);
+    }
+
+    public static AccessEventResponse ofHouseholdMember(AccessEvent e, HouseholdMember m, String sponsorResidentName) {
+        return new AccessEventResponse(e.getId(), e.getSubjectType(), e.getSubjectId(), e.getGateId(),
+                e.getDirection(), e.getOccurredAt(), e.getVerifiedByUserId(), e.getFlagReason(),
+                m.getFullName(), m.getPhone(), null, null, null, null, null, sponsorResidentName);
     }
 }

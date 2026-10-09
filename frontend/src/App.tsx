@@ -12,6 +12,9 @@ import { DashboardPage } from './pages/portal/DashboardPage'
 import { VisitorsPage } from './pages/portal/VisitorsPage'
 import { ProfilePage } from './pages/portal/ProfilePage'
 import { WorkersPage } from './pages/portal/WorkersPage'
+import { HouseholdMembersPage } from './pages/portal/HouseholdMembersPage'
+import { TenantsPage } from './pages/portal/TenantsPage'
+import { HouseholdApprovalsPage } from './pages/portal/HouseholdApprovalsPage'
 import { ComplaintsPage } from './pages/portal/ComplaintsPage'
 import { PaymentsPage as PortalPaymentsPage } from './pages/portal/PaymentsPage'
 import { VehiclesPage as PortalVehiclesPage } from './pages/portal/VehiclesPage'
@@ -19,6 +22,7 @@ import { ResidentsPage } from './pages/admin/ResidentsPage'
 import { PropertiesPage } from './pages/admin/PropertiesPage'
 import { VehiclesPage } from './pages/admin/VehiclesPage'
 import { WorkersAdminPage } from './pages/admin/WorkersAdminPage'
+import { HouseholdMembersAdminPage } from './pages/admin/HouseholdMembersAdminPage'
 import { VisitorsAdminPage } from './pages/admin/VisitorsAdminPage'
 import { LeviesPage } from './pages/admin/LeviesPage'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
@@ -139,6 +143,14 @@ export default function App() {
           }
         />
         <Route
+          path="/household-members"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY']}>
+              {withLayout(<HouseholdMembersAdminPage />)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/levies"
           element={
             <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY']}>
@@ -184,6 +196,18 @@ export default function App() {
         <Route
           path="/portal/workers"
           element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<WorkersPage />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/portal/household"
+          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<HouseholdMembersPage />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/portal/tenants"
+          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<TenantsPage />)}</ProtectedRoute>}
+        />
+        <Route
+          path="/portal/household-approvals"
+          element={<ProtectedRoute roles={['RESIDENT']}>{withLayout(<HouseholdApprovalsPage />)}</ProtectedRoute>}
         />
         <Route
           path="/portal/complaints"

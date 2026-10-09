@@ -51,6 +51,18 @@ export interface Resident {
   registrationDate: string
 }
 
+/**
+ * A landlord adding a tenant also provisions their login in the same step — the plaintext
+ * temporaryPassword is returned here once, same convention as BulkCreatedAccount, so the
+ * landlord can hand it to the tenant directly. mustChangePassword is always true on this account.
+ */
+export interface TenantAddResult {
+  resident: Resident
+  loginEmail: string | null
+  loginPhone: string | null
+  temporaryPassword: string | null
+}
+
 export interface BulkCreatedAccount {
   residentId: number
   fullName: string
@@ -322,6 +334,49 @@ export interface WorkerLookup {
   propertyAddress: string | null
 }
 
+export type Relationship = 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER'
+export type HouseholdMemberStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REVOKED'
+
+/**
+ * A tenant/resident's spouse or other family member — unlike Worker, the tenant doesn't set the
+ * validity window; the property's landlord does (via householdMembersApi.approve), so qrToken,
+ * validFrom and validUntil all stay null until then.
+ */
+export interface HouseholdMember {
+  id: number
+  fullName: string
+  phone: string
+  relationship: Relationship
+  propertyId: number
+  propertyHouseNumber: string | null
+  sponsorResidentId: number
+  status: HouseholdMemberStatus
+  validFrom: string | null
+  validUntil: string | null
+  qrToken: string | null
+  /** Base64 data URI, submitted at request time so security can confirm identity at the gate. */
+  photo: string | null
+}
+
+/** What security sees scanning a household member's QR pass — includes the destination to confirm. */
+export interface HouseholdMemberLookup {
+  id: number
+  fullName: string
+  phone: string
+  relationship: Relationship
+  validFrom: string | null
+  validUntil: string | null
+  status: HouseholdMemberStatus
+  flagReason: string | null
+  photo: string | null
+  sponsorResidentId: number
+  sponsorResidentName: string | null
+  sponsorResidentPhone: string | null
+  propertyId: number | null
+  propertyHouseNumber: string | null
+  propertyAddress: string | null
+}
+
 export type ComplaintCategory =
   | 'ELECTRICITY'
   | 'WATER'
@@ -432,7 +487,7 @@ export interface PaymentAccountChange {
   decidedAt: string | null
 }
 
-export type AccessSubjectType = 'RESIDENT' | 'VISITOR' | 'WORKER' | 'VEHICLE'
+export type AccessSubjectType = 'RESIDENT' | 'VISITOR' | 'WORKER' | 'VEHICLE' | 'HOUSEHOLD_MEMBER'
 export type AccessDirection = 'IN' | 'OUT'
 
 export interface AccessEvent {

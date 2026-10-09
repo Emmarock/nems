@@ -32,7 +32,7 @@ public class NotificationService {
 
     /**
      * Queues a notification rather than sending it inline - callers (UserService,
-     * AnnouncementService) never block on an outbound Twilio/SendGrid call, and a slow/failing
+     * AnnouncementService) never block on an outbound Twilio/Resend call, and a slow/failing
      * provider can't stretch out an unrelated HTTP request. See handle() for the actual send.
      */
     public void dispatch(NotificationChannel channel, String recipient, String message) {

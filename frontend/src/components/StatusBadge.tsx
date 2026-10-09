@@ -1,6 +1,6 @@
 const POSITIVE = new Set(['ACTIVE', 'SUCCESS', 'RESOLVED', 'CLOSED', 'APPROVED', 'OCCUPIED', 'COMPLETED', 'ISSUED', 'READ'])
 const NEGATIVE = new Set(['SUSPENDED', 'FAILED', 'CANCELLED', 'EXPIRED', 'DISABLED', 'REVOKED', 'LOST'])
-const WARNING = new Set(['PENDING', 'OPEN', 'ASSIGNED', 'IN_PROGRESS', 'VACANT', 'UNDER_CONSTRUCTION', 'UNREAD'])
+const WARNING = new Set(['PENDING', 'PENDING_APPROVAL', 'OPEN', 'ASSIGNED', 'IN_PROGRESS', 'VACANT', 'UNDER_CONSTRUCTION', 'UNREAD'])
 
 export function StatusBadge({ value }: { value: string | null | undefined }) {
   if (!value) return <span className="badge">—</span>

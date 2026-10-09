@@ -1,4 +1,4 @@
-export type ScanKind = 'visitor' | 'worker' | 'resident' | 'property' | 'vehicle'
+export type ScanKind = 'visitor' | 'worker' | 'resident' | 'property' | 'vehicle' | 'household'
 
 /** The URL a QR pass encodes — opens straight into the security scan/destination-confirmation page. */
 export function buildScanUrl(kind: ScanKind, qrToken: string): string {
@@ -15,7 +15,7 @@ export function parseScanValue(raw: string): { kind: ScanKind | null; qrToken: s
   const text = raw.trim()
   try {
     const url = new URL(text)
-    const match = url.pathname.match(/\/scan\/(visitor|worker|resident|property|vehicle)\/([^/]+)/)
+    const match = url.pathname.match(/\/scan\/(visitor|worker|resident|property|vehicle|household)\/([^/]+)/)
     if (match) {
       return { kind: match[1] as ScanKind, qrToken: decodeURIComponent(match[2]) }
     }

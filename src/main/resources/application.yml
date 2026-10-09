@@ -62,11 +62,11 @@ nitel:
       # (shown in the console under Messaging > Try it out > WhatsApp) works for testing before
       # your own WhatsApp sender is Meta-approved.
       whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
-    # Email via Twilio SendGrid - same vendor family, separate API key.
-    sendgrid:
-      api-key: ${SENDGRID_API_KEY:}
-      from-email: ${SENDGRID_FROM_EMAIL:noreply@nitelestate.com}
-      from-name: ${SENDGRID_FROM_NAME:Nitel Estate Management System}
+    # Email via Resend.
+    resend:
+      api-key: ${RESEND_API_KEY:}
+      from-email: ${RESEND_FROM_EMAIL:noreply@nitelestate.com}
+      from-name: ${RESEND_FROM_NAME:Nitel Estate Management System}
 
 logging:
   level:

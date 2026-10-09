@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { propertiesApi, residentsApi, vehiclesApi, visitorsApi, workersApi } from '../../api/endpoints'
-import type { PropertyLookup, ResidentLookup, VehicleLookup, VisitorLookup, WorkerLookup } from '../../api/types'
+import { householdMembersApi, propertiesApi, residentsApi, vehiclesApi, visitorsApi, workersApi } from '../../api/endpoints'
+import type { HouseholdMemberLookup, PropertyLookup, ResidentLookup, VehicleLookup, VisitorLookup, WorkerLookup } from '../../api/types'
 import { StatusBadge } from '../../components/StatusBadge'
 import { BalanceBreakdown } from '../../components/BalanceBreakdown'
 import { apiErrorMessage, authErrorStatus, redirectToLogin } from '../../api/client'
@@ -16,6 +16,7 @@ const TITLES: Record<ScanKind, string> = {
   resident: 'Resident',
   property: 'Building',
   vehicle: 'Vehicle',
+  household: 'Household member',
 }
 
 /**
@@ -34,6 +35,7 @@ export function ScanPage() {
   const [resident, setResident] = useState<ResidentLookup | null>(null)
   const [property, setProperty] = useState<PropertyLookup | null>(null)
   const [vehicle, setVehicle] = useState<VehicleLookup | null>(null)
+  const [household, setHousehold] = useState<HouseholdMemberLookup | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [authErrorCode, setAuthErrorCode] = useState<401 | 403 | null>(null)
@@ -43,7 +45,7 @@ export function ScanPage() {
   async function load() {
     if (
       !qrToken ||
-      (kind !== 'visitor' && kind !== 'worker' && kind !== 'resident' && kind !== 'property' && kind !== 'vehicle')
+      (kind !== 'visitor' && kind !== 'worker' && kind !== 'resident' && kind !== 'property' && kind !== 'vehicle' && kind !== 'household')
     ) {
       setError('Invalid scan link')
       setLoading(false)
@@ -57,6 +59,7 @@ export function ScanPage() {
       else if (kind === 'worker') setWorker(await workersApi.lookup(qrToken))
       else if (kind === 'property') setProperty(await propertiesApi.lookup(qrToken))
       else if (kind === 'vehicle') setVehicle(await vehiclesApi.lookup(qrToken))
+      else if (kind === 'household') setHousehold(await householdMembersApi.lookup(qrToken))
       else setResident(await residentsApi.lookup(qrToken))
     } catch (err) {
       const code = authErrorStatus(err)
@@ -88,6 +91,10 @@ export function ScanPage() {
       } else if (kind === 'vehicle') {
         const result = action === 'checkin' ? await vehiclesApi.checkIn(qrToken) : await vehiclesApi.checkOut(qrToken)
         setMessage(`${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${result.plateNumber}`)
+      } else if (kind === 'household') {
+        const result =
+          action === 'checkin' ? await householdMembersApi.checkIn(qrToken) : await householdMembersApi.checkOut(qrToken)
+        setMessage(`${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${result.fullName}`)
       } else {
         const result = action === 'checkin' ? await residentsApi.checkIn(qrToken) : await residentsApi.checkOut(qrToken)
         setMessage(`${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${result.fullName}`)
@@ -102,7 +109,7 @@ export function ScanPage() {
     }
   }
 
-  const holder = kind === 'visitor' ? visitor : kind === 'worker' ? worker : resident
+  const holder = kind === 'visitor' ? visitor : kind === 'worker' ? worker : kind === 'household' ? household : resident
 
   return (
     <div className="scan-page">
@@ -290,6 +297,12 @@ export function ScanPage() {
                     <dd>{holder.workType}</dd>
                   </div>
                 </>
+              )}
+              {'relationship' in holder && (
+                <div className="detail-row">
+                  <dt>Relationship</dt>
+                  <dd>{holder.relationship}</dd>
+                </div>
               )}
               {'vehiclePlate' in holder && holder.vehiclePlate && (
                 <div className="detail-row">

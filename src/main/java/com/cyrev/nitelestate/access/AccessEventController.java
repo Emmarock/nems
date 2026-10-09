@@ -30,7 +30,7 @@ public class AccessEventController {
         String flag = switch (request.subjectType()) {
             case RESIDENT -> accessPolicyService.evaluateResident(request.subjectId());
             case VEHICLE -> accessPolicyService.evaluateVehicle(request.subjectId());
-            case VISITOR, WORKER -> null; // evaluated by their own dedicated checkin endpoints
+            case VISITOR, WORKER, HOUSEHOLD_MEMBER -> null; // evaluated by their own dedicated checkin endpoints
         };
         return accessEventService.record(request.subjectType(), request.subjectId(), request.direction(),
                 request.gateId(), currentUser.userId(), flag);

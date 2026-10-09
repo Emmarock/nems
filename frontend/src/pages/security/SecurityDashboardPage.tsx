@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { accessEventsApi, residentsApi, securityDashboardApi, vehiclesApi, visitorsApi, workersApi } from '../../api/endpoints'
+import { accessEventsApi, householdMembersApi, residentsApi, securityDashboardApi, vehiclesApi, visitorsApi, workersApi } from '../../api/endpoints'
 import type { AccessEvent, PageResponse, SecurityDashboard } from '../../api/types'
 import { StatCard } from '../../components/StatCard'
 import { AlertIcon, CameraIcon, CarIcon, PersonBadgeIcon, WrenchIcon } from '../../components/icons'
@@ -167,7 +167,15 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
   const { openVisitor, openWorker } = useEntityDetail()
 
   function apiFor(k: ScanKind) {
-    return k === 'visitor' ? visitorsApi : k === 'worker' ? workersApi : k === 'vehicle' ? vehiclesApi : residentsApi
+    return k === 'visitor'
+      ? visitorsApi
+      : k === 'worker'
+        ? workersApi
+        : k === 'vehicle'
+          ? vehiclesApi
+          : k === 'household'
+            ? householdMembersApi
+            : residentsApi
   }
 
   function nameOf(result: { name?: string; fullName?: string; plateNumber?: string }) {
@@ -221,6 +229,7 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
             <option value="worker">Worker</option>
             <option value="resident">Resident</option>
             <option value="vehicle">Vehicle</option>
+            <option value="household">Household member</option>
           </select>
         </div>
         <div className="form-field">

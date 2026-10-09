@@ -15,8 +15,13 @@ import com.cyrev.nitelestate.resident.dto.ResidentArrearsResponse;
 import com.cyrev.nitelestate.resident.dto.ResidentLookupResponse;
 import com.cyrev.nitelestate.resident.dto.ResidentRequest;
 import com.cyrev.nitelestate.resident.dto.ResidentResponse;
+import com.cyrev.nitelestate.resident.dto.TenantRequest;
+import com.cyrev.nitelestate.resident.dto.TenantResponse;
+import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.user.PhoneNumbers;
 import com.cyrev.nitelestate.user.UserRepository;
+import com.cyrev.nitelestate.user.UserService;
+import com.cyrev.nitelestate.user.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +45,7 @@ public class ResidentService {
     private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @Transactional
     public ResidentResponse create(ResidentRequest request) {
@@ -95,6 +101,78 @@ public class ResidentService {
                 userRepository.save(user);
             }
         });
+    }
+
+    /**
+     * A landlord adds a tenant to their own property, self-service — the property is resolved
+     * from the properties the caller owns (see PropertyRepository.findByOwnerId), never trusted
+     * from the request body. v1 assumes one owned property per landlord.
+     *
+     * Also provisions the tenant's login in the same step (reusing UserService's existing
+     * bulk-create mechanism) so a landlord never needs an admin involved to get a tenant into the
+     * portal — admins only need to onboard the landlord themselves.
+     */
+    @Transactional
+    public TenantResponse createTenant(Long landlordResidentId, TenantRequest request) {
+        Property property = requireOwnedProperty(landlordResidentId);
+
+        Resident tenant = new Resident();
+        tenant.setFullName(request.fullName());
+        tenant.setPhone(request.phone());
+        tenant.setEmail(request.email());
+        tenant.setEmergencyContact(request.emergencyContact());
+        tenant.setPropertyId(property.getId());
+        tenant.setResidentType(ResidentType.TENANT);
+        tenant = residentRepository.save(tenant);
+
+        auditService.record("Resident", tenant.getId(), "LANDLORD_ADD_TENANT", tenant.getFullName());
+
+        var accounts = userService.bulkCreateResidentAccounts(List.of(tenant.getId())).created();
+        var account = accounts.isEmpty() ? null : accounts.get(0);
+
+        return new TenantResponse(ResidentResponse.from(tenant, property.getHouseNumber()),
+                account != null ? account.email() : null,
+                account != null ? account.phone() : null,
+                account != null ? account.temporaryPassword() : null);
+    }
+
+    /** Tenants currently on the caller's own property. */
+    public PageResponse<ResidentResponse> listTenants(Long landlordResidentId, Pageable pageable) {
+        Property property = requireOwnedProperty(landlordResidentId);
+        Specification<Resident> spec = Specification.<Resident>where(Specs.eq(property.getId(), "propertyId"))
+                .and(Specs.eq(ResidentType.TENANT, "residentType"));
+        var page = residentRepository.findAll(spec, pageable);
+        return PageResponse.of(page.map(r -> ResidentResponse.from(r, property.getHouseNumber())));
+    }
+
+    /**
+     * Soft-removes a tenant from the caller's own property: marks them INACTIVE and disables
+     * their login (if one exists) — no hard delete, so billing/access history is preserved.
+     */
+    @Transactional
+    public ResidentResponse deactivateTenant(Long landlordResidentId, Long tenantId) {
+        Property property = requireOwnedProperty(landlordResidentId);
+        Resident tenant = get(tenantId);
+        if (tenant.getResidentType() != ResidentType.TENANT || !property.getId().equals(tenant.getPropertyId())) {
+            throw new BadRequestException("That resident isn't a tenant on a property you own");
+        }
+
+        tenant.setStatus(ResidentStatus.INACTIVE);
+        tenant = residentRepository.save(tenant);
+        userRepository.findByResidentId(tenant.getId())
+                .ifPresent(user -> userService.setStatus(user.getId(), UserStatus.DISABLED));
+
+        auditService.record("Resident", tenant.getId(), "LANDLORD_DEACTIVATE_TENANT", tenant.getFullName());
+        return ResidentResponse.from(tenant, property.getHouseNumber());
+    }
+
+    /** The single property the caller owns — v1 doesn't support a landlord owning more than one. */
+    private Property requireOwnedProperty(Long landlordResidentId) {
+        List<Property> owned = propertyRepository.findByOwnerId(landlordResidentId);
+        if (owned.isEmpty()) {
+            throw new BadRequestException("You don't own a property on file — contact an admin to get one linked");
+        }
+        return owned.get(0);
     }
 
     public PageResponse<ResidentResponse> search(String q, Long propertyId, Pageable pageable) {
