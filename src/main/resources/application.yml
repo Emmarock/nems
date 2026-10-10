@@ -83,7 +83,7 @@ nitel:
     # Email via Resend.
     resend:
       api-key: ${RESEND_API_KEY:}
-      from-email: ${RESEND_FROM_EMAIL:noreply@myorderlynk.com}
+      from-email: ${RESEND_FROM_EMAIL:noreply@nitelestate.com}
       from-name: ${RESEND_FROM_NAME:Nitel Estate Management System}
       base-url: ${RESEND_BASE_URL:https://api.resend.com}
 
