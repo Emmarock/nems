@@ -4,7 +4,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,8 +16,34 @@ import java.util.Optional;
 public interface ResidentRepository extends JpaRepository<Resident, Long>, JpaSpecificationExecutor<Resident> {
     Optional<Resident> findByQrToken(String qrToken);
 
+    /**
+     * REQUIRES_NEW and a direct UPDATE on purpose — verifyClaimAccount throws a BadRequestException
+     * right after a failed code check, and that throw rolls back its own @Transactional method
+     * (BadRequestException is unchecked). A plain load-increment-save on the same transaction
+     * would roll back with it, silently defeating the attempt lockout. This commits in its own
+     * transaction first, so the count survives regardless of what the caller does next.
+     */
+    @Modifying
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Query("update Resident r set r.claimOtpAttempts = r.claimOtpAttempts + 1 where r.id = :id")
+    void incrementClaimOtpAttempts(Long id);
+
     @Query("select r.id from Resident r")
     List<Long> findAllIds();
+
+    /**
+     * Lightweight projection for matching a claim-account request's phone number against every
+     * resident without loading full entities — Resident.phone is stored as whatever the admin
+     * typed (see ResidentService), never normalized like User.phone, so the match has to happen
+     * in Java via PhoneNumbers.normalize on both sides rather than an exact-string query.
+     */
+    @Query("select r.id as id, r.phone as phone from Resident r")
+    List<ResidentPhoneRow> findAllIdsAndPhones();
+
+    interface ResidentPhoneRow {
+        Long getId();
+        String getPhone();
+    }
 
     /**
      * Counts residents whose (issued invoices - successful payments) exceeds the threshold, in

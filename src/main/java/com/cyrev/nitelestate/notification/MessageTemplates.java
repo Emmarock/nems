@@ -29,6 +29,23 @@ public final class MessageTemplates {
                 + "\n\n" + actionLabel + actionUrl;
     }
 
+    /**
+     * WhatsApp-only verification code, step 1 of self-service account recovery (see
+     * UserService.startClaimAccount) — proves the requester controls the resident's phone before
+     * any reset link is emailed anywhere.
+     */
+    public static String claimOtp(String code) {
+        return "Your " + BRAND + " verification code is " + code + ". It expires in 10 minutes. "
+                + "Don't share this code with anyone.";
+    }
+
+    /** Sent when an existing resident claims self-service access via phone+email verification (see UserService.claimAccount). */
+    public static String accountClaimed(String fullName, String resetUrl) {
+        return "Hi " + fullName + ", we found your account on " + BRAND + ".\n\n"
+                + "Set your password here: " + resetUrl
+                + "\n\nThis link expires in 24 hours. If you didn't request this, you can ignore this message.";
+    }
+
     /** Sent to a landlord when a tenant shares a payment receipt (see PaymentService.shareReceiptWithLandlord). */
     public static String receiptShared(String tenantFullName) {
         return tenantFullName + " shared a payment receipt with you on " + BRAND

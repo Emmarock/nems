@@ -65,4 +65,26 @@ public class AuthController {
     public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPasswordWithToken(request.token(), request.newPassword());
     }
+
+    /**
+     * Self-service account recovery for an existing resident who never got (or lost) their
+     * login, step 1: send a WhatsApp code to the phone on file. Always responds 200 with no
+     * body regardless of whether anything matched, so the response itself never reveals whether
+     * a phone number is on file — see UserService.startClaimAccount.
+     */
+    @PostMapping("/claim-account/start")
+    @SecurityRequirements
+    public void startClaimAccount(@Valid @RequestBody ClaimAccountStartRequest request) {
+        userService.startClaimAccount(request.phone());
+    }
+
+    /**
+     * Step 2: the code just proved the caller controls that phone, so this is free to report a
+     * real error on a wrong/expired code — see UserService.verifyClaimAccount.
+     */
+    @PostMapping("/claim-account/verify")
+    @SecurityRequirements
+    public void verifyClaimAccount(@Valid @RequestBody ClaimAccountVerifyRequest request) {
+        userService.verifyClaimAccount(request.phone(), request.code(), request.email());
+    }
 }

@@ -5,6 +5,7 @@ import com.cyrev.nitelestate.notification.NotificationSender;
 import com.cyrev.nitelestate.notification.Redaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
@@ -19,12 +20,14 @@ import org.springframework.web.client.RestClient;
  * (see PhoneNumbers) - Twilio rejects anything else outright.
  *
  * Only registered when nitel.notifications.twilio is actually configured (see
- * TwilioSmsConfiguredCondition) - MockSmsSender takes over otherwise, so local/dev and an
- * unconfigured prod keep working with zero setup.
+ * TwilioSmsConfiguredCondition) and BulkSmsNigeriaSender isn't already handling the SMS channel
+ * (that one wins when both are configured) - MockSmsSender takes over when neither is, so
+ * local/dev and an unconfigured prod keep working with zero setup.
  */
 @Slf4j
 @Component
 @Conditional(TwilioSmsConfiguredCondition.class)
+@ConditionalOnMissingBean(BulkSmsNigeriaSender.class)
 public class TwilioSmsSender implements NotificationSender {
 
     private final RestClient restClient;

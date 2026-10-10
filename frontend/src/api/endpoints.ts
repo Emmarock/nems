@@ -50,6 +50,16 @@ export const authApi = {
   /** The one-time link from an onboarding email — token is the credential, no prior login needed. */
   resetPassword: (token: string, newPassword: string) =>
     client.put<void>('/auth/reset-password', { token, newPassword }).then(() => undefined),
+  /**
+   * Self-service recovery for an existing resident with no login (or who lost access to it).
+   * Step 1: sends a WhatsApp code to the phone on file — always resolves the same way regardless
+   * of whether anything matched, see UserService.startClaimAccount.
+   */
+  claimAccountStart: (phone: string) =>
+    client.post<void>('/auth/claim-account/start', { phone }).then(() => undefined),
+  /** Step 2: verifies the WhatsApp code and, on success, emails a reset link — see UserService.verifyClaimAccount. */
+  claimAccountVerify: (phone: string, code: string, email: string) =>
+    client.post<void>('/auth/claim-account/verify', { phone, code, email }).then(() => undefined),
 }
 
 export const usersApi = {

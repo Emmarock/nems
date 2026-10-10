@@ -41,6 +41,8 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             // The token itself is the credential for this one - see UserService.resetPasswordWithToken.
             "/api/v1/auth/reset-password",
+            "/api/v1/auth/claim-account/start",
+            "/api/v1/auth/claim-account/verify",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",

@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 /**
@@ -50,4 +51,17 @@ public class Resident extends BaseEntity {
     /** A resident's own gate-access QR pass — generated lazily on first request, see ResidentService. */
     @Column(unique = true)
     private String qrToken;
+
+    /**
+     * WhatsApp verification code for the self-service "claim your account" flow (see
+     * UserService.startClaimAccount/verifyClaimAccount) — proves the caller actually controls
+     * the phone number on file, not just that they know it, before any reset link goes out.
+     * Hashed the same way as User.resetTokenHash; never stored raw.
+     */
+    private String claimOtpHash;
+    private Instant claimOtpExpiresAt;
+
+    /** Failed verify attempts against the current claimOtpHash — locks it out after too many guesses. */
+    @Column(nullable = false)
+    private int claimOtpAttempts = 0;
 }

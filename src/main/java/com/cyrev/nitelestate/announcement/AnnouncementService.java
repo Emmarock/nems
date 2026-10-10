@@ -92,7 +92,10 @@ public class AnnouncementService {
                 notificationService.dispatch(NotificationChannel.WHATSAPP, resident.getPhone(), announcement.getMessage());
             }
             if (announcement.getChannels().contains(NotificationChannel.EMAIL) && resident.getEmail() != null) {
-                notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(), announcement.getMessage());
+                // Subject carries the announcement's title instead of the generic default, so it
+                // actually reads as "Estate-wide water shutdown" in an inbox rather than the same
+                // fixed subject every other notification uses.
+                notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(), announcement.getMessage(), announcement.getTitle());
             }
         }
     }

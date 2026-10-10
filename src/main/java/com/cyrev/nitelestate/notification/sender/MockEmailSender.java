@@ -19,6 +19,11 @@ public class MockEmailSender implements NotificationSender {
     }
     @Override
     public void send(String recipient, String message) {
-        log.info("[MOCK EMAIL] to={} message={}", recipient, Redaction.redact(message));
+        send(recipient, message, null, false);
+    }
+
+    @Override
+    public void send(String recipient, String message, String subject, boolean transactional) {
+        log.info("[MOCK EMAIL] to={} subject={} message={}", recipient, subject, Redaction.redact(message));
     }
 }

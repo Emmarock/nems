@@ -56,6 +56,12 @@ public class ResendEmailSender implements NotificationSender {
 
     @Override
     public void send(String recipient, String message) {
+        send(recipient, message, null, false);
+    }
+
+    /** subject falls back to the generic default when the caller doesn't supply one (e.g. an announcement's title). */
+    @Override
+    public void send(String recipient, String message, String subject, boolean transactional) {
         if (!StringUtils.hasText(apiKey)) {
             log.info("[Email not configured, would send] to={} message={}", recipient, Redaction.redact(message));
             return;
@@ -63,7 +69,7 @@ public class ResendEmailSender implements NotificationSender {
         Map<String, Object> body = Map.of(
                 "from", fromName + " <" + fromEmail + ">",
                 "to", List.of(recipient),
-                "subject", SUBJECT,
+                "subject", StringUtils.hasText(subject) ? subject : SUBJECT,
                 "html", EmailTemplate.render(message),
                 "text", message);
 

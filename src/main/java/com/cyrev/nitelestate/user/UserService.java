@@ -41,6 +41,8 @@ public class UserService {
     private static final String SYNTHETIC_EMAIL_DOMAIN = "@nitelestate.local";
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int RESET_TOKEN_VALIDITY_HOURS = 24;
+    private static final int OTP_VALIDITY_MINUTES = 10;
+    private static final int MAX_OTP_ATTEMPTS = 5;
 
     private final UserRepository userRepository;
     private final ResidentRepository residentRepository;
@@ -279,6 +281,130 @@ public class UserService {
         String location = geoLocationService.lookup(ipAddress);
         String message = MessageTemplates.loginAlert(user.getFullName(), UserAgents.describe(userAgent), ipAddress, location);
         notificationService.dispatch(NotificationChannel.EMAIL, targetEmail, message);
+    }
+
+    /**
+     * Step 1 of self-service "I'm already a resident, give me access" recovery. Knowing a phone
+     * number alone isn't proof of anything - it can be guessed, leaked, or publicly known - so
+     * this only ever sends a one-time code to that number over WhatsApp and SMS (both, so a
+     * resident without WhatsApp installed still gets the code), channels only the real holder of
+     * the phone can read. No email goes out here, and no link is issued until verifyClaimAccount
+     * confirms the code. Silently does nothing for an unmatched phone, so the response can't be
+     * used to probe which phone numbers are registered - see AuthController.
+     */
+    @Transactional
+    public void startClaimAccount(String phone) {
+        String normalizedPhone = PhoneNumbers.normalize(phone);
+        if (normalizedPhone == null) {
+            return;
+        }
+        Resident resident = findResidentByPhone(normalizedPhone);
+        if (resident == null) {
+            return;
+        }
+        String code = generateOtp();
+        resident.setClaimOtpHash(hashToken(code));
+        resident.setClaimOtpExpiresAt(Instant.now().plus(OTP_VALIDITY_MINUTES, ChronoUnit.MINUTES));
+        resident.setClaimOtpAttempts(0);
+        residentRepository.save(resident);
+        String message = MessageTemplates.claimOtp(code);
+        notificationService.dispatch(NotificationChannel.WHATSAPP, normalizedPhone, message);
+        // transactional=true - BulkSmsNigeriaSender routes this through the provider's OTP
+        // gateway instead of the bulk one, which rejects OTP-shaped content outright.
+        notificationService.dispatch(NotificationChannel.SMS, normalizedPhone, message, true);
+    }
+
+    /**
+     * Step 2 - the code just proved the caller controls the phone on the resident record, so the
+     * supplied email is now trusted as the delivery address (updating it on file if it differs)
+     * and a reset link goes out exactly as onboarding does. Unlike startClaimAccount, a wrong
+     * code is reported back (so the UI can let the caller retry) rather than swallowed - by this
+     * point the caller has already proven they received the real code at least once, so there's
+     * nothing left to protect by staying silent; repeated wrong guesses are capped by
+     * claimOtpAttempts instead.
+     */
+    @Transactional
+    public void verifyClaimAccount(String phone, String code, String email) {
+        String normalizedPhone = PhoneNumbers.normalize(phone);
+        BadRequestException invalidCode = new BadRequestException("Invalid or expired code — ask for a new one");
+        if (normalizedPhone == null || code == null || code.isBlank() || email == null || email.isBlank()) {
+            throw invalidCode;
+        }
+        Resident resident = findResidentByPhone(normalizedPhone);
+        if (resident == null || resident.getClaimOtpHash() == null
+                || resident.getClaimOtpExpiresAt() == null || resident.getClaimOtpExpiresAt().isBefore(Instant.now())
+                || resident.getClaimOtpAttempts() >= MAX_OTP_ATTEMPTS) {
+            throw invalidCode;
+        }
+        if (!resident.getClaimOtpHash().equals(hashToken(code.trim()))) {
+            residentRepository.incrementClaimOtpAttempts(resident.getId());
+            throw invalidCode;
+        }
+
+        resident.setClaimOtpHash(null);
+        resident.setClaimOtpExpiresAt(null);
+        resident.setClaimOtpAttempts(0);
+        resident.setEmail(email.trim());
+        residentRepository.save(resident);
+        notifyLoginDetails(resident);
+    }
+
+    /**
+     * Emails login access details to a resident whose email was just captured — by the
+     * claim-account flow above, by an admin editing their record, or by the resident adding it
+     * to their own profile (see ResidentService.update/updateSelf). Finds their login if one
+     * already exists or provisions one (same as claimAccount), then sends a one-time
+     * "set your password" link rather than any password, so this is safe to call regardless of
+     * whether the account already has a real password set. No-ops if the resident still has no
+     * email - defensive, since every caller is expected to check "email was just added" first.
+     */
+    @Transactional
+    public void notifyLoginDetails(Resident resident) {
+        if (resident.getEmail() == null || resident.getEmail().isBlank()) {
+            return;
+        }
+        User user = userRepository.findByResidentId(resident.getId()).orElseGet(() -> provisionResidentLogin(resident));
+        String resetUrl = appBaseUrl + "/reset-password?token=" + issueResetToken(user);
+        notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(),
+                MessageTemplates.accountClaimed(resident.getFullName(), resetUrl));
+    }
+
+    /** Zero-padded so it's always OTP_LENGTH digits (e.g. "003492"), never a shorter number. */
+    private String generateOtp() {
+        int value = RANDOM.nextInt(1_000_000);
+        return String.format("%06d", value);
+    }
+
+    private Resident findResidentByPhone(String normalizedPhone) {
+        for (ResidentRepository.ResidentPhoneRow row : residentRepository.findAllIdsAndPhones()) {
+            if (normalizedPhone.equals(PhoneNumbers.normalize(row.getPhone()))) {
+                return residentRepository.findById(row.getId()).orElse(null);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Mirrors bulkCreateResidentAccounts for a single resident claiming access for the first
+     * time - random password is never revealed anywhere since claimAccount only ever sends a
+     * reset link, never a password.
+     */
+    private User provisionResidentLogin(Resident resident) {
+        boolean emailAvailable = resident.getEmail() != null && !resident.getEmail().isBlank()
+                && !userRepository.existsByEmailIgnoreCase(resident.getEmail());
+        String normalizedPhone = PhoneNumbers.normalize(resident.getPhone());
+        boolean phoneAvailable = normalizedPhone != null && !userRepository.existsByPhone(normalizedPhone);
+
+        User user = new User();
+        user.setEmail(emailAvailable ? resident.getEmail() : "resident" + resident.getId() + SYNTHETIC_EMAIL_DOMAIN);
+        user.setPhone(phoneAvailable ? normalizedPhone : null);
+        user.setPasswordHash(passwordEncoder.encode(generateTemporaryPassword()));
+        user.setFullName(resident.getFullName());
+        user.setRole(Role.RESIDENT);
+        user.setResidentId(resident.getId());
+        user.setStatus(UserStatus.ACTIVE);
+        user.setMustChangePassword(true);
+        return userRepository.save(user);
     }
 
     private String resolveNotificationEmail(User user) {

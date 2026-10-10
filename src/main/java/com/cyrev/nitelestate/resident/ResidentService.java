@@ -59,8 +59,14 @@ public class ResidentService {
     @Transactional
     public ResidentResponse update(Long id, ResidentRequest request) {
         Resident resident = get(id);
+        boolean emailAdded = isBlank(resident.getEmail()) && !isBlank(request.email());
         apply(resident, request);
         resident = residentRepository.save(resident);
+        // A resident captured without one (e.g. bulk-imported from a phone-only record) now has a
+        // real address on file - let them know how to get in rather than leaving it a silent edit.
+        if (emailAdded) {
+            userService.notifyLoginDetails(resident);
+        }
         auditService.record("Resident", resident.getId(), "UPDATE", resident.getFullName());
         return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
     }
@@ -74,12 +80,19 @@ public class ResidentService {
     @Transactional
     public ResidentResponse updateSelf(Long residentId, MeProfileUpdateRequest request) {
         Resident resident = get(residentId);
+        boolean emailAdded = isBlank(resident.getEmail()) && !isBlank(request.email());
         resident.setFullName(request.fullName());
         resident.setPhone(request.phone());
         resident.setEmail(request.email());
         resident.setEmergencyContact(request.emergencyContact());
         resident = residentRepository.save(resident);
         syncLoginPhone(resident);
+        // Most useful for a resident whose login still uses a synthetic placeholder email (see
+        // UserService.buildLoginEmail) - this gives them a real "set your password" link the
+        // moment they add a real address, not just a silently-updated profile field.
+        if (emailAdded) {
+            userService.notifyLoginDetails(resident);
+        }
         auditService.record("Resident", resident.getId(), "SELF_UPDATE", resident.getFullName());
         return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
     }
@@ -295,6 +308,10 @@ public class ResidentService {
 
     Resident get(Long id) {
         return residentRepository.findById(id).orElseThrow(() -> NotFoundException.of("Resident", id));
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void apply(Resident resident, ResidentRequest request) {

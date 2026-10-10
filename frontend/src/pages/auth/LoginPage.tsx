@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { apiErrorMessage, consumeAuthMessage, consumePostLoginRedirect } from '../../api/client'
 
@@ -60,7 +60,7 @@ export function LoginPage() {
           </button>
         </form>
         <p className="muted" style={{ textAlign: 'center', fontSize: 13, marginTop: 16, marginBottom: 0 }}>
-          Forgot your password? Contact your estate administrator to have it reset.
+          Already a resident but don't have a login? <Link to="/claim-account">Claim your account</Link>
         </p>
       </div>
     </div>

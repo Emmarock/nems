@@ -36,7 +36,21 @@ public class NotificationService {
      * provider can't stretch out an unrelated HTTP request. See handle() for the actual send.
      */
     public void dispatch(NotificationChannel channel, String recipient, String message) {
-        eventPublisher.publishEvent(new NotificationRequestedEvent(channel, recipient, message));
+        dispatch(channel, recipient, message, null, false);
+    }
+
+    /** Same, with an EMAIL-only subject override — see NotificationSender's 4-arg send. */
+    public void dispatch(NotificationChannel channel, String recipient, String message, String subject) {
+        dispatch(channel, recipient, message, subject, false);
+    }
+
+    /** Same, flagged transactional for an SMS-only gateway override — see NotificationSender's 4-arg send. */
+    public void dispatch(NotificationChannel channel, String recipient, String message, boolean transactional) {
+        dispatch(channel, recipient, message, null, transactional);
+    }
+
+    public void dispatch(NotificationChannel channel, String recipient, String message, String subject, boolean transactional) {
+        eventPublisher.publishEvent(new NotificationRequestedEvent(channel, recipient, message, subject, transactional));
     }
 
     /**
@@ -62,7 +76,7 @@ public class NotificationService {
         NotificationSender sender = senders.get(event.channel());
         try {
             if (sender != null) {
-                sender.send(event.recipient(), event.message());
+                sender.send(event.recipient(), event.message(), event.subject(), event.transactional());
             }
             entry.setStatus(NotificationStatus.SENT);
         } catch (Exception ex) {

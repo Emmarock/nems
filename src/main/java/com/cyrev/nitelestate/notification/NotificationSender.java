@@ -13,4 +13,16 @@ package com.cyrev.nitelestate.notification;
 public interface NotificationSender {
     NotificationChannel channel();
     void send(String recipient, String message);
+
+    /**
+     * Same send, with two optional hints most senders don't need: subject (EMAIL only —
+     * ResendEmailSender uses it in place of the generic default, e.g. an announcement's title)
+     * and transactional (SMS only — sender.BulkSmsNigeriaSender routes OTPs/verification codes
+     * through the provider's dedicated transactional gateway instead of its bulk one, since the
+     * provider rejects OTP-shaped content on the bulk route). Default just ignores both and
+     * falls back to the plain send - only the two senders above override this.
+     */
+    default void send(String recipient, String message, String subject, boolean transactional) {
+        send(recipient, message);
+    }
 }
