@@ -15,6 +15,8 @@ public final class Redaction {
     private static final String MASK = "[REDACTED]";
     private static final Pattern PASSWORD = Pattern.compile("(?i)(password:\\s*)\\S+");
     private static final Pattern TOKEN_PARAM = Pattern.compile("(?i)([?&]token=)[^\\s&]+");
+    /** Covers MessageTemplates.claimOtp's "verification code is 123456" - a code is just as much a credential as a password for the few minutes it's valid. */
+    private static final Pattern VERIFICATION_CODE = Pattern.compile("(?i)(verification code is )\\d+");
 
     private Redaction() {
     }
@@ -24,6 +26,7 @@ public final class Redaction {
             return null;
         }
         String redacted = PASSWORD.matcher(message).replaceAll("$1" + MASK);
-        return TOKEN_PARAM.matcher(redacted).replaceAll("$1" + MASK);
+        redacted = TOKEN_PARAM.matcher(redacted).replaceAll("$1" + MASK);
+        return VERIFICATION_CODE.matcher(redacted).replaceAll("$1" + MASK);
     }
 }

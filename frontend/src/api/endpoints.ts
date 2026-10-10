@@ -18,6 +18,7 @@ import type {
   Levy,
   LevyBalance,
   MeDashboard,
+  NotificationLog,
   PageResponse,
   Payment,
   Property,
@@ -276,6 +277,11 @@ export const complaintsApi = {
     client.post<Complaint>('/complaints', body).then((r) => r.data),
   updateStatus: (id: number, status: ComplaintStatus, assignedTo?: string) =>
     client.put<Complaint>(`/complaints/${id}/status`, { status, assignedTo }).then((r) => r.data),
+}
+
+export const notificationLogsApi = {
+  list: (params: { channel?: string; status?: string; q?: string; page?: number; size?: number } = {}) =>
+    client.get<PageResponse<NotificationLog>>('/notification-logs', { params }).then((r) => r.data),
 }
 
 export const announcementsApi = {

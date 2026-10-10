@@ -36,12 +36,35 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  /* A stray fixed-width child anywhere in the app would otherwise give the whole page a
+     horizontal scrollbar on a narrow screen - each scrollable area (.content, .table-wrap, a
+     modal) already scrolls locally, so nothing legitimate needs the page itself to. */
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+@media (max-width: 640px) {
+  /* Default mobile Safari/Chrome tap feedback is a blunt grey/blue flash box that lags behind
+     the finger - every interactive element already has its own :hover/:active/:focus-visible
+     treatment, so this just gets out of the way of it. */
+  a,
+  button,
+  .sidebar-link,
+  .stat-card,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 a {
@@ -504,6 +527,16 @@ th {
   border-bottom: none;
 }
 
+@media (max-width: 480px) {
+  /* A 160px label column barely leaves room for the value on a narrow phone (an address, a
+     levy breakdown line) - stacking reads better than wrapping awkwardly inside a cramped
+     second column. */
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
 .detail-row dt {
   color: var(--color-text-muted);
   font-weight: 600;
@@ -570,44 +603,76 @@ tbody tr:hover {
   background: var(--color-text-muted);
 }
 
+/* Every DataTable (Residents, Payments, My Vehicles, My Workers, Household Members/Approvals,
+   Visitors, ...) renders this alongside its desktop <table> - hidden here, swapped in for the
+   table below the mobile breakpoint. See DataTable.tsx for how a row's columns get sorted into
+   avatar/title/badge/facts. */
+.mobile-card-list {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 @media (max-width: 640px) {
-  /* Classic CSS-only responsive table: every table (Residents, Properties, Invoices, Access
-     Log, ...) becomes a stack of labelled cards instead of a wide table needing horizontal
-     scroll — DataTable emits data-label on each <td>, this just consumes it. */
-  .table-wrap table,
-  .table-wrap thead,
-  .table-wrap tbody,
-  .table-wrap th,
-  .table-wrap td,
-  .table-wrap tr {
-    display: block;
+  .table-wrap table {
+    display: none;
   }
 
-  .table-wrap thead {
-    position: absolute;
-    left: -9999px;
-    top: -9999px;
+  .mobile-card-list {
+    display: flex;
+    flex-direction: column;
   }
 
-  .table-wrap tbody tr {
-    border: none;
+  .mobile-card {
+    padding: 12px;
     border-bottom: 1px solid var(--color-border);
-    padding: 10px 12px;
   }
 
-  .table-wrap tbody tr:last-child {
+  .mobile-card:last-child {
     border-bottom: none;
   }
 
-  .table-wrap td {
-    border-bottom: none;
-    white-space: normal;
-    padding: 4px 0;
+  .mobile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
-  .table-wrap td::before {
-    content: attr(data-label);
-    display: block;
+  .mobile-card-avatar {
+    flex-shrink: 0;
+  }
+
+  .mobile-card-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 700;
+    /* A plate number or an amount is rarely a sentence - lets it wrap onto a second line
+       instead of forcing the card wider or clipping it, like a resident's full name might. */
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-card-badge {
+    flex-shrink: 0;
+  }
+
+  /* Compact two-up fact grid rather than one full-width label+value block per field - the same
+     metadata in roughly half the vertical space, which matters when a card already has a header
+     and an action row around it. */
+  .mobile-card-facts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 10px;
+    margin: 10px 0 0;
+  }
+
+  .mobile-card-fact {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .mobile-card-fact dt {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
@@ -616,8 +681,26 @@ tbody tr:hover {
     margin-bottom: 2px;
   }
 
-  .table-wrap td[data-label='']::before {
-    content: none;
+  .mobile-card-fact dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  /* A single action (the common case) reads better as one full-width tappable bar than a
+     button sized to its own text sitting at the card's left edge. */
+  .mobile-card-actions:has(> :only-child) > * {
+    flex: 1;
+  }
+
+  .mobile-card-actions .btn {
+    justify-content: center;
   }
 }
 
@@ -721,6 +804,27 @@ tbody tr:hover {
   .form-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Comfortable thumb targets (WCAG's 44px guideline) - desktop keeps the denser sizing above,
+     since a mouse pointer doesn't need the same margin for error a fingertip does. */
+  .btn,
+  select {
+    min-height: 40px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .btn-sm {
+    min-height: 34px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .icon-btn,
+  .bell-button {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 .form-field {
@@ -797,6 +901,19 @@ select:focus {
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
+@media (max-width: 640px) {
+  /* iOS Safari auto-zooms the page on focusing any input/select/textarea whose computed
+     font-size is under 16px - this is the one that actually matters for "smooth", since the
+     zoom-then-snap-back on every field is the single most jarring thing about a form on an
+     iPhone otherwise. */
+  .form-field input,
+  .form-field textarea,
+  .global-search-input input,
+  select {
+    font-size: 16px;
+  }
+}
+
 select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -841,6 +958,18 @@ select:disabled {
 
   .modal {
     max-height: 90vh;
+  }
+
+  /* Side-by-side Cancel/Save in a ~350px-wide modal leaves each button too narrow to tap
+     confidently - full-width and stacked in the same DOM order reads just as clearly and is
+     much easier to hit. */
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 

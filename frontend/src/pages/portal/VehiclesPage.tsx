@@ -124,7 +124,7 @@ export function VehiclesPage() {
         actions={(v) => {
           const sr = stickerFor(v.id)
           return (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="btn btn-sm" onClick={() => viewVehicleQr(v.id, v.plateNumber)}>
                 View QR
               </button>

@@ -233,7 +233,7 @@ export function PaymentsPage() {
               { key: 'createdAt', label: 'Shared', render: (r) => new Date(r.createdAt).toLocaleString() },
             ]}
             actions={(r) => (
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-sm btn-primary"
                   disabled={busyId === r.id}

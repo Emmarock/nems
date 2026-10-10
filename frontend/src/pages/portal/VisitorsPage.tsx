@@ -91,7 +91,7 @@ export function VisitorsPage() {
           { key: 'status', label: 'Status', render: (v) => <StatusBadge value={v.status} /> },
         ]}
         actions={(v) => (
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {v.status === 'ACTIVE' && (
               <>
                 <button className="btn btn-sm" onClick={() => setQrVisitor(v)}>

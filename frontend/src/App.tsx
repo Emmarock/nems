@@ -30,6 +30,7 @@ import { LeviesPage } from './pages/admin/LeviesPage'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
 import { StickerRequestsAdminPage } from './pages/admin/StickerRequestsAdminPage'
 import { UsersPage } from './pages/admin/UsersPage'
+import { NotificationLogsPage } from './pages/admin/NotificationLogsPage'
 import { ComplaintsAdminPage } from './pages/admin/ComplaintsAdminPage'
 import { AnnouncementsPage } from './pages/admin/AnnouncementsPage'
 import { ReportsPage } from './pages/admin/ReportsPage'
@@ -174,6 +175,12 @@ export default function App() {
           path="/users"
           element={
             <ProtectedRoute roles={['SUPER_ADMIN']}>{withLayout(<UsersPage />)}</ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notification-logs"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN']}>{withLayout(<NotificationLogsPage />)}</ProtectedRoute>
           }
         />
         <Route

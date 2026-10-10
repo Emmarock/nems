@@ -421,6 +421,23 @@ export interface Complaint {
 }
 
 export type NotificationChannel = 'PORTAL' | 'EMAIL' | 'SMS' | 'WHATSAPP'
+export type NotificationStatus = 'SENT' | 'FAILED'
+
+/**
+ * message is already redacted server-side (passwords, reset tokens, OTP codes all stripped)
+ * before this is ever persisted — see Redaction.java. SENT only means the dispatch call didn't
+ * throw, not that a carrier actually delivered it — a real provider has to be configured
+ * (Twilio/BulkSMS/Resend) for anything to leave the app at all; otherwise every channel logs SENT
+ * from its mock fallback without sending anything.
+ */
+export interface NotificationLog {
+  id: number
+  channel: NotificationChannel
+  recipient: string
+  message: string
+  status: NotificationStatus
+  createdAt: string
+}
 
 export interface Announcement {
   id: number

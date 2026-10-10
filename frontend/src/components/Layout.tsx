@@ -4,6 +4,7 @@ import { isLandlord, useAuth } from '../auth/AuthContext'
 import { NotificationBell } from './NotificationBell'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import {
+  BellIcon,
   CarIcon,
   ChartIcon,
   ComplaintIcon,
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/complaints', label: 'Complaints', roles: ['SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE'], icon: ComplaintIcon },
   { to: '/announcements', label: 'Announcements', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY', 'MAINTENANCE', 'RESIDENT'], icon: MegaphoneIcon },
   { to: '/users', label: 'Users', roles: ['SUPER_ADMIN'], icon: UserBadgeIcon },
+  { to: '/notification-logs', label: 'Notification log', roles: ['SUPER_ADMIN'], icon: BellIcon },
   { to: '/security/gates', label: 'Gates', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY'], icon: GateIcon },
   { to: '/security/rfid', label: 'RFID', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY'], icon: RfidIcon },
   { to: '/security/policy', label: 'Access Policy', roles: ['SUPER_ADMIN', 'CDA_ADMIN'], icon: ShieldIcon },
