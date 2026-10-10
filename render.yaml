@@ -44,3 +44,31 @@ services:
       # NITEL_CORS_ORIGINS is deliberately left unset: frontend and backend are the same origin
       # in this monolith deploy, so no cross-origin requests happen in production. The app's own
       # default (localhost/ngrok, for local dev) applies harmlessly if left unset here.
+
+      # Everything below is sync: false - a blank placeholder Render creates but never stores a
+      # value for in this file (so no secret ends up in git). The blueprint deploy succeeds with
+      # these left empty; the app just falls back to its Mock*Sender for whichever channel(s)
+      # are still blank (logs "would send" instead of calling a real provider - see
+      # NotificationLogsPage in the app itself to check what's actually gone out). Fill these in
+      # from the Render dashboard's Environment tab once you have real credentials.
+
+      # WhatsApp always goes through Twilio; SMS does too UNLESS BULKSMS_API_TOKEN below is set.
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_SMS_FROM
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+
+      # BulkSMSNigeria (https://www.bulksmsnigeria.com/app/api/docs) - takes over the SMS channel
+      # from Twilio the moment this is set. sender-id/gateway/base-url have working defaults in
+      # application.yml and don't need to be set here unless you want to override them.
+      - key: BULKSMS_API_TOKEN
+        sync: false
+
+      # Resend (https://resend.com) - from-email/from-name/base-url have working defaults in
+      # application.yml and don't need to be set here unless you want to override them.
+      - key: RESEND_API_KEY
+        sync: false
