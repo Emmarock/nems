@@ -55,7 +55,9 @@ public class NotificationService {
         NotificationLog entry = new NotificationLog();
         entry.setRecipient(event.recipient());
         entry.setChannel(event.channel());
-        entry.setMessage(event.message());
+        // Redacted before it's persisted - this table is a durable log, not the delivery itself
+        // (that's sender.send below, which still gets the real message). See Redaction.
+        entry.setMessage(Redaction.redact(event.message()));
 
         NotificationSender sender = senders.get(event.channel());
         try {

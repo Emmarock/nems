@@ -2,6 +2,7 @@ package com.cyrev.nitelestate.notification.sender;
 
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationSender;
+import com.cyrev.nitelestate.notification.Redaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
@@ -60,7 +61,7 @@ public class TwilioWhatsAppSender implements NotificationSender {
     @Override
     public void send(String recipient, String message) {
         if (!isConfigured()) {
-            log.info("[WhatsApp not configured, would send] to={} message={}", recipient, message);
+            log.info("[WhatsApp not configured, would send] to={} message={}", recipient, Redaction.redact(message));
             return;
         }
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();

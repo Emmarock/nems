@@ -2,6 +2,7 @@ package com.cyrev.nitelestate.notification.sender;
 
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationSender;
+import com.cyrev.nitelestate.notification.Redaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,6 @@ public class MockWhatsAppSender implements NotificationSender {
     }
     @Override
     public void send(String recipient, String message) {
-        log.info("[MOCK WHATSAPP] to={} message={}", recipient, message);
+        log.info("[MOCK WHATSAPP] to={} message={}", recipient, Redaction.redact(message));
     }
 }
