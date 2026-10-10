@@ -289,18 +289,25 @@ public class UserService {
      * this only ever sends a one-time code to that number over WhatsApp and SMS (both, so a
      * resident without WhatsApp installed still gets the code), channels only the real holder of
      * the phone can read. No email goes out here, and no link is issued until verifyClaimAccount
-     * confirms the code. Silently does nothing for an unmatched phone, so the response can't be
-     * used to probe which phone numbers are registered - see AuthController.
+     * confirms the code.
+     *
+     * Reports an unmatched phone back to the caller rather than staying silent - a deliberate
+     * trade: this does let someone probe which phone numbers are on file, but a clear "that
+     * number isn't registered" beats a resident assuming the system is broken when they mistype
+     * theirs. verifyClaimAccount stays silent on a wrong/expired code, since by that point
+     * there's nothing left to protect by hiding it either way.
      */
     @Transactional
     public void startClaimAccount(String phone) {
+        BadRequestException notFound = new BadRequestException(
+                "We couldn't find a resident with that phone number, ensure it is the number you register with on the resident group — check it and try again");
         String normalizedPhone = PhoneNumbers.normalize(phone);
         if (normalizedPhone == null) {
-            return;
+            throw notFound;
         }
         Resident resident = findResidentByPhone(normalizedPhone);
         if (resident == null) {
-            return;
+            throw notFound;
         }
         String code = generateOtp();
         resident.setClaimOtpHash(hashToken(code));

@@ -7,12 +7,11 @@ type Step = 'phone' | 'code' | 'done'
 
 /**
  * Public, unauthenticated entry point for a resident who already exists in the system but never
- * got (or lost) their login. Two steps: a WhatsApp code to the phone already on file proves the
- * caller actually controls that phone (not just that they know the number), then the verified
- * code unlocks sending a reset-password link to whatever email they supply. Step 1 always shows
- * the same confirmation regardless of whether the phone matched anything — see
- * UserService.startClaimAccount — but step 2 can report a real "wrong code" error, since by then
- * the caller has already proven phone possession at least once.
+ * got (or lost) their login. Two steps: a WhatsApp + SMS code to the phone already on file proves
+ * the caller actually controls that phone (not just that they know the number), then the
+ * verified code unlocks sending a reset-password link to whatever email they supply. Both steps
+ * report a real error back — an unrecognized phone in step 1, a wrong/expired code in step 2 —
+ * see UserService.startClaimAccount/verifyClaimAccount.
  */
 export function ClaimAccountPage() {
   const [step, setStep] = useState<Step>('phone')

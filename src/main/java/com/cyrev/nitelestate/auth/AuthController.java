@@ -68,9 +68,8 @@ public class AuthController {
 
     /**
      * Self-service account recovery for an existing resident who never got (or lost) their
-     * login, step 1: send a WhatsApp code to the phone on file. Always responds 200 with no
-     * body regardless of whether anything matched, so the response itself never reveals whether
-     * a phone number is on file — see UserService.startClaimAccount.
+     * login, step 1: send a WhatsApp + SMS code to the phone on file. Errors on an unrecognized
+     * phone rather than staying silent — see UserService.startClaimAccount for the trade-off.
      */
     @PostMapping("/claim-account/start")
     @SecurityRequirements
