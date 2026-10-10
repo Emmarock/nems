@@ -75,6 +75,12 @@ button {
   gap: 4px;
 }
 
+/* Desktop: "Change password"/"Log out" live in the topbar instead (see .topbar-account-actions) -
+   this only becomes visible inside the mobile sidebar-drawer breakpoint below. */
+.sidebar-footer {
+  display: none;
+}
+
 /* .icon-btn.sidebar-toggle (not just .sidebar-toggle) so this reliably beats the plain .icon-btn
    rule's display:inline-flex - same specificity plus later source order was letting .icon-btn win
    on desktop, leaving the mobile-only hamburger visible (and non-functional, since .sidebar.open
@@ -110,6 +116,27 @@ button {
     transform: translateX(0);
     box-shadow: 8px 0 24px rgba(15, 23, 42, 0.15);
   }
+
+  /* margin-top: auto pushes this to the bottom of the sidebar's flex column regardless of how
+     many nav links sit above it - "the down part of the menu" rather than a fixed offset. */
+  .sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.sidebar-footer-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .sidebar-brand {
@@ -189,6 +216,20 @@ button {
      layout (it's display:none above the mobile breakpoint) — space-between would collapse to
      flex-start with only one visible child. */
   margin-left: auto;
+}
+
+.topbar-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Comes after the base rule above on purpose - equal specificity, so source order decides which
+   wins, and this needs to beat it once the viewport is actually this narrow. */
+@media (max-width: 768px) {
+  .topbar-account-actions {
+    display: none;
+  }
 }
 
 .content {

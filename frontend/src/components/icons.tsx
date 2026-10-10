@@ -187,3 +187,24 @@ export function RfidIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export function KeyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M11 12 20 3" />
+      <path d="M16 7l3 3" />
+      <path d="M13 10l2.5 2.5" />
+    </svg>
+  )
+}
+
+export function LogoutIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4" />
+      <path d="M16 16l4-4-4-4" />
+      <path d="M20 12H9" />
+    </svg>
+  )
+}

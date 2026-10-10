@@ -11,6 +11,8 @@ import {
   DashboardIcon,
   GateIcon,
   HouseIcon,
+  KeyIcon,
+  LogoutIcon,
   MegaphoneIcon,
   MenuIcon,
   PersonBadgeIcon,
@@ -94,6 +96,19 @@ export function Layout({ children }: { children: ReactNode }) {
             </NavLink>
           )
         })}
+        {/* Mirrors the topbar's "Change password"/"Log out" buttons, but only shown on mobile
+            (see .sidebar-footer in index.css) — pinned to the bottom of the slide-out menu
+            instead of crowding the topbar on a narrow screen. */}
+        <div className="sidebar-footer">
+          <button type="button" className="sidebar-link sidebar-footer-btn" onClick={() => setPasswordModalOpen(true)}>
+            <KeyIcon />
+            Change password
+          </button>
+          <button type="button" className="sidebar-link sidebar-footer-btn" onClick={logout}>
+            <LogoutIcon />
+            Log out
+          </button>
+        </div>
       </aside>
       {navOpen && <div className="sidebar-backdrop" onClick={() => setNavOpen(false)} />}
       <div className="main">
@@ -111,12 +126,15 @@ export function Layout({ children }: { children: ReactNode }) {
             <span>
               {user.fullName} · <span className="muted">{user.role.replace(/_/g, ' ')}</span>
             </span>
-            <button className="btn btn-sm" onClick={() => setPasswordModalOpen(true)}>
-              Change password
-            </button>
-            <button className="btn btn-sm" onClick={logout}>
-              Log out
-            </button>
+            {/* Hidden below 768px — the same two actions live at the bottom of the sidebar menu there. */}
+            <div className="topbar-account-actions">
+              <button className="btn btn-sm" onClick={() => setPasswordModalOpen(true)}>
+                Change password
+              </button>
+              <button className="btn btn-sm" onClick={logout}>
+                Log out
+              </button>
+            </div>
           </div>
         </header>
         <main className="content">{children}</main>
