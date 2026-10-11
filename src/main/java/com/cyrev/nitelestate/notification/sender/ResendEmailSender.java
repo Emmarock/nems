@@ -1,5 +1,6 @@
 package com.cyrev.nitelestate.notification.sender;
 
+import com.cyrev.nitelestate.notification.NotificationAttachment;
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationSender;
 import com.cyrev.nitelestate.notification.Redaction;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,16 +65,27 @@ public class ResendEmailSender implements NotificationSender {
     /** subject falls back to the generic default when the caller doesn't supply one (e.g. an announcement's title). */
     @Override
     public void send(String recipient, String message, String subject, boolean transactional) {
+        send(recipient, message, subject, transactional, null);
+    }
+
+    /** Same, with an optional attachment (e.g. a generated payment receipt PDF) added to Resend's own "attachments" field. */
+    @Override
+    public void send(String recipient, String message, String subject, boolean transactional, NotificationAttachment attachment) {
         if (!StringUtils.hasText(apiKey)) {
             log.info("[Email not configured, would send] to={} message={}", recipient, Redaction.redact(message));
             return;
         }
-        Map<String, Object> body = Map.of(
+        Map<String, Object> body = new HashMap<>(Map.of(
                 "from", fromName + " <" + fromEmail + ">",
                 "to", List.of(recipient),
                 "subject", StringUtils.hasText(subject) ? subject : SUBJECT,
                 "html", EmailTemplate.render(message),
-                "text", message);
+                "text", message));
+        if (attachment != null) {
+            body.put("attachments", List.of(Map.of(
+                    "filename", attachment.filename(),
+                    "content", Base64.getEncoder().encodeToString(attachment.content()))));
+        }
 
         restClient.post()
                 .uri("/emails")

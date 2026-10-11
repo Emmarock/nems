@@ -50,7 +50,17 @@ public class NotificationService {
     }
 
     public void dispatch(NotificationChannel channel, String recipient, String message, String subject, boolean transactional) {
-        eventPublisher.publishEvent(new NotificationRequestedEvent(channel, recipient, message, subject, transactional));
+        dispatch(channel, recipient, message, subject, transactional, null);
+    }
+
+    /** Same, with an EMAIL-only attachment (e.g. a generated receipt PDF) — see NotificationSender's 5-arg send. */
+    public void dispatch(NotificationChannel channel, String recipient, String message, String subject, NotificationAttachment attachment) {
+        dispatch(channel, recipient, message, subject, false, attachment);
+    }
+
+    public void dispatch(NotificationChannel channel, String recipient, String message, String subject,
+                          boolean transactional, NotificationAttachment attachment) {
+        eventPublisher.publishEvent(new NotificationRequestedEvent(channel, recipient, message, subject, transactional, attachment));
     }
 
     /**
@@ -76,7 +86,7 @@ public class NotificationService {
         NotificationSender sender = senders.get(event.channel());
         try {
             if (sender != null) {
-                sender.send(event.recipient(), event.message(), event.subject(), event.transactional());
+                sender.send(event.recipient(), event.message(), event.subject(), event.transactional(), event.attachment());
             }
             entry.setStatus(NotificationStatus.SENT);
         } catch (Exception ex) {

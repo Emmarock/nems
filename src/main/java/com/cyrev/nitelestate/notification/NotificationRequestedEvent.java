@@ -7,7 +7,9 @@ package com.cyrev.nitelestate.notification;
  *
  * subject and transactional are per-channel hints (EMAIL and SMS respectively) that most
  * dispatches leave at their defaults — see NotificationSender's 4-arg send for what they do.
+ * attachment is EMAIL-only too (e.g. a generated payment receipt PDF) and null for everything else.
  */
 public record NotificationRequestedEvent(
-        NotificationChannel channel, String recipient, String message, String subject, boolean transactional) {
+        NotificationChannel channel, String recipient, String message, String subject, boolean transactional,
+        NotificationAttachment attachment) {
 }

@@ -25,4 +25,14 @@ public interface NotificationSender {
     default void send(String recipient, String message, String subject, boolean transactional) {
         send(recipient, message);
     }
+
+    /**
+     * Same, with an optional EMAIL-only attachment (e.g. a generated payment receipt PDF — see
+     * payment.PaymentService.sendReceipt). Default ignores it and falls back to the 4-arg send -
+     * only sender.ResendEmailSender and sender.MockEmailSender override this; SMS/WhatsApp
+     * senders have no use for it.
+     */
+    default void send(String recipient, String message, String subject, boolean transactional, NotificationAttachment attachment) {
+        send(recipient, message, subject, transactional);
+    }
 }

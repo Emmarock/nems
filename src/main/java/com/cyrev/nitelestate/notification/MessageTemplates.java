@@ -1,5 +1,6 @@
 package com.cyrev.nitelestate.notification;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -58,6 +59,33 @@ public final class MessageTemplates {
     public static String receiptShared(String tenantFullName) {
         return tenantFullName + " shared a payment receipt with you on " + BRAND
                 + ". Review it and submit it from your Payments page if it checks out.";
+    }
+
+    /**
+     * Sent to the paying resident the moment their payment is confirmed — either a treasurer/
+     * financial secretary/admin approving a submitted receipt, or staff recording one manually
+     * (which is itself an approval, made at the point of entry). See PaymentService.sendReceipt,
+     * which attaches the full PDF receipt (payment.PaymentReceiptPdf) to this same email — the
+     * body here is a short summary, not a duplicate of everything the PDF already carries.
+     * levyDescription is allowed to be null (a general, unapplied payment) and is simply left
+     * out of the summary when absent.
+     */
+    public static String paymentReceipt(String residentFullName, String receiptNumber, String levyDescription,
+                                         BigDecimal amount, Instant paidAt) {
+        StringBuilder message = new StringBuilder()
+                .append("Hi ").append(residentFullName).append(", your payment of ").append(formatAmount(amount));
+        if (levyDescription != null) {
+            message.append(" for ").append(levyDescription);
+        }
+        message.append(" on ").append(paidAt.atZone(ESTATE_ZONE).format(DATE_TIME_FORMAT))
+                .append(" has been confirmed on ").append(BRAND).append(".\n\n")
+                .append("Receipt No: ").append(receiptNumber)
+                .append("\n\nYour PDF receipt is attached to this email — keep it for your records. Thank you for your payment.");
+        return message.toString();
+    }
+
+    private static String formatAmount(BigDecimal amount) {
+        return "₦" + String.format("%,.2f", amount);
     }
 
     /** Sent on every successful login — see UserService.notifyLogin for how device/location are resolved. */

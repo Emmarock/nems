@@ -1,5 +1,6 @@
 package com.cyrev.nitelestate.notification.sender;
 
+import com.cyrev.nitelestate.notification.NotificationAttachment;
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationSender;
 import com.cyrev.nitelestate.notification.Redaction;
@@ -24,6 +25,16 @@ public class MockEmailSender implements NotificationSender {
 
     @Override
     public void send(String recipient, String message, String subject, boolean transactional) {
-        log.info("[MOCK EMAIL] to={} subject={} message={}", recipient, subject, Redaction.redact(message));
+        send(recipient, message, subject, transactional, null);
+    }
+
+    @Override
+    public void send(String recipient, String message, String subject, boolean transactional, NotificationAttachment attachment) {
+        if (attachment != null) {
+            log.info("[MOCK EMAIL] to={} subject={} attachment={} ({} bytes) message={}",
+                    recipient, subject, attachment.filename(), attachment.content().length, Redaction.redact(message));
+        } else {
+            log.info("[MOCK EMAIL] to={} subject={} message={}", recipient, subject, Redaction.redact(message));
+        }
     }
 }

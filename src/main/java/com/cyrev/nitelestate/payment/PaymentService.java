@@ -1,6 +1,8 @@
 package com.cyrev.nitelestate.payment;
 
 import com.cyrev.nitelestate.audit.AuditService;
+import com.cyrev.nitelestate.billing.Invoice;
+import com.cyrev.nitelestate.billing.InvoiceRepository;
 import com.cyrev.nitelestate.billing.Levy;
 import com.cyrev.nitelestate.billing.LevyRepository;
 import com.cyrev.nitelestate.billing.dto.InvoiceResponse;
@@ -10,6 +12,7 @@ import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
 import com.cyrev.nitelestate.notification.MessageTemplates;
+import com.cyrev.nitelestate.notification.NotificationAttachment;
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationService;
 import com.cyrev.nitelestate.payment.dto.*;
@@ -48,6 +51,7 @@ public class PaymentService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final LevyRepository levyRepository;
+    private final InvoiceRepository invoiceRepository;
     private final InvoiceService invoiceService;
     private final StickerRequestService stickerRequestService;
     private final NotificationService notificationService;
@@ -74,6 +78,7 @@ public class PaymentService {
         auditService.record("Payment", payment.getId(), "RECORD_MANUAL",
                 "resident=" + payment.getResidentId() + " amount=" + payment.getAmount());
         notifyStickerOfSuccess(payment);
+        sendReceipt(payment);
         return toResponse(payment);
     }
 
@@ -246,6 +251,7 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
         auditService.record("Payment", payment.getId(), "APPROVE", request.notes());
         notifyStickerOfSuccess(payment);
+        sendReceipt(payment);
         return toResponse(payment);
     }
 
@@ -309,6 +315,34 @@ public class PaymentService {
         if (payment.getInvoiceId() != null) {
             stickerRequestService.onPaymentSucceeded(payment.getInvoiceId());
         }
+    }
+
+    /**
+     * Emails the paying resident a receipt (PDF attached) the moment staff confirm their payment
+     * - whether via approve() (a submitted receipt matched against the bank alert) or
+     * recordManual() (staff entering an offline payment directly, which is itself the approval
+     * act). Silently skipped if the resident has no email on file - there's no one to send it to,
+     * not a failure worth surfacing to the approving staff member.
+     */
+    private void sendReceipt(Payment payment) {
+        Resident resident = residentRepository.findById(payment.getResidentId()).orElse(null);
+        if (resident == null || resident.getEmail() == null || resident.getEmail().isBlank()) {
+            return;
+        }
+        String levyDescription = payment.getInvoiceId() != null
+                ? invoiceRepository.findById(payment.getInvoiceId()).map(Invoice::getDescription).orElse(null)
+                : null;
+        String houseNumber = resident.getPropertyId() != null
+                ? propertyRepository.findById(resident.getPropertyId()).map(Property::getHouseNumber).orElse(null)
+                : null;
+        String receiptNumber = "NECDA-PYMT-RCPT-"+System.currentTimeMillis() +"-"+ payment.getId();
+        String message = MessageTemplates.paymentReceipt(resident.getFullName(), receiptNumber, levyDescription,
+                payment.getAmount(), payment.getPaidAt());
+        byte[] pdf = PaymentReceiptPdf.render(resident.getFullName(), receiptNumber, levyDescription,
+                payment.getAmount(), payment.getMethod().name(), payment.getPaidAt(), houseNumber);
+        NotificationAttachment attachment = new NotificationAttachment(receiptNumber + ".pdf", "application/pdf", pdf);
+        notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(), message,
+                "Payment receipt " + receiptNumber, attachment);
     }
 
     private PaymentResponse toResponse(Payment payment) {

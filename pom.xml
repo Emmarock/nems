@@ -104,6 +104,13 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- PDF generation - payment receipts attached to the approval email (see payment.PaymentReceiptPdf). -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>3.0.5</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
