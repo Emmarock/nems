@@ -22,14 +22,12 @@ const PROPERTY_FIELDS: FieldConfig[] = [
   { name: 'address', label: 'Address', full: true },
 ]
 
-const APARTMENT_COUNT_FIELDS: FieldConfig[] = [
-  {
-    name: 'apartmentCount',
-    label: 'Number of apartments',
-    type: 'number',
-    full: true,
-  },
-]
+const APARTMENT_COUNT_FIELD: FieldConfig = {
+  name: 'apartmentCount',
+  label: 'Number of apartments',
+  type: 'number',
+  full: true,
+}
 
 const VEHICLE_FIELDS: FieldConfig[] = [
   { name: 'plateNumber', label: 'Plate number', required: true },
@@ -46,7 +44,6 @@ export function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [editingProfile, setEditingProfile] = useState(false)
   const [editingProperty, setEditingProperty] = useState(false)
-  const [editingApartmentCount, setEditingApartmentCount] = useState(false)
   const [addingVehicle, setAddingVehicle] = useState(false)
   const [vehicleQr, setVehicleQr] = useState<{ plate: string; token: string } | null>(null)
 
@@ -74,14 +71,11 @@ export function ProfilePage() {
       houseNumber: values.houseNumber as string,
       address: (values.address as string) || undefined,
     })
+    if (isLandlord(user)) {
+      const raw = values.apartmentCount
+      await meApi.updateApartmentCount(raw === '' || raw == null ? null : Number(raw))
+    }
     setEditingProperty(false)
-    await load()
-  }
-
-  async function handleApartmentCountSubmit(values: Record<string, unknown>) {
-    const raw = values.apartmentCount
-    await meApi.updateApartmentCount(raw === '' || raw == null ? null : Number(raw))
-    setEditingApartmentCount(false)
     await load()
   }
 
@@ -167,16 +161,9 @@ export function ProfilePage() {
         <div className="page-header" style={{ marginBottom: 0 }}>
           <div className="section-title" style={{ marginTop: 0 }}>Property</div>
           {property && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn btn-sm" onClick={() => setEditingProperty(true)}>
-                Update house number
-              </button>
-              {isLandlord(user) && (
-                <button className="btn btn-sm" onClick={() => setEditingApartmentCount(true)}>
-                  Set apartment count
-                </button>
-              )}
-            </div>
+            <button className="btn btn-sm" onClick={() => setEditingProperty(true)}>
+              Edit
+            </button>
           )}
         </div>
         {property ? (
@@ -253,22 +240,11 @@ export function ProfilePage() {
 
       {editingProperty && property && (
         <FormModal
-          title="Update house number"
-          fields={PROPERTY_FIELDS}
+          title="Edit property"
+          fields={isLandlord(user) ? [...PROPERTY_FIELDS, APARTMENT_COUNT_FIELD] : PROPERTY_FIELDS}
           initial={property}
           onSubmit={handlePropertySubmit}
           onClose={() => setEditingProperty(false)}
-        />
-      )}
-
-      {editingApartmentCount && property && (
-        <FormModal
-          title="Set apartment count"
-          fields={APARTMENT_COUNT_FIELDS}
-          initial={property}
-          submitLabel="Save"
-          onSubmit={handleApartmentCountSubmit}
-          onClose={() => setEditingApartmentCount(false)}
         />
       )}
 
