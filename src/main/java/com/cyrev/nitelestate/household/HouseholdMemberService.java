@@ -9,7 +9,6 @@ import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
-import com.cyrev.nitelestate.household.dto.HouseholdMemberApprovalRequest;
 import com.cyrev.nitelestate.household.dto.HouseholdMemberLookupResponse;
 import com.cyrev.nitelestate.household.dto.HouseholdMemberRequest;
 import com.cyrev.nitelestate.household.dto.HouseholdMemberResponse;
@@ -24,7 +23,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -75,17 +73,16 @@ public class HouseholdMemberService {
         return HouseholdMemberResponse.from(member, resolveHouseNumber(member.getPropertyId()));
     }
 
-    /** The landlord (or an admin) sets the validity window, activating the pass and issuing its QR. */
+    /**
+     * The landlord (or an admin) approves the request, activating the pass and issuing its QR —
+     * no validity window to set; the pass is valid indefinitely, same as the home owner's own
+     * standing, until revoke() is called.
+     */
     @Transactional
-    public HouseholdMemberResponse approve(Long id, Long callerResidentId, Role callerRole, HouseholdMemberApprovalRequest request) {
-        if (request.validUntil().isBefore(request.validFrom())) {
-            throw new BadRequestException("validUntil cannot be before validFrom");
-        }
+    public HouseholdMemberResponse approve(Long id, Long callerResidentId, Role callerRole) {
         HouseholdMember member = get(id);
         requireLandlordOrAdmin(member.getPropertyId(), callerResidentId, callerRole);
 
-        member.setValidFrom(request.validFrom());
-        member.setValidUntil(request.validUntil());
         member.setStatus(HouseholdMemberStatus.ACTIVE);
         member.setQrToken(UUID.randomUUID().toString());
         member = householdMemberRepository.save(member);
@@ -94,11 +91,11 @@ public class HouseholdMemberService {
         return HouseholdMemberResponse.from(member, resolveHouseNumber(member.getPropertyId()));
     }
 
-    /** The landlord (or an admin) pulls an already-approved pass, e.g. the household member moved out. */
+    /** The sponsor, the property's landlord, or an admin pulls an already-approved pass, e.g. the household member moved out. */
     @Transactional
     public HouseholdMemberResponse revoke(Long id, Long callerResidentId, Role callerRole) {
         HouseholdMember member = get(id);
-        requireLandlordOrAdmin(member.getPropertyId(), callerResidentId, callerRole);
+        requireLandlordAdminOrSponsor(member, callerResidentId, callerRole);
 
         member.setStatus(HouseholdMemberStatus.REVOKED);
         member = householdMemberRepository.save(member);
@@ -121,15 +118,14 @@ public class HouseholdMemberService {
         Property property = propertyRepository.findById(member.getPropertyId()).orElse(null);
 
         return new HouseholdMemberLookupResponse(member.getId(), member.getFullName(), member.getPhone(),
-                member.getRelationship(), member.getValidFrom(), member.getValidUntil(),
-                member.getStatus(), flag, member.getPhoto(),
+                member.getRelationship(), member.getStatus(), flag, member.getPhoto(),
                 member.getSponsorResidentId(), sponsor != null ? sponsor.getFullName() : null,
                 sponsor != null ? sponsor.getPhone() : null,
                 property != null ? property.getId() : null, property != null ? property.getHouseNumber() : null,
                 property != null ? property.getAddress() : null);
     }
 
-    /** Gate-side check-in; evaluates the approval/date-range window and flags (not blocks) anomalies. */
+    /** Gate-side check-in; evaluates the approval status and flags (not blocks) anomalies. */
     @Transactional
     public HouseholdMemberResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
         HouseholdMember member = householdMemberRepository.findByQrToken(qrToken)
@@ -198,7 +194,7 @@ public class HouseholdMemberService {
         return PageResponse.of(page.map(m -> HouseholdMemberResponse.from(m, houseNumbers.get(m.getPropertyId()))));
     }
 
-    /** Only the landlord who owns this property, or an admin, may approve/revoke a pass on it. */
+    /** Only the landlord who owns this property, or an admin, may approve a pending request. */
     private void requireLandlordOrAdmin(Long propertyId, Long callerResidentId, Role callerRole) {
         if (callerRole == Role.SUPER_ADMIN || callerRole == Role.CDA_ADMIN) {
             return;
@@ -207,6 +203,25 @@ public class HouseholdMemberService {
                 .anyMatch(p -> p.getId().equals(propertyId));
         if (!owns) {
             throw new BadRequestException("Only the property's landlord (or an admin) can do this");
+        }
+    }
+
+    /**
+     * Revoking is open to a third party too, unlike approving: the sponsor who originally
+     * requested the pass can pull it themselves (e.g. the family member moved out), without
+     * needing to go through the landlord.
+     */
+    private void requireLandlordAdminOrSponsor(HouseholdMember member, Long callerResidentId, Role callerRole) {
+        if (callerRole == Role.SUPER_ADMIN || callerRole == Role.CDA_ADMIN) {
+            return;
+        }
+        if (callerResidentId != null && callerResidentId.equals(member.getSponsorResidentId())) {
+            return;
+        }
+        boolean owns = propertyRepository.findByOwnerId(callerResidentId).stream()
+                .anyMatch(p -> p.getId().equals(member.getPropertyId()));
+        if (!owns) {
+            throw new BadRequestException("Only the sponsor, the property's landlord, or an admin can do this");
         }
     }
 
@@ -221,20 +236,13 @@ public class HouseholdMemberService {
     private record Evaluation(String flag) {
     }
 
-    /** Pure evaluation of the approval/date-range window vs today — no mutation (status stays ACTIVE; expiry is a flag, same as Worker). */
+    /** Pure evaluation of approval status — no date window to check; an ACTIVE pass is valid until revoked. */
     private Evaluation evaluate(HouseholdMember member) {
         if (member.getStatus() == HouseholdMemberStatus.REVOKED) {
             return new Evaluation("HOUSEHOLD_MEMBER_REVOKED");
         }
         if (member.getStatus() == HouseholdMemberStatus.PENDING_APPROVAL) {
             return new Evaluation("NOT_APPROVED");
-        }
-        LocalDate today = LocalDate.now();
-        if (member.getValidUntil() != null && today.isAfter(member.getValidUntil())) {
-            return new Evaluation("PASS_EXPIRED");
-        }
-        if (member.getValidFrom() != null && today.isBefore(member.getValidFrom())) {
-            return new Evaluation("BEFORE_START_DATE");
         }
         return new Evaluation(null);
     }

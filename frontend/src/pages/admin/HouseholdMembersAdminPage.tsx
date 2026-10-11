@@ -54,7 +54,7 @@ export function HouseholdMembersAdminPage() {
       <div className="page-header">
         <div>
           <h1>Household Members</h1>
-          <p className="page-subtitle">Spouse/family passes, sponsored by a resident and validity-approved by the property's landlord.</p>
+          <p className="page-subtitle">Spouse/family passes, sponsored by a resident and approved by the property's landlord — valid until revoked.</p>
         </div>
       </div>
 
@@ -90,8 +90,6 @@ export function HouseholdMembersAdminPage() {
             ),
           },
           { key: 'propertyHouseNumber', label: 'Property', render: (m) => m.propertyHouseNumber ?? <span className="muted">—</span> },
-          { key: 'validFrom', label: 'Valid from', render: (m) => m.validFrom ?? <span className="muted">—</span> },
-          { key: 'validUntil', label: 'Valid until', render: (m) => m.validUntil ?? <span className="muted">—</span> },
           { key: 'status', label: 'Status', render: (m) => <StatusBadge value={m.status} /> },
         ]}
         actions={(m) =>

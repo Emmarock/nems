@@ -66,9 +66,9 @@ public class MeController {
     }
 
     /**
-     * Self-service correction of the resident's own house number/address. Resolves the property
-     * id from the caller's own resident record server-side, so there's nothing for the client to
-     * pass that could point at someone else's property.
+     * Self-service correction of the resident's own house number/address/block/plot. Resolves
+     * the property id from the caller's own resident record server-side, so there's nothing for
+     * the client to pass that could point at someone else's property.
      */
     @PutMapping("/property")
     public PropertyResponse updateMyProperty(@Valid @RequestBody MePropertyUpdateRequest request) {

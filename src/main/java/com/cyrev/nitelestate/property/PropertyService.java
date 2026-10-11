@@ -83,6 +83,8 @@ public class PropertyService {
         if (request.address() != null && !request.address().isBlank()) {
             property.setAddress(request.address());
         }
+        property.setBlock(request.block());
+        property.setPlot(request.plot());
         property = propertyRepository.save(property);
         auditService.record("Property", property.getId(), "SELF_UPDATE", property.getHouseNumber());
         return PropertyResponse.from(property, resolveOwnerName(property.getOwnerId()));

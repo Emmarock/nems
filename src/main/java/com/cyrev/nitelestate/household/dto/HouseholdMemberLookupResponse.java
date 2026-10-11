@@ -3,8 +3,6 @@ package com.cyrev.nitelestate.household.dto;
 import com.cyrev.nitelestate.household.HouseholdMemberStatus;
 import com.cyrev.nitelestate.household.Relationship;
 
-import java.time.LocalDate;
-
 /**
  * What a security officer sees on scanning a household member's QR pass: who they are (including
  * their photo), their relationship to the sponsoring resident, and the destination (sponsor +
@@ -15,8 +13,6 @@ public record HouseholdMemberLookupResponse(
         String fullName,
         String phone,
         Relationship relationship,
-        LocalDate validFrom,
-        LocalDate validUntil,
         HouseholdMemberStatus status,
         String flagReason,
         String photo,

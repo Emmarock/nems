@@ -19,6 +19,8 @@ const PROFILE_FIELDS: FieldConfig[] = [
 
 const PROPERTY_FIELDS: FieldConfig[] = [
   { name: 'houseNumber', label: 'House number', required: true },
+  { name: 'block', label: 'Block', required: true },
+  { name: 'plot', label: 'Plot', required: true },
   { name: 'address', label: 'Address', full: true },
 ]
 
@@ -70,6 +72,8 @@ export function ProfilePage() {
     await meApi.updateProperty({
       houseNumber: values.houseNumber as string,
       address: (values.address as string) || undefined,
+      block: values.block as string,
+      plot: values.plot as string,
     })
     if (isLandlord(user)) {
       const raw = values.apartmentCount

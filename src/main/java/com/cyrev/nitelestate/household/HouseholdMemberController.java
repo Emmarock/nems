@@ -3,7 +3,6 @@ package com.cyrev.nitelestate.household;
 import com.cyrev.nitelestate.access.dto.AccessEventResponse;
 import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.search.Paging;
-import com.cyrev.nitelestate.household.dto.HouseholdMemberApprovalRequest;
 import com.cyrev.nitelestate.household.dto.HouseholdMemberLookupResponse;
 import com.cyrev.nitelestate.household.dto.HouseholdMemberRequest;
 import com.cyrev.nitelestate.household.dto.HouseholdMemberResponse;
@@ -15,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/** The Household Member module — spouse/family passes whose validity is set by the landlord. */
+/** The Household Member module — spouse/family passes approved by the landlord, valid indefinitely until revoked. */
 @RestController
 @RequestMapping("/api/v1/household-members")
 @RequiredArgsConstructor
@@ -33,8 +32,8 @@ public class HouseholdMemberController {
 
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('RESIDENT', 'SUPER_ADMIN', 'CDA_ADMIN')")
-    public HouseholdMemberResponse approve(@PathVariable Long id, @Valid @RequestBody HouseholdMemberApprovalRequest request) {
-        return householdMemberService.approve(id, residentIdOrNull(), currentUser.role(), request);
+    public HouseholdMemberResponse approve(@PathVariable Long id) {
+        return householdMemberService.approve(id, residentIdOrNull(), currentUser.role());
     }
 
     @PutMapping("/{id}/revoke")

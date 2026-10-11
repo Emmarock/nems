@@ -10,13 +10,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
-
 /**
  * A tenant/resident's spouse or other family member, living at the same property long-term —
  * distinct from a short-lived Visitor pass and from a Worker's own tenant-set date range: here
- * the tenant only sponsors the request, and the property's landlord sets validFrom/validUntil
- * (see HouseholdMemberService.approve).
+ * the tenant only sponsors the request, and the property's landlord approves it. There's no
+ * validity window to set — once approved, the pass is as good as the home owner's own, valid
+ * indefinitely until the sponsor, the landlord, or an admin revokes it (see
+ * HouseholdMemberService.approve/revoke).
  */
 @Getter
 @Setter
@@ -46,11 +46,6 @@ public class HouseholdMember extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private HouseholdMemberStatus status = HouseholdMemberStatus.PENDING_APPROVAL;
-
-    /** Set by the landlord on approval — null while PENDING_APPROVAL. */
-    private LocalDate validFrom;
-
-    private LocalDate validUntil;
 
     @Column(unique = true)
     private String qrToken;

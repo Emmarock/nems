@@ -180,7 +180,7 @@ export const meApi = {
   accessPass: () => client.get<{ qrToken: string }>('/me/access-pass').then((r) => r.data.qrToken),
   updateProfile: (body: { fullName: string; phone: string; email?: string; emergencyContact?: string }) =>
     client.put<Resident>('/me/profile', body).then((r) => r.data),
-  updateProperty: (body: { houseNumber: string; address?: string }) =>
+  updateProperty: (body: { houseNumber: string; address?: string; block: string; plot: string }) =>
     client.put<Property>('/me/property', body).then((r) => r.data),
   /** Landlord self-service — caps how many ACTIVE tenants can be added (see /me/tenants, meApi.addTenant). */
   updateApartmentCount: (apartmentCount: number | null) =>
@@ -268,8 +268,7 @@ export const householdMembersApi = {
   get: (id: number) => client.get<HouseholdMember>(`/household-members/${id}`).then((r) => r.data),
   request: (body: { fullName: string; phone: string; relationship: string; photo?: string }) =>
     client.post<HouseholdMember>('/household-members', body).then((r) => r.data),
-  approve: (id: number, body: { validFrom: string; validUntil: string }) =>
-    client.put<HouseholdMember>(`/household-members/${id}/approve`, body).then((r) => r.data),
+  approve: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/approve`).then((r) => r.data),
   revoke: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/revoke`).then((r) => r.data),
   logs: (id: number, params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<AccessEvent>>(`/household-members/${id}/logs`, { params }).then((r) => r.data),

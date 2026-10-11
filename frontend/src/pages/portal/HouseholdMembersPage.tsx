@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
 import { buildScanUrl } from '../../utils/scanUrl'
+import { apiErrorMessage } from '../../api/client'
 
 const EMPTY: PageResponse<HouseholdMember> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
@@ -30,9 +31,10 @@ const FIELDS: FieldConfig[] = [
 ]
 
 /**
- * No validity dates here — unlike a Worker request, the property's landlord sets validFrom/
- * validUntil on approval (see HouseholdApprovalsPage), so a pass stays PENDING_APPROVAL with no
- * QR until then.
+ * No validity dates here — unlike a Worker request, the property's landlord just approves the
+ * request (see HouseholdApprovalsPage), so a pass stays PENDING_APPROVAL with no QR until then.
+ * Once approved it's valid indefinitely, same as the home owner's own standing, until the
+ * sponsor (here) or the landlord/an admin revokes it.
  */
 export function HouseholdMembersPage() {
   const [result, setResult] = useState<PageResponse<HouseholdMember>>(EMPTY)
@@ -40,6 +42,8 @@ export function HouseholdMembersPage() {
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [qrMember, setQrMember] = useState<HouseholdMember | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<number | null>(null)
 
   async function load() {
     setLoading(true)
@@ -63,19 +67,34 @@ export function HouseholdMembersPage() {
     await load()
   }
 
+  async function handleRevoke(id: number) {
+    setBusyId(id)
+    setError(null)
+    try {
+      await householdMembersApi.revoke(id)
+      await load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
         <div>
           <h1>My Household</h1>
           <p className="page-subtitle">
-            Request a pass for your spouse or another family member. Your landlord sets how long the pass stays valid.
+            Request a pass for your spouse or another family member. Once your landlord approves it, it stays valid until revoked.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Request household pass
         </button>
       </div>
+
+      {error && <p className="error-text">{error}</p>}
 
       <DataTable
         loading={loading}
@@ -95,19 +114,24 @@ export function HouseholdMembersPage() {
           },
           { key: 'fullName', label: 'Name' },
           { key: 'relationship', label: 'Relationship' },
-          { key: 'validFrom', label: 'Valid from', render: (m) => m.validFrom ?? <span className="muted">—</span> },
-          { key: 'validUntil', label: 'Valid until', render: (m) => m.validUntil ?? <span className="muted">—</span> },
           { key: 'status', label: 'Status', render: (m) => <StatusBadge value={m.status} /> },
         ]}
-        actions={(m) =>
-          m.qrToken ? (
-            <button className="btn btn-sm" onClick={() => setQrMember(m)}>
-              View QR pass
-            </button>
-          ) : (
-            <span className="muted">Pending landlord approval</span>
-          )
-        }
+        actions={(m) => (
+          <div style={{ display: 'flex', gap: 6 }}>
+            {m.qrToken ? (
+              <button className="btn btn-sm" onClick={() => setQrMember(m)}>
+                View QR pass
+              </button>
+            ) : (
+              <span className="muted">Pending landlord approval</span>
+            )}
+            {m.status !== 'REVOKED' && (
+              <button className="btn btn-sm" disabled={busyId === m.id} onClick={() => handleRevoke(m.id)}>
+                Revoke
+              </button>
+            )}
+          </div>
+        )}
       />
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
@@ -124,7 +148,7 @@ export function HouseholdMembersPage() {
       {qrMember && qrMember.qrToken && (
         <QrCodeModal
           title={`Household pass — ${qrMember.fullName}`}
-          subtitle={`${qrMember.relationship} · valid through ${qrMember.validUntil}`}
+          subtitle={`${qrMember.relationship} · valid until revoked`}
           value={buildScanUrl('household', qrMember.qrToken)}
           fileName={`household-pass-${qrMember.fullName.replace(/\s+/g, '-').toLowerCase()}`}
           onClose={() => setQrMember(null)}

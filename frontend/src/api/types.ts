@@ -363,9 +363,10 @@ export type Relationship = 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER'
 export type HouseholdMemberStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REVOKED'
 
 /**
- * A tenant/resident's spouse or other family member — unlike Worker, the tenant doesn't set the
- * validity window; the property's landlord does (via householdMembersApi.approve), so qrToken,
- * validFrom and validUntil all stay null until then.
+ * A tenant/resident's spouse or other family member — the property's landlord approves the
+ * request (via householdMembersApi.approve), issuing a qrToken that stays null until then. There's
+ * no validity window: once approved, the pass is valid indefinitely, same as the home owner's own
+ * standing, until revoked.
  */
 export interface HouseholdMember {
   id: number
@@ -376,8 +377,6 @@ export interface HouseholdMember {
   propertyHouseNumber: string | null
   sponsorResidentId: number
   status: HouseholdMemberStatus
-  validFrom: string | null
-  validUntil: string | null
   qrToken: string | null
   /** Base64 data URI, submitted at request time so security can confirm identity at the gate. */
   photo: string | null
@@ -389,8 +388,6 @@ export interface HouseholdMemberLookup {
   fullName: string
   phone: string
   relationship: Relationship
-  validFrom: string | null
-  validUntil: string | null
   status: HouseholdMemberStatus
   flagReason: string | null
   photo: string | null
