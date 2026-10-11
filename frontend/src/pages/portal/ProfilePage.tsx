@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { meApi } from '../../api/endpoints'
 import type { MeDashboard } from '../../api/types'
+import { isLandlord, useAuth } from '../../auth/AuthContext'
 import { LoadingState } from '../../components/LoadingState'
 import { StatusBadge } from '../../components/StatusBadge'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
@@ -21,6 +22,15 @@ const PROPERTY_FIELDS: FieldConfig[] = [
   { name: 'address', label: 'Address', full: true },
 ]
 
+const APARTMENT_COUNT_FIELDS: FieldConfig[] = [
+  {
+    name: 'apartmentCount',
+    label: 'Number of apartments',
+    type: 'number',
+    full: true,
+  },
+]
+
 const VEHICLE_FIELDS: FieldConfig[] = [
   { name: 'plateNumber', label: 'Plate number', required: true },
   { name: 'vehicleType', label: 'Vehicle type' },
@@ -31,10 +41,12 @@ const VEHICLE_FIELDS: FieldConfig[] = [
 
 /** Resident self-service: personal details, house number, and vehicle registration. */
 export function ProfilePage() {
+  const { user } = useAuth()
   const [dashboard, setDashboard] = useState<MeDashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingProfile, setEditingProfile] = useState(false)
   const [editingProperty, setEditingProperty] = useState(false)
+  const [editingApartmentCount, setEditingApartmentCount] = useState(false)
   const [addingVehicle, setAddingVehicle] = useState(false)
   const [vehicleQr, setVehicleQr] = useState<{ plate: string; token: string } | null>(null)
 
@@ -63,6 +75,13 @@ export function ProfilePage() {
       address: (values.address as string) || undefined,
     })
     setEditingProperty(false)
+    await load()
+  }
+
+  async function handleApartmentCountSubmit(values: Record<string, unknown>) {
+    const raw = values.apartmentCount
+    await meApi.updateApartmentCount(raw === '' || raw == null ? null : Number(raw))
+    setEditingApartmentCount(false)
     await load()
   }
 
@@ -148,9 +167,16 @@ export function ProfilePage() {
         <div className="page-header" style={{ marginBottom: 0 }}>
           <div className="section-title" style={{ marginTop: 0 }}>Property</div>
           {property && (
-            <button className="btn btn-sm" onClick={() => setEditingProperty(true)}>
-              Update house number
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn btn-sm" onClick={() => setEditingProperty(true)}>
+                Update house number
+              </button>
+              {isLandlord(user) && (
+                <button className="btn btn-sm" onClick={() => setEditingApartmentCount(true)}>
+                  Set apartment count
+                </button>
+              )}
+            </div>
           )}
         </div>
         {property ? (
@@ -170,6 +196,12 @@ export function ProfilePage() {
             <div className="detail-row">
               <dt>Occupancy</dt>
               <dd><StatusBadge value={property.occupancyStatus} /></dd>
+            </div>
+            <div className="detail-row">
+              <dt>Apartments</dt>
+              <dd>
+                {property.apartmentCount ?? <span className="muted">Not configured — no limit on active tenants</span>}
+              </dd>
             </div>
           </dl>
         ) : (
@@ -226,6 +258,17 @@ export function ProfilePage() {
           initial={property}
           onSubmit={handlePropertySubmit}
           onClose={() => setEditingProperty(false)}
+        />
+      )}
+
+      {editingApartmentCount && property && (
+        <FormModal
+          title="Set apartment count"
+          fields={APARTMENT_COUNT_FIELDS}
+          initial={property}
+          submitLabel="Save"
+          onSubmit={handleApartmentCountSubmit}
+          onClose={() => setEditingApartmentCount(false)}
         />
       )}
 

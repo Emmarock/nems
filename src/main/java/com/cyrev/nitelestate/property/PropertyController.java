@@ -49,7 +49,7 @@ public class PropertyController {
 
     /** Gate/enforcement-side QR scan: shows the building's owner and full payment history. */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public PropertyLookupResponse lookup(@PathVariable String qrToken) {
         return propertyService.lookup(qrToken);
     }

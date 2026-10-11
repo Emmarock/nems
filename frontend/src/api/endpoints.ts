@@ -89,6 +89,9 @@ export const residentsApi = {
   lookup: (qrToken: string) => client.get<ResidentLookup>(`/residents/lookup/${qrToken}`).then((r) => r.data),
   arrears: (params: { q?: string; page?: number; size?: number } = {}) =>
     client.get<PageResponse<ResidentArrears>>('/residents/arrears', { params }).then((r) => r.data),
+  /** Disables login and revokes any household passes the resident sponsors — see ResidentService.suspend. */
+  suspend: (id: number) => client.post<Resident>(`/residents/${id}/suspend`).then((r) => r.data),
+  reactivate: (id: number) => client.post<Resident>(`/residents/${id}/reactivate`).then((r) => r.data),
   checkIn: (qrToken: string, gateId?: number) =>
     client.post<Resident>(`/residents/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
   checkOut: (qrToken: string, gateId?: number) =>
@@ -112,6 +115,10 @@ export const vehiclesApi = {
   get: (id: number) => client.get<Vehicle>(`/vehicles/${id}`).then((r) => r.data),
   create: (body: Omit<Vehicle, 'id' | 'status' | 'residentName'>) => client.post<Vehicle>('/vehicles', body).then((r) => r.data),
   accessPass: (id: number) => client.get<{ qrToken: string }>(`/vehicles/${id}/access-pass`).then((r) => r.data.qrToken),
+  /** Landlord self-service: tenant-registered vehicles on the caller's own property awaiting approval. */
+  pendingApproval: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<Vehicle>>('/vehicles/pending-approval', { params }).then((r) => r.data),
+  approve: (id: number) => client.put<Vehicle>(`/vehicles/${id}/approve`).then((r) => r.data),
   lookup: (qrToken: string) => client.get<VehicleLookup>(`/vehicles/lookup/${qrToken}`).then((r) => r.data),
   checkIn: (qrToken: string, gateId?: number) =>
     client.post<Vehicle>(`/vehicles/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
@@ -175,6 +182,9 @@ export const meApi = {
     client.put<Resident>('/me/profile', body).then((r) => r.data),
   updateProperty: (body: { houseNumber: string; address?: string }) =>
     client.put<Property>('/me/property', body).then((r) => r.data),
+  /** Landlord self-service — caps how many ACTIVE tenants can be added (see /me/tenants, meApi.addTenant). */
+  updateApartmentCount: (apartmentCount: number | null) =>
+    client.put<Property>('/me/landlord/apartment-count', { apartmentCount }).then((r) => r.data),
   tenants: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Resident>>('/me/tenants', { params }).then((r) => r.data),
   addTenant: (body: { fullName: string; phone: string; email?: string; emergencyContact?: string }) =>
@@ -228,6 +238,7 @@ export const workersApi = {
     nationalId?: string
     contractorName: string
     workType: string
+    workerCategory: Worker['workerCategory']
     startDate: string
     expectedEndDate: string
     photo?: string

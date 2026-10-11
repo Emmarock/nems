@@ -75,7 +75,7 @@ public class WorkerController {
 
     /** Gate-side QR scan: shows the destination (sponsor resident + property) to confirm (spec Phase 2 §4). */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public WorkerLookupResponse lookup(@PathVariable String qrToken) {
         return workerService.lookup(qrToken);
     }

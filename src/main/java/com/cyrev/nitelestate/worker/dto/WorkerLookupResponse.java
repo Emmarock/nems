@@ -1,5 +1,6 @@
 package com.cyrev.nitelestate.worker.dto;
 
+import com.cyrev.nitelestate.worker.WorkerCategory;
 import com.cyrev.nitelestate.worker.WorkerStatus;
 
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ public record WorkerLookupResponse(
         String phone,
         String contractorName,
         String workType,
+        WorkerCategory workerCategory,
         LocalDate startDate,
         LocalDate expectedEndDate,
         WorkerStatus status,

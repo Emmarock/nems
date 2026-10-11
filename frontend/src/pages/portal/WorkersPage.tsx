@@ -17,6 +17,16 @@ const FIELDS: FieldConfig[] = [
   { name: 'nationalId', label: 'National / Work ID' },
   { name: 'contractorName', label: 'Contractor / company', required: true, full: true },
   { name: 'workType', label: 'Type of work', required: true, full: true },
+  {
+    name: 'workerCategory',
+    label: 'Worker category',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'DOMESTIC_STAFF', label: 'Domestic staff' },
+      { value: 'NON_DOMESTIC_STAFF', label: 'Non-domestic staff' },
+    ],
+  },
   { name: 'startDate', label: 'Start date', type: 'date', required: true },
   { name: 'expectedEndDate', label: 'Expected end date', type: 'date', required: true },
 ]
@@ -46,6 +56,7 @@ export function WorkersPage() {
       nationalId: (values.nationalId as string) || undefined,
       contractorName: values.contractorName as string,
       workType: values.workType as string,
+      workerCategory: values.workerCategory as Worker['workerCategory'],
       startDate: values.startDate as string,
       expectedEndDate: values.expectedEndDate as string,
       photo: (values.photo as string) || undefined,
@@ -87,6 +98,7 @@ export function WorkersPage() {
           { key: 'fullName', label: 'Worker' },
           { key: 'contractorName', label: 'Contractor' },
           { key: 'workType', label: 'Work type' },
+          { key: 'workerCategory', label: 'Category', render: (w) => <StatusBadge value={w.workerCategory} /> },
           { key: 'startDate', label: 'Start' },
           { key: 'expectedEndDate', label: 'Expected end' },
           { key: 'status', label: 'Status', render: (w) => <StatusBadge value={w.status} /> },

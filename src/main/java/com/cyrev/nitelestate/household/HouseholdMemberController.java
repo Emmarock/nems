@@ -84,7 +84,7 @@ public class HouseholdMemberController {
 
     /** Gate-side QR scan: shows the destination (sponsor resident + property) to confirm. */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public HouseholdMemberLookupResponse lookup(@PathVariable String qrToken) {
         return householdMemberService.lookup(qrToken);
     }

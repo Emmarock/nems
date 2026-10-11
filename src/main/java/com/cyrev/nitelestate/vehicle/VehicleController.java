@@ -3,6 +3,7 @@ package com.cyrev.nitelestate.vehicle;
 import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.search.Paging;
 import com.cyrev.nitelestate.security.CurrentUser;
+import com.cyrev.nitelestate.user.Role;
 import com.cyrev.nitelestate.vehicle.dto.VehicleLookupResponse;
 import com.cyrev.nitelestate.vehicle.dto.VehicleRequest;
 import com.cyrev.nitelestate.vehicle.dto.VehicleResponse;
@@ -57,6 +58,22 @@ public class VehicleController {
         return vehicleService.search(q, residentId, Paging.of(page, size, Sort.by("plateNumber")));
     }
 
+    /** Landlord self-service: tenant-registered vehicles on the caller's own property awaiting approval. */
+    @GetMapping("/pending-approval")
+    @PreAuthorize("hasRole('RESIDENT')")
+    public PageResponse<VehicleResponse> pendingApproval(@RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "20") int size) {
+        return vehicleService.pendingForLandlord(currentUser.residentId(), Paging.of(page, size, Sort.by("plateNumber")));
+    }
+
+    /** The landlord (found by ownership of the vehicle owner's property) or an admin approves a pending vehicle. */
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('RESIDENT', 'SUPER_ADMIN', 'CDA_ADMIN')")
+    public VehicleResponse approve(@PathVariable Long id) {
+        Long callerResidentId = currentUser.role() == Role.RESIDENT ? currentUser.residentId() : null;
+        return vehicleService.approve(id, callerResidentId, currentUser.role());
+    }
+
     /** Admin-issued QR pass for a vehicle — for printing/handing out, or for enforcement lookups. */
     @GetMapping("/{id}/access-pass")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
@@ -66,7 +83,7 @@ public class VehicleController {
 
     /** Gate-side QR scan: identifies the vehicle and its owner before deciding to grant access (spec §9). */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public VehicleLookupResponse lookup(@PathVariable String qrToken) {
         return vehicleService.lookup(qrToken);
     }

@@ -59,9 +59,23 @@ public class ResidentController {
         return residentService.searchInArrears(q, Paging.of(page, size, Sort.unsorted()));
     }
 
+    /** Suspends any resident (owner or tenant) - disables their login and revokes any household passes they sponsor. */
+    @PostMapping("/{id}/suspend")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
+    public ResidentResponse suspend(@PathVariable Long id) {
+        return residentService.suspend(id);
+    }
+
+    /** Lifts a suspension - re-enables login; sponsored household passes stay revoked until re-approved. */
+    @PostMapping("/{id}/reactivate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
+    public ResidentResponse reactivate(@PathVariable Long id) {
+        return residentService.reactivate(id);
+    }
+
     /** Gate-side QR scan: the resident IS the destination (spec Phase 3 §4/§5). */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public ResidentLookupResponse lookup(@PathVariable String qrToken) {
         return residentService.lookup(qrToken);
     }

@@ -14,6 +14,9 @@ import com.cyrev.nitelestate.property.Property;
 import com.cyrev.nitelestate.property.PropertyRepository;
 import com.cyrev.nitelestate.resident.Resident;
 import com.cyrev.nitelestate.resident.ResidentRepository;
+import com.cyrev.nitelestate.resident.ResidentType;
+import com.cyrev.nitelestate.user.Role;
+import com.cyrev.nitelestate.vehicle.dto.MeVehicleRequest;
 import com.cyrev.nitelestate.vehicle.dto.VehicleLookupResponse;
 import com.cyrev.nitelestate.vehicle.dto.VehicleRequest;
 import com.cyrev.nitelestate.vehicle.dto.VehicleResponse;
@@ -69,6 +72,87 @@ public class VehicleService {
         return VehicleResponse.from(vehicle, resolveResidentName(vehicle.getResidentId()));
     }
 
+    /**
+     * Self-service registration (MeController). A tenant's vehicle starts PENDING_APPROVAL - no
+     * QR pass can be issued for it (see getOrCreateQrToken) until the property's landlord
+     * approves it. An owner/landlord registering their own vehicle needs no one's approval but
+     * their own, so it goes straight to ACTIVE, same as admin-registered vehicles always have.
+     */
+    @Transactional
+    public VehicleResponse registerForResident(Long residentId, MeVehicleRequest request) {
+        if (vehicleRepository.existsByPlateNumberIgnoreCase(request.plateNumber())) {
+            throw new ConflictException("A vehicle with plate " + request.plateNumber() + " is already registered");
+        }
+        Resident resident = residentRepository.findById(residentId)
+                .orElseThrow(() -> NotFoundException.of("Resident", residentId));
+
+        Vehicle vehicle = new Vehicle();
+        vehicle.setPlateNumber(request.plateNumber().toUpperCase());
+        vehicle.setVehicleType(request.vehicleType());
+        vehicle.setMake(request.make());
+        vehicle.setModel(request.model());
+        vehicle.setColour(request.colour());
+        vehicle.setResidentId(residentId);
+        vehicle.setStatus(resident.getResidentType() == ResidentType.TENANT
+                ? VehicleStatus.PENDING_APPROVAL : VehicleStatus.ACTIVE);
+        vehicle = vehicleRepository.save(vehicle);
+
+        auditService.record("Vehicle", vehicle.getId(), "CREATE", vehicle.getPlateNumber());
+        return VehicleResponse.from(vehicle, resident.getFullName());
+    }
+
+    /**
+     * The landlord (or an admin) approves a tenant's pending vehicle, unlocking QR pass issuance.
+     * Approving an already-active vehicle is a harmless no-op, not an error - the landlord's
+     * pending-approval list simply won't show it anymore.
+     */
+    @Transactional
+    public VehicleResponse approve(Long vehicleId, Long callerResidentId, Role callerRole) {
+        Vehicle vehicle = get(vehicleId);
+        Long ownerResidentId = vehicle.getResidentId();
+        Resident owner = residentRepository.findById(ownerResidentId)
+                .orElseThrow(() -> NotFoundException.of("Resident", ownerResidentId));
+        requireLandlordOrAdmin(owner.getPropertyId(), callerResidentId, callerRole);
+
+        vehicle.setStatus(VehicleStatus.ACTIVE);
+        vehicle = vehicleRepository.save(vehicle);
+        auditService.record("Vehicle", vehicle.getId(), "APPROVE", null);
+        return VehicleResponse.from(vehicle, owner.getFullName());
+    }
+
+    /**
+     * Vehicles awaiting the caller's approval, scoped to the property they own - same v1
+     * one-owned-property assumption as ResidentService.listTenants. A caller who owns nothing
+     * (e.g. a tenant navigating here) simply sees an empty page.
+     */
+    public PageResponse<VehicleResponse> pendingForLandlord(Long callerResidentId, Pageable pageable) {
+        List<Property> owned = propertyRepository.findByOwnerId(callerResidentId);
+        if (owned.isEmpty()) {
+            return new PageResponse<>(List.of(), pageable.getPageNumber(), pageable.getPageSize(), 0, 0);
+        }
+        List<Long> residentIds = residentRepository.findAll(Specs.eq(owned.get(0).getId(), "propertyId"))
+                .stream().map(Resident::getId).toList();
+        Specification<Vehicle> spec = Specification.<Vehicle>where(Specs.in(residentIds, "residentId"))
+                .and(Specs.eq(VehicleStatus.PENDING_APPROVAL, "status"));
+        var page = vehicleRepository.findAll(spec, pageable);
+
+        Map<Long, String> residentNames = residentRepository.findAllById(residentIds).stream()
+                .collect(Collectors.toMap(Resident::getId, Resident::getFullName));
+        return PageResponse.of(page.map(v -> VehicleResponse.from(v, residentNames.get(v.getResidentId()))));
+    }
+
+    /** Only the landlord who owns the vehicle owner's property, or an admin, may approve it. */
+    private void requireLandlordOrAdmin(Long propertyId, Long callerResidentId, Role callerRole) {
+        if (callerRole == Role.SUPER_ADMIN || callerRole == Role.CDA_ADMIN) {
+            return;
+        }
+        boolean owns = propertyId != null && propertyRepository.findByOwnerId(callerResidentId).stream()
+                .anyMatch(p -> p.getId().equals(propertyId));
+        if (!owns) {
+            throw new BadRequestException("Only the vehicle owner's landlord (or an admin) can do this");
+        }
+    }
+
     @Transactional
     public VehicleResponse update(Long id, VehicleRequest request) {
         Vehicle vehicle = get(id);
@@ -101,10 +185,18 @@ public class VehicleService {
         return PageResponse.of(page.map(v -> VehicleResponse.from(v, residentNames.get(v.getResidentId()))));
     }
 
-    /** Admin-issued QR pass for any vehicle — for printing/handing out, or for an enforcement lookup. No ownership check. */
+    /**
+     * Admin-issued QR pass for any vehicle — for printing/handing out, or for an enforcement
+     * lookup. No ownership check. Shared by the resident self-service path too (see
+     * getOrCreateQrTokenForResident), so this is the one place a pending vehicle's pass gets
+     * blocked regardless of which endpoint asks for it.
+     */
     @Transactional
     public String getOrCreateQrToken(Long vehicleId) {
         Vehicle vehicle = get(vehicleId);
+        if (vehicle.getStatus() == VehicleStatus.PENDING_APPROVAL) {
+            throw new BadRequestException("This vehicle is awaiting the landlord's approval before a pass can be issued");
+        }
         if (vehicle.getQrToken() == null) {
             vehicle.setQrToken(UUID.randomUUID().toString());
             vehicle = vehicleRepository.save(vehicle);

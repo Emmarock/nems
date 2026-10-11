@@ -296,6 +296,10 @@ export function ScanPage() {
                     <dt>Work type</dt>
                     <dd>{holder.workType}</dd>
                   </div>
+                  <div className="detail-row">
+                    <dt>Category</dt>
+                    <dd><StatusBadge value={holder.workerCategory} /></dd>
+                  </div>
                 </>
               )}
               {'relationship' in holder && (

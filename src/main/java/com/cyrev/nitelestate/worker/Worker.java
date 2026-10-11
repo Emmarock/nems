@@ -38,6 +38,10 @@ public class Worker extends BaseEntity {
     @Column(nullable = false)
     private String workType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 24)
+    private WorkerCategory workerCategory;
+
     /** The property/site this worker is assigned to. */
     private Long siteId;
 

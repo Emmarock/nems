@@ -1,6 +1,7 @@
 package com.cyrev.nitelestate.worker.dto;
 
 import com.cyrev.nitelestate.worker.Worker;
+import com.cyrev.nitelestate.worker.WorkerCategory;
 import com.cyrev.nitelestate.worker.WorkerStatus;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ public record WorkerResponse(
         String nationalId,
         String contractorName,
         String workType,
+        WorkerCategory workerCategory,
         Long siteId,
         String siteHouseNumber,
         Long sponsorResidentId,
@@ -23,7 +25,7 @@ public record WorkerResponse(
 ) {
     public static WorkerResponse from(Worker w, String siteHouseNumber) {
         return new WorkerResponse(w.getId(), w.getFullName(), w.getPhone(), w.getNationalId(), w.getContractorName(),
-                w.getWorkType(), w.getSiteId(), siteHouseNumber, w.getSponsorResidentId(), w.getStartDate(),
+                w.getWorkType(), w.getWorkerCategory(), w.getSiteId(), siteHouseNumber, w.getSponsorResidentId(), w.getStartDate(),
                 w.getExpectedEndDate(), w.getStatus(), w.getQrToken(), w.getPhoto());
     }
 }

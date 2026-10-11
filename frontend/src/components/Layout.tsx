@@ -61,6 +61,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/portal/tenants', label: 'My Tenants', roles: ['RESIDENT'], icon: UsersIcon, landlordOnly: true },
   { to: '/portal/household-approvals', label: 'Household Approvals', roles: ['RESIDENT'], icon: PersonBadgeIcon, landlordOnly: true },
   { to: '/portal/vehicles', label: 'My Vehicles', roles: ['RESIDENT'], icon: CarIcon },
+  { to: '/portal/vehicle-approvals', label: 'Vehicle Approvals', roles: ['RESIDENT'], icon: CarIcon, landlordOnly: true },
   { to: '/portal/payments', label: 'My Payments', roles: ['RESIDENT'], icon: CoinsIcon },
   { to: '/portal/complaints', label: 'My Complaints', roles: ['RESIDENT'], icon: ComplaintIcon },
 ]

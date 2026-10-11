@@ -94,6 +94,7 @@ export function WorkersAdminPage() {
           { key: 'fullName', label: 'Worker' },
           { key: 'contractorName', label: 'Contractor' },
           { key: 'workType', label: 'Work type' },
+          { key: 'workerCategory', label: 'Category', render: (w) => <StatusBadge value={w.workerCategory} /> },
           {
             key: 'sponsorResidentId',
             label: 'Sponsor',

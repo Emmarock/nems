@@ -1,5 +1,6 @@
 package com.cyrev.nitelestate.worker.dto;
 
+import com.cyrev.nitelestate.worker.WorkerCategory;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,6 +18,7 @@ public record WorkerRequest(
         String nationalId,
         @NotBlank String contractorName,
         @NotBlank String workType,
+        @NotNull WorkerCategory workerCategory,
         @NotNull @FutureOrPresent LocalDate startDate,
         @NotNull LocalDate expectedEndDate,
         /** Optional base64 data URI, e.g. "data:image/jpeg;base64,...". Size-capped in WorkerService. */

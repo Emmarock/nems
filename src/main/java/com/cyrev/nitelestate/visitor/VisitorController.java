@@ -57,7 +57,7 @@ public class VisitorController {
 
     /** Gate-side QR scan: shows the destination (host resident + property) to confirm (spec §9). */
     @GetMapping("/lookup/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public VisitorLookupResponse lookup(@PathVariable String qrToken) {
         return visitorService.lookup(qrToken);
     }

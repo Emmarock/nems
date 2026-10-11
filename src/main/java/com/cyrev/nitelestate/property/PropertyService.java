@@ -5,6 +5,7 @@ import com.cyrev.nitelestate.billing.AccountService;
 import com.cyrev.nitelestate.billing.dto.AccountBalanceResponse;
 import com.cyrev.nitelestate.billing.dto.LevyBalanceResponse;
 import com.cyrev.nitelestate.common.dto.PageResponse;
+import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.common.exception.ConflictException;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
@@ -87,6 +88,34 @@ public class PropertyService {
         return PropertyResponse.from(property, resolveOwnerName(property.getOwnerId()));
     }
 
+    /**
+     * Landlord self-service: how many apartment units this property has - ResidentService.
+     * createTenant uses this to cap how many ACTIVE tenants the landlord can add. null clears
+     * the cap (unconfigured = unlimited, the default for every existing property). Deliberately
+     * separate from updateSelf/MePropertyUpdateRequest, which any resident on the property
+     * (tenant included) can call - this is the landlord's own business decision, not shared.
+     */
+    @Transactional
+    public PropertyResponse updateApartmentCount(Long landlordResidentId, Integer apartmentCount) {
+        if (apartmentCount != null && apartmentCount < 1) {
+            throw new BadRequestException("Apartment count must be at least 1");
+        }
+        Property property = requireOwnedProperty(landlordResidentId);
+        property.setApartmentCount(apartmentCount);
+        property = propertyRepository.save(property);
+        auditService.record("Property", property.getId(), "SET_APARTMENT_COUNT", String.valueOf(apartmentCount));
+        return PropertyResponse.from(property, resolveOwnerName(property.getOwnerId()));
+    }
+
+    /** The single property the caller owns — v1 doesn't support a landlord owning more than one (mirrors ResidentService's own copy). */
+    private Property requireOwnedProperty(Long landlordResidentId) {
+        List<Property> owned = propertyRepository.findByOwnerId(landlordResidentId);
+        if (owned.isEmpty()) {
+            throw new BadRequestException("You don't own a property on file — contact an admin to get one linked");
+        }
+        return owned.get(0);
+    }
+
     public PageResponse<PropertyResponse> search(String q, Pageable pageable) {
         Specification<Property> spec = Specs.contains(q, "houseNumber", "block", "plot", "address");
         var page = propertyRepository.findAll(spec, pageable);
@@ -155,5 +184,6 @@ public class PropertyService {
         if (request.occupancyStatus() != null) {
             property.setOccupancyStatus(request.occupancyStatus());
         }
+        property.setApartmentCount(request.apartmentCount());
     }
 }

@@ -13,6 +13,7 @@ import com.cyrev.nitelestate.payment.dto.SharedReceiptResponse;
 import com.cyrev.nitelestate.common.exception.BadRequestException;
 import com.cyrev.nitelestate.portal.dto.MeDashboardResponse;
 import com.cyrev.nitelestate.property.PropertyService;
+import com.cyrev.nitelestate.property.dto.ApartmentCountRequest;
 import com.cyrev.nitelestate.property.dto.MePropertyUpdateRequest;
 import com.cyrev.nitelestate.property.dto.PropertyResponse;
 import com.cyrev.nitelestate.resident.ResidentService;
@@ -23,7 +24,6 @@ import com.cyrev.nitelestate.resident.dto.TenantResponse;
 import com.cyrev.nitelestate.security.CurrentUser;
 import com.cyrev.nitelestate.vehicle.VehicleService;
 import com.cyrev.nitelestate.vehicle.dto.MeVehicleRequest;
-import com.cyrev.nitelestate.vehicle.dto.VehicleRequest;
 import com.cyrev.nitelestate.vehicle.dto.VehicleResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +77,18 @@ public class MeController {
             throw new BadRequestException("You don't have a property on file yet — contact an admin to get one linked");
         }
         return propertyService.updateSelf(resident.propertyId(), request);
+    }
+
+    /**
+     * Landlord self-service: how many apartment units the caller's own property has - caps how
+     * many ACTIVE tenants they can add (see ResidentService.createTenant). Ownership is resolved
+     * server-side by PropertyService (whoever calls this must own the property, not just live on
+     * it), same as /tenants below - a tenant calling this gets the same "you don't own a
+     * property" error a landlord with no property at all would.
+     */
+    @PutMapping("/landlord/apartment-count")
+    public PropertyResponse updateApartmentCount(@RequestBody ApartmentCountRequest request) {
+        return propertyService.updateApartmentCount(currentUser.residentId(), request.apartmentCount());
     }
 
     @GetMapping("/account/balance")
@@ -173,9 +185,7 @@ public class MeController {
     @PostMapping("/vehicles")
     @ResponseStatus(HttpStatus.CREATED)
     public VehicleResponse registerVehicle(@Valid @RequestBody MeVehicleRequest request) {
-        VehicleRequest scoped = new VehicleRequest(request.plateNumber(), request.vehicleType(), request.make(),
-                request.model(), request.colour(), currentUser.residentId());
-        return vehicleService.register(scoped);
+        return vehicleService.registerForResident(currentUser.residentId(), request);
     }
 
     /** The resident's own gate-access QR pass — present it at the gate to be scanned as yourself. */

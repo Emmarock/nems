@@ -43,4 +43,11 @@ public class Property extends BaseEntity {
 
     /** Enforcement QR pass — scanned to pull up this building's payment history. */
     private String qrToken;
+
+    /**
+     * Landlord-configured unit count (see PropertyService.updateApartmentCount) - null means
+     * "not configured", under which ResidentService.createTenant enforces no cap at all, so
+     * existing properties are unaffected until their landlord opts in by setting a real count.
+     */
+    private Integer apartmentCount;
 }

@@ -3,12 +3,15 @@ package com.cyrev.nitelestate.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
+/** @EnableScheduling backs the first @Scheduled job in the app - see scheduling.CheckoutReminderJob. */
 @Configuration
 @EnableAsync
+@EnableScheduling
 public class AsyncConfig {
 
     /**

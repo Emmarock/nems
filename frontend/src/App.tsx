@@ -17,6 +17,7 @@ import { WorkersPage } from './pages/portal/WorkersPage'
 import { HouseholdMembersPage } from './pages/portal/HouseholdMembersPage'
 import { TenantsPage } from './pages/portal/TenantsPage'
 import { HouseholdApprovalsPage } from './pages/portal/HouseholdApprovalsPage'
+import { VehicleApprovalsPage } from './pages/portal/VehicleApprovalsPage'
 import { ComplaintsPage } from './pages/portal/ComplaintsPage'
 import { PaymentsPage as PortalPaymentsPage } from './pages/portal/PaymentsPage'
 import { VehiclesPage as PortalVehiclesPage } from './pages/portal/VehiclesPage'
@@ -75,7 +76,7 @@ export default function App() {
         <Route
           path="/scan/:kind/:qrToken"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN']}>
               <ScanPage />
             </ProtectedRoute>
           }
@@ -225,6 +226,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['RESIDENT']} landlordOnly>
               {withLayout(<HouseholdApprovalsPage />)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/vehicle-approvals"
+          element={
+            <ProtectedRoute roles={['RESIDENT']} landlordOnly>
+              {withLayout(<VehicleApprovalsPage />)}
             </ProtectedRoute>
           }
         />

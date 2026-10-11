@@ -1,5 +1,10 @@
 package com.cyrev.nitelestate.notification;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Canonical wording for every notification UserService sends — the copy lives here, once,
  * instead of being built inline wherever a message gets dispatched. The same plain text returned
@@ -9,6 +14,9 @@ package com.cyrev.nitelestate.notification;
 public final class MessageTemplates {
 
     private static final String BRAND = "Nitel Estate Management System";
+    private static final ZoneId ESTATE_ZONE = ZoneId.of("Africa/Lagos");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy, h:mm a");
 
     private MessageTemplates() {
     }
@@ -63,5 +71,24 @@ public final class MessageTemplates {
         }
         message.append("\nIf this wasn't you, contact an administrator immediately.");
         return message.toString();
+    }
+
+    /**
+     * Daily nag to the property's landlord (not the sponsoring tenant, even if a tenant is the
+     * one who actually requested the pass) — see scheduling.CheckoutReminderJob. Fires once the
+     * day the pass is due and again every day it stays active past that date, so a non-domestic
+     * worker who never gets checked out doesn't silently stop being flagged.
+     */
+    public static String workerCheckoutDue(String workerFullName, String contractorName, LocalDate expectedEndDate) {
+        return "Reminder: " + workerFullName + " (" + contractorName + ") on " + BRAND
+                + " was due to check out on " + expectedEndDate.format(DATE_FORMAT)
+                + ". Reach out to have them wrap up and leave if they're still on site.";
+    }
+
+    /** Same as workerCheckoutDue, for a visitor pass instead. */
+    public static String visitorCheckoutDue(String visitorName, Instant validUntil) {
+        return "Reminder: " + visitorName + "'s visitor pass on " + BRAND
+                + " was due to end on " + validUntil.atZone(ESTATE_ZONE).format(DATE_TIME_FORMAT)
+                + ". Reach out to have them start leaving if they're still around.";
     }
 }

@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,6 +45,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex, HttpServletRequest req) {
         return build(HttpStatus.UNAUTHORIZED, "Invalid email or password", req);
+    }
+
+    /**
+     * Spring Security's DaoAuthenticationProvider throws this directly when UserDetails.isEnabled()
+     * is false (UserStatus.DISABLED — e.g. an admin disabling a user, or ResidentService.suspend
+     * disabling the linked login) - without this handler it fell through to handleGeneric as a raw
+     * 500, surfaced by testing the suspend-a-resident flow end to end.
+     */
+    @ExceptionHandler({DisabledException.class, LockedException.class})
+    public ResponseEntity<ApiError> handleDisabledAccount(RuntimeException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, "This account has been disabled — contact an administrator", req);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

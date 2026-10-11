@@ -8,6 +8,7 @@ import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { apiErrorMessage } from '../../api/client'
 
 const EMPTY: PageResponse<Resident> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
@@ -39,11 +40,26 @@ export function ResidentsPage() {
   const [page, setPage] = useState(0)
   const debouncedQuery = useDebouncedValue(query)
   const { openProperty } = useEntityDetail()
+  const [busyId, setBusyId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
     setResult(await residentsApi.list({ q: debouncedQuery || undefined, page, size: 20 }))
     setLoading(false)
+  }
+
+  async function run(id: number, action: (id: number) => Promise<Resident>) {
+    setBusyId(id)
+    setError(null)
+    try {
+      await action(id)
+      await load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setBusyId(null)
+    }
   }
 
   useEffect(() => {
@@ -88,6 +104,8 @@ export function ResidentsPage() {
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search residents by name, phone, email, type…" />
 
+      {error && <p className="error-text">{error}</p>}
+
       <DataTable
         loading={loading}
         rows={result.content}
@@ -113,9 +131,20 @@ export function ResidentsPage() {
           { key: 'status', label: 'Status', render: (r) => <StatusBadge value={r.status} /> },
         ]}
         actions={(r) => (
-          <button className="btn btn-sm" onClick={() => { setEditing(r); setModalOpen(true) }}>
-            Edit
-          </button>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button className="btn btn-sm" onClick={() => { setEditing(r); setModalOpen(true) }}>
+              Edit
+            </button>
+            {r.status === 'SUSPENDED' ? (
+              <button className="btn btn-sm" disabled={busyId === r.id} onClick={() => run(r.id, residentsApi.reactivate)}>
+                {busyId === r.id ? 'Reactivating…' : 'Reactivate'}
+              </button>
+            ) : (
+              <button className="btn btn-sm btn-danger" disabled={busyId === r.id} onClick={() => run(r.id, residentsApi.suspend)}>
+                {busyId === r.id ? 'Suspending…' : 'Suspend'}
+              </button>
+            )}
+          </div>
         )}
       />
 

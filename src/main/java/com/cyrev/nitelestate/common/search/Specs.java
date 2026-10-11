@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Arrays;
+import java.util.Collection;
 
 /** Small, reusable {@link Specification} builders for optional list-endpoint filters/search. */
 public final class Specs {
@@ -31,5 +32,13 @@ public final class Specs {
             return null;
         }
         return (root, query, cb) -> cb.equal(root.get(field), value);
+    }
+
+    /** Membership filter on a single field; null (no filter) if {@code values} is null or empty. */
+    public static <T> Specification<T> in(Collection<?> values, String field) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return (root, query, cb) -> root.get(field).in(values);
     }
 }

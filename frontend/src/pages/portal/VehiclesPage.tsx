@@ -122,6 +122,9 @@ export function VehiclesPage() {
           },
         ]}
         actions={(v) => {
+          if (v.status === 'PENDING_APPROVAL') {
+            return <span className="muted">Awaiting your landlord's approval before a pass can be issued</span>
+          }
           const sr = stickerFor(v.id)
           return (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>

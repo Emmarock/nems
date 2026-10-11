@@ -8,6 +8,9 @@ import com.cyrev.nitelestate.audit.AuditService;
 import com.cyrev.nitelestate.common.dto.PageResponse;
 import com.cyrev.nitelestate.common.exception.NotFoundException;
 import com.cyrev.nitelestate.common.search.Specs;
+import com.cyrev.nitelestate.household.HouseholdMember;
+import com.cyrev.nitelestate.household.HouseholdMemberRepository;
+import com.cyrev.nitelestate.household.HouseholdMemberStatus;
 import com.cyrev.nitelestate.property.Property;
 import com.cyrev.nitelestate.property.PropertyRepository;
 import com.cyrev.nitelestate.resident.dto.MeProfileUpdateRequest;
@@ -46,6 +49,9 @@ public class ResidentService {
     private final AuditService auditService;
     private final UserRepository userRepository;
     private final UserService userService;
+    /** Repository, not HouseholdMemberService — a plain Spring Data interface has no dependencies
+     * of its own to form a cycle with, the same reasoning PaymentService uses for PropertyRepository. */
+    private final HouseholdMemberRepository householdMemberRepository;
 
     @Transactional
     public ResidentResponse create(ResidentRequest request) {
@@ -128,6 +134,16 @@ public class ResidentService {
     @Transactional
     public TenantResponse createTenant(Long landlordResidentId, TenantRequest request) {
         Property property = requireOwnedProperty(landlordResidentId);
+        if (property.getApartmentCount() != null) {
+            long activeTenants = residentRepository.count(
+                    Specification.<Resident>where(Specs.eq(property.getId(), "propertyId"))
+                            .and(Specs.eq(ResidentType.TENANT, "residentType"))
+                            .and(Specs.eq(ResidentStatus.ACTIVE, "status")));
+            if (activeTenants >= property.getApartmentCount()) {
+                throw new BadRequestException("You've reached your configured apartment limit of "
+                        + property.getApartmentCount() + " — deactivate a tenant or increase your apartment count first");
+            }
+        }
 
         Resident tenant = new Resident();
         tenant.setFullName(request.fullName());
@@ -174,9 +190,63 @@ public class ResidentService {
         tenant = residentRepository.save(tenant);
         userRepository.findByResidentId(tenant.getId())
                 .ifPresent(user -> userService.setStatus(user.getId(), UserStatus.DISABLED));
+        revokeSponsoredHouseholdMembers(tenant.getId());
 
         auditService.record("Resident", tenant.getId(), "LANDLORD_DEACTIVATE_TENANT", tenant.getFullName());
         return ResidentResponse.from(tenant, property.getHouseNumber());
+    }
+
+    /**
+     * Admin/security action - any resident (owner or tenant), not just a landlord deactivating
+     * their own tenant. Same cascade as deactivateTenant: login disabled, sponsored household
+     * passes revoked, so a suspension actually keeps everyone it covers out rather than just the
+     * one resident whose own pass gets flagged.
+     */
+    @Transactional
+    public ResidentResponse suspend(Long residentId) {
+        Resident resident = get(residentId);
+        resident.setStatus(ResidentStatus.SUSPENDED);
+        resident = residentRepository.save(resident);
+        userRepository.findByResidentId(resident.getId())
+                .ifPresent(user -> userService.setStatus(user.getId(), UserStatus.DISABLED));
+        revokeSponsoredHouseholdMembers(resident.getId());
+
+        auditService.record("Resident", resident.getId(), "SUSPEND", resident.getFullName());
+        return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
+    }
+
+    /**
+     * Lifts a suspension - login re-enabled, but sponsored household passes stay REVOKED (the
+     * landlord re-approves whichever ones should come back, same as any other revoked pass;
+     * nothing here silently re-grants gate access on a household member's behalf).
+     */
+    @Transactional
+    public ResidentResponse reactivate(Long residentId) {
+        Resident resident = get(residentId);
+        resident.setStatus(ResidentStatus.ACTIVE);
+        resident = residentRepository.save(resident);
+        userRepository.findByResidentId(resident.getId())
+                .ifPresent(user -> userService.setStatus(user.getId(), UserStatus.ACTIVE));
+
+        auditService.record("Resident", resident.getId(), "REACTIVATE", resident.getFullName());
+        return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
+    }
+
+    /**
+     * A deactivated tenant's own household passes (spouse/family QR codes they sponsored) go
+     * with them — otherwise a family member's pass stays silently ACTIVE after the tenant who
+     * vouched for them is gone, with nothing at the gate ever questioning it. Already-revoked
+     * entries are left alone rather than re-audited.
+     */
+    private void revokeSponsoredHouseholdMembers(Long tenantResidentId) {
+        List<HouseholdMember> sponsored = householdMemberRepository.findAll(
+                Specification.<HouseholdMember>where(Specs.eq(tenantResidentId, "sponsorResidentId"))
+                        .and(Specs.in(List.of(HouseholdMemberStatus.ACTIVE, HouseholdMemberStatus.PENDING_APPROVAL), "status")));
+        for (HouseholdMember member : sponsored) {
+            member.setStatus(HouseholdMemberStatus.REVOKED);
+            householdMemberRepository.save(member);
+            auditService.record("HouseholdMember", member.getId(), "REVOKE_ON_TENANT_DEACTIVATION", member.getFullName());
+        }
     }
 
     /**
@@ -272,7 +342,7 @@ public class ResidentService {
     public ResidentLookupResponse lookup(String qrToken) {
         Resident resident = residentRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No resident pass found for this QR code"));
-        String flag = accessPolicyService.evaluateResident(resident.getId());
+        String flag = evaluateResidentFlag(resident);
 
         Property property = resident.getPropertyId() != null
                 ? propertyRepository.findById(resident.getPropertyId()).orElse(null) : null;
@@ -288,11 +358,27 @@ public class ResidentService {
         Resident resident = residentRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No resident pass found for this QR code"));
 
-        String flag = accessPolicyService.evaluateResident(resident.getId());
+        String flag = evaluateResidentFlag(resident);
         accessEventService.record(AccessSubjectType.RESIDENT, resident.getId(), AccessDirection.IN, gateId,
                 verifiedByUserId, flag);
         auditService.record("Resident", resident.getId(), "CHECK_IN", flag);
         return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
+    }
+
+    /**
+     * INACTIVE (e.g. a deactivated tenant) takes priority over the arrears check and skips it
+     * entirely - same early-return shape as VehicleService.evaluateVehicle's INACTIVE check.
+     * Before this, a deactivated resident's own pass carried no flag at all at the gate; only
+     * their login was disabled, which security scanning a physical/screenshotted QR never sees.
+     */
+    private String evaluateResidentFlag(Resident resident) {
+        if (resident.getStatus() == ResidentStatus.SUSPENDED) {
+            return "RESIDENT_SUSPENDED";
+        }
+        if (resident.getStatus() == ResidentStatus.INACTIVE) {
+            return "RESIDENT_INACTIVE";
+        }
+        return accessPolicyService.evaluateResident(resident.getId());
     }
 
     @Transactional

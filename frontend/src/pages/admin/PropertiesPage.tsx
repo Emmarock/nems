@@ -43,6 +43,7 @@ const FIELDS: FieldConfig[] = [
     ],
   },
   { name: 'ownerId', label: 'Owner resident ID', type: 'number' },
+  { name: 'apartmentCount', label: 'Apartment count (caps active tenants)', type: 'number' },
 ]
 
 export function PropertiesPage() {
@@ -86,6 +87,7 @@ export function PropertiesPage() {
       propertyType: values.propertyType as Property['propertyType'],
       occupancyStatus: (values.occupancyStatus as Property['occupancyStatus']) || 'VACANT',
       ownerId: values.ownerId ? Number(values.ownerId) : null,
+      apartmentCount: values.apartmentCount ? Number(values.apartmentCount) : null,
     }
     if (editing) {
       await propertiesApi.update(editing.id, body)
@@ -122,6 +124,7 @@ export function PropertiesPage() {
           { key: 'plot', label: 'Plot' },
           { key: 'propertyType', label: 'Type', render: (p) => <StatusBadge value={p.propertyType} /> },
           { key: 'occupancyStatus', label: 'Occupancy', render: (p) => <StatusBadge value={p.occupancyStatus} /> },
+          { key: 'apartmentCount', label: 'Apartments', render: (p) => p.apartmentCount ?? <span className="muted">—</span> },
           {
             key: 'ownerId',
             label: 'Owner',

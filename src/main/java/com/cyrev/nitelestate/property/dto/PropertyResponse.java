@@ -13,10 +13,11 @@ public record PropertyResponse(
         PropertyType propertyType,
         Long ownerId,
         String ownerName,
-        OccupancyStatus occupancyStatus
+        OccupancyStatus occupancyStatus,
+        Integer apartmentCount
 ) {
     public static PropertyResponse from(Property p, String ownerName) {
         return new PropertyResponse(p.getId(), p.getBlock(), p.getPlot(), p.getHouseNumber(), p.getAddress(),
-                p.getPropertyType(), p.getOwnerId(), ownerName, p.getOccupancyStatus());
+                p.getPropertyType(), p.getOwnerId(), ownerName, p.getOccupancyStatus(), p.getApartmentCount());
     }
 }

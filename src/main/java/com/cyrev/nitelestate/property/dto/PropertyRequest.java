@@ -12,6 +12,7 @@ public record PropertyRequest(
         @NotBlank String address,
         @NotNull PropertyType propertyType,
         Long ownerId,
-        OccupancyStatus occupancyStatus
+        OccupancyStatus occupancyStatus,
+        Integer apartmentCount
 ) {
 }

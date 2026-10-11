@@ -38,7 +38,7 @@ export interface User {
 }
 
 export type ResidentType = 'OWNER' | 'TENANT' | 'LANDLORD'
-export type ResidentStatus = 'ACTIVE' | 'INACTIVE'
+export type ResidentStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 
 export interface Resident {
   id: number
@@ -120,6 +120,8 @@ export interface Property {
   ownerId: number | null
   ownerName: string | null
   occupancyStatus: OccupancyStatus
+  /** Landlord-configured unit count — caps how many ACTIVE tenants they can add. Null = not configured, no cap. */
+  apartmentCount: number | null
 }
 
 /** What an enforcement officer sees scanning a building's QR pass. */
@@ -139,7 +141,7 @@ export interface PropertyLookup {
   recentPayments: Payment[]
 }
 
-export type VehicleStatus = 'ACTIVE' | 'INACTIVE'
+export type VehicleStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'INACTIVE'
 
 export interface Vehicle {
   id: number
@@ -314,6 +316,8 @@ export interface VisitorLookup {
 }
 
 export type WorkerStatus = 'PENDING' | 'APPROVED' | 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'COMPLETED'
+/** Chosen at request time — distinct from workType ("Plumbing", "Electrical", ...), which describes the job, not who the worker works for. */
+export type WorkerCategory = 'DOMESTIC_STAFF' | 'NON_DOMESTIC_STAFF'
 
 export interface Worker {
   id: number
@@ -322,6 +326,7 @@ export interface Worker {
   nationalId: string | null
   contractorName: string
   workType: string
+  workerCategory: WorkerCategory
   siteId: number | null
   siteHouseNumber: string | null
   sponsorResidentId: number
@@ -340,6 +345,7 @@ export interface WorkerLookup {
   phone: string
   contractorName: string
   workType: string
+  workerCategory: WorkerCategory
   startDate: string
   expectedEndDate: string
   status: WorkerStatus

@@ -65,6 +65,7 @@ public class WorkerService {
         worker.setNationalId(request.nationalId());
         worker.setContractorName(request.contractorName());
         worker.setWorkType(request.workType());
+        worker.setWorkerCategory(request.workerCategory());
         worker.setSiteId(sponsor.getPropertyId());
         worker.setSponsorResidentId(sponsorResidentId);
         worker.setStartDate(request.startDate());
@@ -110,7 +111,7 @@ public class WorkerService {
         Property property = worker.getSiteId() != null ? propertyRepository.findById(worker.getSiteId()).orElse(null) : null;
 
         return new WorkerLookupResponse(worker.getId(), worker.getFullName(), worker.getPhone(),
-                worker.getContractorName(), worker.getWorkType(), worker.getStartDate(), worker.getExpectedEndDate(),
+                worker.getContractorName(), worker.getWorkType(), worker.getWorkerCategory(), worker.getStartDate(), worker.getExpectedEndDate(),
                 worker.getStatus(), flag, worker.getPhoto(),
                 worker.getSponsorResidentId(), sponsor != null ? sponsor.getFullName() : null,
                 sponsor != null ? sponsor.getPhone() : null,
