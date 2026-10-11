@@ -65,6 +65,14 @@ public class WorkerController {
         return workerService.search(q, sponsorResidentId, activeOnly, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "startDate")));
     }
 
+    /** Admin filter: due (or overdue) for checkout by their own contract end date, but still checked in right now. */
+    @GetMapping("/due-checkout-on-site")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN')")
+    public PageResponse<WorkerResponse> dueCheckoutOnSite(@RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "20") int size) {
+        return workerService.findDueCheckoutStillOnSite(Paging.of(page, size, Sort.by(Sort.Direction.ASC, "expectedEndDate")));
+    }
+
     @GetMapping("/{id}/logs")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
     public PageResponse<AccessEventResponse> logs(@PathVariable Long id,

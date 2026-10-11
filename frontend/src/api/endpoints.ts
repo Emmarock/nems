@@ -229,6 +229,9 @@ export const workersApi = {
     client.get<PageResponse<Worker>>('/workers/mine', { params }).then((r) => r.data),
   listAll: (params: { q?: string; activeOnly?: boolean; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Worker>>('/workers', { params }).then((r) => r.data),
+  /** Admin filter: due (or overdue) for checkout by their own contract end date, but still checked in right now. */
+  dueCheckoutOnSite: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<Worker>>('/workers/due-checkout-on-site', { params }).then((r) => r.data),
   listBySponsor: (sponsorResidentId: number, params: { q?: string; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Worker>>('/workers', { params: { ...params, sponsorResidentId } }).then((r) => r.data),
   get: (id: number) => client.get<Worker>(`/workers/${id}`).then((r) => r.data),

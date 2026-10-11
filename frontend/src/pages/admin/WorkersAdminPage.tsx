@@ -19,6 +19,8 @@ export function WorkersAdminPage() {
   const [result, setResult] = useState<PageResponse<Worker>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [activeOnly, setActiveOnly] = useState(false)
+  /** Due (or overdue) for checkout by their own contract end date, but still checked in right now - see CheckoutReminderJob. */
+  const [dueOnSiteOnly, setDueOnSiteOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
   const debouncedQuery = useDebouncedValue(query)
@@ -27,18 +29,22 @@ export function WorkersAdminPage() {
 
   async function load() {
     setLoading(true)
-    setResult(await workersApi.listAll({ q: debouncedQuery || undefined, activeOnly, page, size: 20 }))
+    setResult(
+      dueOnSiteOnly
+        ? await workersApi.dueCheckoutOnSite({ page, size: 20 })
+        : await workersApi.listAll({ q: debouncedQuery || undefined, activeOnly, page, size: 20 }),
+    )
     setLoading(false)
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOnly, debouncedQuery, page])
+  }, [activeOnly, dueOnSiteOnly, debouncedQuery, page])
 
   useEffect(() => {
     setPage(0)
-  }, [activeOnly, debouncedQuery])
+  }, [activeOnly, dueOnSiteOnly, debouncedQuery])
 
   async function run(id: number, action: (id: number) => Promise<Worker>) {
     setBusyId(id)
@@ -64,14 +70,30 @@ export function WorkersAdminPage() {
         </div>
       </div>
 
-      <SearchInput value={query} onChange={setQuery} placeholder="Search workers by name, contractor, work type…" />
+      {!dueOnSiteOnly && (
+        <SearchInput value={query} onChange={setQuery} placeholder="Search workers by name, contractor, work type…" />
+      )}
 
       <div className="toolbar">
-        <label className="checkbox-field">
-          <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} />
-          Active on site only
-        </label>
+        {!dueOnSiteOnly && (
+          <label className="checkbox-field">
+            <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} />
+            Active on site only
+          </label>
+        )}
+        {user && CAN_MANAGE.has(user.role) && (
+          <label className="checkbox-field">
+            <input type="checkbox" checked={dueOnSiteOnly} onChange={(e) => setDueOnSiteOnly(e.target.checked)} />
+            Due for checkout &amp; still on site
+          </label>
+        )}
       </div>
+      {dueOnSiteOnly && (
+        <p className="muted" style={{ marginTop: -8, marginBottom: 14, fontSize: 13 }}>
+          Workers whose contract end date has arrived or passed, but who haven't checked out yet — search and the
+          active-on-site filter don't apply here.
+        </p>
+      )}
 
       {error && <p className="error-text">{error}</p>}
 
@@ -79,7 +101,13 @@ export function WorkersAdminPage() {
         loading={loading}
         rows={result.content}
         rowKey={(w) => w.id}
-        emptyMessage={query ? 'No workers match your search.' : 'No worker access requests yet.'}
+        emptyMessage={
+          dueOnSiteOnly
+            ? 'No workers are due for checkout and still on site.'
+            : query
+              ? 'No workers match your search.'
+              : 'No worker access requests yet.'
+        }
         columns={[
           {
             key: 'photo',

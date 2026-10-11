@@ -91,4 +91,16 @@ public final class MessageTemplates {
                 + " was due to end on " + validUntil.atZone(ESTATE_ZONE).format(DATE_TIME_FORMAT)
                 + ". Reach out to have them start leaving if they're still around.";
     }
+
+    /**
+     * Non-domestic staff (contractors/artisans) are expected to check out every day by 6pm even
+     * when their overall contract has days left — this fires once, shortly after 6pm, for anyone
+     * whose last gate record today is still IN. Distinct from workerCheckoutDue, which is about
+     * the contract's own end date, not the daily on-site curfew.
+     */
+    public static String workerPastDailyCurfew(String workerFullName, String contractorName) {
+        return "Heads up: " + workerFullName + " (" + contractorName + ") on " + BRAND
+                + " hasn't checked out today and it's past 6pm. Non-domestic staff are expected to check out "
+                + "daily, even mid-contract — reach out to confirm they're not staying on site overnight.";
+    }
 }

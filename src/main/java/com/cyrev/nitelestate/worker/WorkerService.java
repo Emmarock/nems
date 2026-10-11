@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -170,6 +172,40 @@ public class WorkerService {
 
     private String resolveSiteHouseNumber(Long siteId) {
         return siteId == null ? null : propertyRepository.findById(siteId).map(Property::getHouseNumber).orElse(null);
+    }
+
+    /**
+     * Admin filter: workers whose contract has reached (or passed) its end date but who are
+     * still checked in - i.e. the same population CheckoutReminderJob emails landlords/sponsors
+     * about, made browsable on demand. "Still checked in" can't be expressed as a single DB
+     * predicate (it depends on each worker's latest access_event row), so this filters in
+     * memory and paginates the already-small result by hand - the due-checkout population is
+     * inherently bounded (everyone else has already left or been resolved), not the full roster.
+     */
+    public PageResponse<WorkerResponse> findDueCheckoutStillOnSite(Pageable pageable) {
+        LocalDate today = LocalDate.now(ZoneId.of("Africa/Lagos"));
+        List<Worker> dueAndOnSite = workerRepository
+                .findByStatusInAndExpectedEndDateLessThanEqual(List.of(WorkerStatus.APPROVED, WorkerStatus.ACTIVE), today)
+                .stream()
+                .filter(w -> accessEventService.isCurrentlyIn(AccessSubjectType.WORKER, w.getId()))
+                // Longest-overdue first - the Pageable's own Sort isn't applicable here since the
+                // underlying query can't express "still checked in" as a DB predicate (see above).
+                .sorted(Comparator.comparing(Worker::getExpectedEndDate))
+                .toList();
+
+        int start = Math.min((int) pageable.getOffset(), dueAndOnSite.size());
+        int end = Math.min(start + pageable.getPageSize(), dueAndOnSite.size());
+        List<Worker> pageContent = dueAndOnSite.subList(start, end);
+
+        List<Long> siteIds = pageContent.stream().map(Worker::getSiteId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, String> houseNumbers = propertyRepository.findAllById(siteIds).stream()
+                .collect(Collectors.toMap(Property::getId, Property::getHouseNumber));
+        List<WorkerResponse> content = pageContent.stream()
+                .map(w -> WorkerResponse.from(w, houseNumbers.get(w.getSiteId())))
+                .toList();
+
+        int totalPages = pageable.getPageSize() == 0 ? 0 : (int) Math.ceil((double) dueAndOnSite.size() / pageable.getPageSize());
+        return new PageResponse<>(content, pageable.getPageNumber(), pageable.getPageSize(), dueAndOnSite.size(), totalPages);
     }
 
     private record Evaluation(String flag, WorkerStatus impliedStatus) {

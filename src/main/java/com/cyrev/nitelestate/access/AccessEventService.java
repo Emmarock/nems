@@ -61,6 +61,18 @@ public class AccessEventService {
     }
 
     /**
+     * Whether a subject's most recent event was an entry with no exit recorded since - i.e.
+     * they're currently on site. Shared by CheckoutReminderJob's daily curfew check and
+     * WorkerService's admin "due for checkout, still on site" filter, so the "last event is IN"
+     * rule lives in exactly one place.
+     */
+    public boolean isCurrentlyIn(AccessSubjectType subjectType, Long subjectId) {
+        return accessEventRepository.findTopBySubjectTypeAndSubjectIdOrderByIdDesc(subjectType, subjectId)
+                .map(event -> event.getDirection() == AccessDirection.IN)
+                .orElse(false);
+    }
+
+    /**
      * A subject is either inside the estate or outside it - never both, never neither after
      * their first entry - so a new event's direction must be the opposite of whatever was last
      * recorded for that same subject (regardless of gate: someone can enter at one gate and

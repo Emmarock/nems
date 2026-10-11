@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Manual "run it now" trigger for CheckoutReminderJob — same work the 7am cron does, for testing or an ad-hoc nudge. */
+/** Manual "run it now" triggers for CheckoutReminderJob — same work the crons do, for testing or an ad-hoc nudge. */
 @RestController
 @RequestMapping("/api/v1/admin/checkout-reminders")
 @RequiredArgsConstructor
@@ -18,5 +18,10 @@ public class CheckoutReminderController {
     @PostMapping("/run")
     public void run() {
         checkoutReminderJob.remindLandlordsOfDueCheckouts();
+    }
+
+    @PostMapping("/run-overnight-check")
+    public void runOvernightCheck() {
+        checkoutReminderJob.remindLandlordsOfOvernightWorkers();
     }
 }

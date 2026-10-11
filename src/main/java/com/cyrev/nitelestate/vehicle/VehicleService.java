@@ -35,6 +35,9 @@ import java.util.stream.Collectors;
 @Service
 public class VehicleService {
 
+    /** A tenant may register at most this many vehicles in total, and a landlord may approve at most this many of a tenant's vehicles into ACTIVE. */
+    private static final int MAX_TENANT_VEHICLES = 3;
+
     private final VehicleRepository vehicleRepository;
     private final ResidentRepository residentRepository;
     private final PropertyRepository propertyRepository;
@@ -85,6 +88,10 @@ public class VehicleService {
         }
         Resident resident = residentRepository.findById(residentId)
                 .orElseThrow(() -> NotFoundException.of("Resident", residentId));
+        if (resident.getResidentType() == ResidentType.TENANT
+                && vehicleRepository.countByResidentId(residentId) >= MAX_TENANT_VEHICLES) {
+            throw new BadRequestException("Tenants can register at most " + MAX_TENANT_VEHICLES + " vehicles");
+        }
 
         Vehicle vehicle = new Vehicle();
         vehicle.setPlateNumber(request.plateNumber().toUpperCase());
@@ -113,6 +120,10 @@ public class VehicleService {
         Resident owner = residentRepository.findById(ownerResidentId)
                 .orElseThrow(() -> NotFoundException.of("Resident", ownerResidentId));
         requireLandlordOrAdmin(owner.getPropertyId(), callerResidentId, callerRole);
+        if (owner.getResidentType() == ResidentType.TENANT && vehicle.getStatus() != VehicleStatus.ACTIVE
+                && vehicleRepository.countByResidentIdAndStatus(ownerResidentId, VehicleStatus.ACTIVE) >= MAX_TENANT_VEHICLES) {
+            throw new BadRequestException("This tenant already has " + MAX_TENANT_VEHICLES + " approved vehicles — approve a replacement only after deactivating one");
+        }
 
         vehicle.setStatus(VehicleStatus.ACTIVE);
         vehicle = vehicleRepository.save(vehicle);
