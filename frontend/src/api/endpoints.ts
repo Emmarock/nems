@@ -89,6 +89,9 @@ export const residentsApi = {
   lookup: (qrToken: string) => client.get<ResidentLookup>(`/residents/lookup/${qrToken}`).then((r) => r.data),
   arrears: (params: { q?: string; page?: number; size?: number } = {}) =>
     client.get<PageResponse<ResidentArrears>>('/residents/arrears', { params }).then((r) => r.data),
+  /** Downloadable PDF snapshot of every account currently in arrears — same list as arrears(), unpaginated. */
+  arrearsReport: () =>
+    client.get('/residents/arrears/report', { responseType: 'blob' }).then((r) => r.data as Blob),
   /** Disables login and revokes any household passes the resident sponsors — see ResidentService.suspend. */
   suspend: (id: number) => client.post<Resident>(`/residents/${id}/suspend`).then((r) => r.data),
   reactivate: (id: number) => client.post<Resident>(`/residents/${id}/reactivate`).then((r) => r.data),

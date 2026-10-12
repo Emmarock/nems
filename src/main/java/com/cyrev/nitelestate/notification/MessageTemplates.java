@@ -131,4 +131,15 @@ public final class MessageTemplates {
                 + " hasn't checked out today and it's past 6pm. Non-domestic staff are expected to check out "
                 + "daily, even mid-contract — reach out to confirm they're not staying on site overnight.";
     }
+
+    /**
+     * Weekly nag sent straight to a resident whose account is in arrears — see
+     * scheduling.ArrearsReminderJob (every Saturday 10am estate-local). Unlike workerCheckoutDue
+     * etc., this goes to the debtor themselves, not a landlord/sponsor — it's their own balance.
+     */
+    public static String arrearsReminder(String residentFullName, BigDecimal outstanding) {
+        return "Hi " + residentFullName + ", this is a reminder from " + BRAND + " that your account currently has an "
+                + "outstanding balance of " + formatAmount(outstanding) + ". Please settle this at your earliest "
+                + "convenience — see the Payments page in your resident portal for how to pay.";
+    }
 }

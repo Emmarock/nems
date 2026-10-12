@@ -319,6 +319,39 @@ public class ResidentService {
         }));
     }
 
+    /**
+     * Every resident in arrears, unpaginated — backs the downloadable PDF report
+     * (generateArrearsReportPdf) and the weekly reminder email (scheduling.ArrearsReminderJob),
+     * both of which need the whole list at once rather than one browsable page. Same threshold/
+     * enforcement check as searchInArrears, so all three stay in agreement about who's in arrears.
+     */
+    public List<ResidentArrearsResponse> allInArrears() {
+        var settings = accessPolicyService.getSettings();
+        if (!settings.enforceArrears()) {
+            return List.of();
+        }
+        List<ResidentRepository.ResidentArrearsRow> rows = residentRepository.findAllResidentsInArrears(settings.arrearsThreshold());
+
+        List<Long> residentIds = rows.stream().map(ResidentRepository.ResidentArrearsRow::getId).toList();
+        Map<Long, Resident> residents = residentRepository.findAllById(residentIds).stream()
+                .collect(Collectors.toMap(Resident::getId, r -> r));
+
+        List<Long> propertyIds = residents.values().stream().map(Resident::getPropertyId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, String> houseNumbers = propertyRepository.findAllById(propertyIds).stream()
+                .collect(Collectors.toMap(Property::getId, Property::getHouseNumber));
+
+        return rows.stream().map(row -> {
+            Resident r = residents.get(row.getId());
+            return new ResidentArrearsResponse(r.getId(), r.getFullName(), r.getPhone(), r.getPropertyId(),
+                    houseNumbers.get(r.getPropertyId()), row.getOutstanding());
+        }).toList();
+    }
+
+    /** Downloadable PDF snapshot of every account currently in arrears — see ResidentArrearsReportPdf. */
+    public byte[] generateArrearsReportPdf() {
+        return ResidentArrearsReportPdf.render(allInArrears(), accessPolicyService.getSettings().arrearsThreshold());
+    }
+
     private String resolvePropertyHouseNumber(Long propertyId) {
         return propertyId == null ? null : propertyRepository.findById(propertyId).map(Property::getHouseNumber).orElse(null);
     }

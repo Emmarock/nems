@@ -42,7 +42,13 @@ export function ReportsPage() {
         />
         <StatCard label="Total billing" value={`₦${dashboard.totalBilling.toLocaleString()}`} icon={<CoinsIcon />} tone="primary" />
         <StatCard label="Collected" value={`₦${dashboard.collected.toLocaleString()}`} icon={<CoinsIcon />} tone="success" />
-        <StatCard label="Outstanding" value={`₦${dashboard.outstanding.toLocaleString()}`} icon={<CoinsIcon />} tone="danger" />
+        <StatCard
+          label="Outstanding"
+          value={`₦${dashboard.outstanding.toLocaleString()}`}
+          icon={<CoinsIcon />}
+          tone="danger"
+          onClick={() => navigate('/security/arrears')}
+        />
         <StatCard label="Collection rate" value={`${dashboard.collectionRatePercent}%`} icon={<ChartIcon />} tone="primary" />
         <StatCard label="Workers on site" value={dashboard.activeWorkersOnSite} icon={<WrenchIcon />} tone="warning" />
         <StatCard label="Active visitor passes" value={dashboard.activeVisitorPasses} icon={<PersonBadgeIcon />} tone="magenta" />

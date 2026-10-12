@@ -10,9 +10,15 @@ import com.cyrev.nitelestate.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/residents")
@@ -57,6 +63,18 @@ public class ResidentController {
                                                            @RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "20") int size) {
         return residentService.searchInArrears(q, Paging.of(page, size, Sort.unsorted()));
+    }
+
+    /** Downloadable PDF snapshot of every account currently in arrears — same list as {@link #arrears}, unpaginated. */
+    @GetMapping("/arrears/report")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
+    public ResponseEntity<byte[]> arrearsReport() {
+        byte[] pdf = residentService.generateArrearsReportPdf();
+        String filename = "arrears-report-" + LocalDate.now() + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     /** Suspends any resident (owner or tenant) - disables their login and revokes any household passes they sponsor. */

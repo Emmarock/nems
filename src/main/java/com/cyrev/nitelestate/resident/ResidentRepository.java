@@ -91,6 +91,24 @@ public interface ResidentRepository extends JpaRepository<Resident, Long>, JpaSp
             nativeQuery = true)
     Page<ResidentArrearsRow> findResidentsInArrears(BigDecimal threshold, String q, Pageable pageable);
 
+    /**
+     * Same balance calculation, unpaginated — every resident in arrears, not one page of them.
+     * Backs the arrears PDF report (ResidentService.generateArrearsReportPdf) and the weekly
+     * arrears reminder email (scheduling.ArrearsReminderJob), both of which need the whole list
+     * at once rather than a browsable page.
+     */
+    @Query(value = """
+            select id, outstanding from (
+                select r.id as id,
+                    coalesce((select sum(i.amount) from invoice i where i.resident_id = r.id and i.status = 'ISSUED'), 0)
+                    - coalesce((select sum(p.amount) from payment p where p.resident_id = r.id and p.status = 'SUCCESS'), 0) as outstanding
+                from resident r
+            ) balances
+            where outstanding > :threshold
+            order by outstanding desc
+            """, nativeQuery = true)
+    List<ResidentArrearsRow> findAllResidentsInArrears(BigDecimal threshold);
+
     interface ResidentArrearsRow {
         Long getId();
         BigDecimal getOutstanding();
