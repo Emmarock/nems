@@ -19,9 +19,9 @@ const PROFILE_FIELDS: FieldConfig[] = [
 
 const PROPERTY_FIELDS: FieldConfig[] = [
   { name: 'houseNumber', label: 'House number', required: true },
-  { name: 'block', label: 'Block', required: true },
-  { name: 'plot', label: 'Plot', required: true },
+  { name: 'road', label: 'Road', required: true },
   { name: 'address', label: 'Address', full: true },
+  { name: 'postcode', label: 'Postcode', full: true },
 ]
 
 const APARTMENT_COUNT_FIELD: FieldConfig = {
@@ -72,8 +72,8 @@ export function ProfilePage() {
     await meApi.updateProperty({
       houseNumber: values.houseNumber as string,
       address: (values.address as string) || undefined,
-      block: values.block as string,
-      plot: values.plot as string,
+      road: values.road as string,
+      postcode: (values.postcode as string) || undefined,
     })
     if (isLandlord(user)) {
       const raw = values.apartmentCount
@@ -177,12 +177,16 @@ export function ProfilePage() {
               <dd>{property.houseNumber}</dd>
             </div>
             <div className="detail-row">
-              <dt>Block / Plot</dt>
-              <dd>{property.block}, {property.plot}</dd>
+              <dt>Road</dt>
+              <dd>{property.road}</dd>
             </div>
             <div className="detail-row">
               <dt>Address</dt>
               <dd>{property.address}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>Postcode</dt>
+              <dd>{property.postcode ?? <span className="muted">Not set</span>}</dd>
             </div>
             <div className="detail-row">
               <dt>Occupancy</dt>

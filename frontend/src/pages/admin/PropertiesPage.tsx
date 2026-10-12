@@ -14,10 +14,10 @@ import { buildScanUrl } from '../../utils/scanUrl'
 const EMPTY: PageResponse<Property> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'block', label: 'Block', required: true },
-  { name: 'plot', label: 'Plot', required: true },
+  { name: 'road', label: 'Road', required: true },
   { name: 'houseNumber', label: 'House number', required: true },
   { name: 'address', label: 'Address', required: true, full: true },
+  { name: 'postcode', label: 'Postcode' },
   {
     name: 'propertyType',
     label: 'Property type',
@@ -80,10 +80,10 @@ export function PropertiesPage() {
 
   async function handleSubmit(values: Record<string, unknown>) {
     const body = {
-      block: values.block as string,
-      plot: values.plot as string,
+      road: values.road as string,
       houseNumber: values.houseNumber as string,
       address: values.address as string,
+      postcode: (values.postcode as string) || null,
       propertyType: values.propertyType as Property['propertyType'],
       occupancyStatus: (values.occupancyStatus as Property['occupancyStatus']) || 'VACANT',
       ownerId: values.ownerId ? Number(values.ownerId) : null,
@@ -111,7 +111,7 @@ export function PropertiesPage() {
         </button>
       </div>
 
-      <SearchInput value={query} onChange={setQuery} placeholder="Search properties by house, block, plot, address…" />
+      <SearchInput value={query} onChange={setQuery} placeholder="Search properties by house, road, address, postcode…" />
 
       <DataTable
         loading={loading}
@@ -120,8 +120,8 @@ export function PropertiesPage() {
         emptyMessage={query ? 'No properties match your search.' : 'No properties yet.'}
         columns={[
           { key: 'houseNumber', label: 'House' },
-          { key: 'block', label: 'Block' },
-          { key: 'plot', label: 'Plot' },
+          { key: 'road', label: 'Road' },
+          { key: 'postcode', label: 'Postcode', render: (p) => p.postcode ?? <span className="muted">—</span> },
           { key: 'propertyType', label: 'Type', render: (p) => <StatusBadge value={p.propertyType} /> },
           { key: 'occupancyStatus', label: 'Occupancy', render: (p) => <StatusBadge value={p.occupancyStatus} /> },
           { key: 'apartmentCount', label: 'Apartments', render: (p) => p.apartmentCount ?? <span className="muted">—</span> },
@@ -165,7 +165,7 @@ export function PropertiesPage() {
       {qrProperty && qrToken && (
         <QrCodeModal
           title={`Building pass — ${qrProperty.houseNumber}`}
-          subtitle={`${qrProperty.block}, ${qrProperty.plot}`}
+          subtitle={qrProperty.road}
           value={buildScanUrl('property', qrToken)}
           fileName={`building-pass-${qrProperty.houseNumber.replace(/\s+/g, '-').toLowerCase()}`}
           helpText="Scan this at the building during enforcement rounds to pull up its payment history."

@@ -38,7 +38,7 @@ public final class PaymentReceiptPdf {
     }
 
     public static byte[] render(String residentFullName, String receiptNumber, String levyDescription,
-                                 BigDecimal amount, String method, Instant paidAt, String houseNumber) {
+                                 BigDecimal amount, String method, Instant paidAt, String houseNumber, String fullAddress) {
         Document document = new Document(PageSize.A4, 40, 40, 0, 40);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
@@ -62,6 +62,9 @@ public final class PaymentReceiptPdf {
             addRow(rows, "Resident", residentFullName);
             if (houseNumber != null) {
                 addRow(rows, "Property", houseNumber);
+            }
+            if (fullAddress != null) {
+                addRow(rows, "Address", fullAddress);
             }
             if (levyDescription != null) {
                 addRow(rows, "For", levyDescription);

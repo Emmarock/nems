@@ -114,9 +114,7 @@ export function DashboardPage() {
             </div>
             <div>
               <div className="media-row-title">{dashboard.property.houseNumber}</div>
-              <div className="muted">
-                {dashboard.property.block}, {dashboard.property.plot}
-              </div>
+              <div className="muted">{dashboard.property.road}</div>
             </div>
           </div>
         ) : (

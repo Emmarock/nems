@@ -83,8 +83,8 @@ public class PropertyService {
         if (request.address() != null && !request.address().isBlank()) {
             property.setAddress(request.address());
         }
-        property.setBlock(request.block());
-        property.setPlot(request.plot());
+        property.setRoad(request.road());
+        property.setPostcode(request.postcode());
         property = propertyRepository.save(property);
         auditService.record("Property", property.getId(), "SELF_UPDATE", property.getHouseNumber());
         return PropertyResponse.from(property, resolveOwnerName(property.getOwnerId()));
@@ -119,7 +119,7 @@ public class PropertyService {
     }
 
     public PageResponse<PropertyResponse> search(String q, Pageable pageable) {
-        Specification<Property> spec = Specs.contains(q, "houseNumber", "block", "plot", "address");
+        Specification<Property> spec = Specs.contains(q, "houseNumber", "road", "address", "postcode");
         var page = propertyRepository.findAll(spec, pageable);
 
         List<Long> ownerIds = page.getContent().stream().map(Property::getOwnerId).filter(Objects::nonNull).distinct().toList();
@@ -166,8 +166,8 @@ public class PropertyService {
                     .content();
         }
 
-        return new PropertyLookupResponse(property.getId(), property.getHouseNumber(), property.getBlock(),
-                property.getPlot(), property.getAddress(), property.getPropertyType(), property.getOccupancyStatus(),
+        return new PropertyLookupResponse(property.getId(), property.getHouseNumber(), property.getRoad(),
+                property.getAddress(), property.getPostcode(), property.getPropertyType(), property.getOccupancyStatus(),
                 property.getOwnerId(), owner != null ? owner.getFullName() : null, owner != null ? owner.getPhone() : null,
                 balance, levyBreakdown, recentPayments);
     }
@@ -177,10 +177,10 @@ public class PropertyService {
     }
 
     private void apply(Property property, PropertyRequest request) {
-        property.setBlock(request.block());
-        property.setPlot(request.plot());
+        property.setRoad(request.road());
         property.setHouseNumber(request.houseNumber());
         property.setAddress(request.address());
+        property.setPostcode(request.postcode());
         property.setPropertyType(request.propertyType());
         property.setOwnerId(request.ownerId());
         if (request.occupancyStatus() != null) {

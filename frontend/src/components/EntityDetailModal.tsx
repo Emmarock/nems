@@ -240,9 +240,9 @@ export function EntityDetailModal() {
           {!loading && !error && current.type === 'property' && property && (
             <dl className="detail-list">
               <Row label="House number" value={property.houseNumber} />
-              <Row label="Block" value={property.block} />
-              <Row label="Plot" value={property.plot} />
+              <Row label="Road" value={property.road} />
               <Row label="Address" value={property.address} />
+              {property.postcode && <Row label="Postcode" value={property.postcode} />}
               <Row label="Property type" value={<StatusBadge value={property.propertyType} />} />
               <Row label="Occupancy" value={<StatusBadge value={property.occupancyStatus} />} />
               <Row

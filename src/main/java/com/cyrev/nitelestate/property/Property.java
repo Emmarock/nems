@@ -18,17 +18,18 @@ import lombok.Setter;
 @Table(name = "property")
 public class Property extends BaseEntity {
 
+    /** The estate's own nomenclature - properties are addressed by road, not block/plot. */
     @Column(nullable = false)
-    private String block;
-
-    @Column(nullable = false)
-    private String plot;
+    private String road;
 
     @Column(nullable = false, unique = true)
     private String houseNumber;
 
     @Column(nullable = false)
     private String address;
+
+    /** Optional - Nigeria's federal postcode rollout is recent, so most existing properties won't have one yet. */
+    private String postcode;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)

@@ -161,10 +161,8 @@ export function ScanPage() {
                 <dd>{property.houseNumber}</dd>
               </div>
               <div className="detail-row">
-                <dt>Block / Plot</dt>
-                <dd>
-                  {property.block}, {property.plot}
-                </dd>
+                <dt>Road</dt>
+                <dd>{property.road}</dd>
               </div>
               <div className="detail-row">
                 <dt>Address</dt>

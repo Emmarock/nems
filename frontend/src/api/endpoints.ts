@@ -180,7 +180,7 @@ export const meApi = {
   accessPass: () => client.get<{ qrToken: string }>('/me/access-pass').then((r) => r.data.qrToken),
   updateProfile: (body: { fullName: string; phone: string; email?: string; emergencyContact?: string }) =>
     client.put<Resident>('/me/profile', body).then((r) => r.data),
-  updateProperty: (body: { houseNumber: string; address?: string; block: string; plot: string }) =>
+  updateProperty: (body: { houseNumber: string; address?: string; road: string; postcode?: string }) =>
     client.put<Property>('/me/property', body).then((r) => r.data),
   /** Landlord self-service — caps how many ACTIVE tenants can be added (see /me/tenants, meApi.addTenant). */
   updateApartmentCount: (apartmentCount: number | null) =>

@@ -16,9 +16,9 @@ import java.util.List;
 public record PropertyLookupResponse(
         Long id,
         String houseNumber,
-        String block,
-        String plot,
+        String road,
         String address,
+        String postcode,
         PropertyType propertyType,
         OccupancyStatus occupancyStatus,
         Long ownerId,

@@ -332,17 +332,38 @@ public class PaymentService {
         String levyDescription = payment.getInvoiceId() != null
                 ? invoiceRepository.findById(payment.getInvoiceId()).map(Invoice::getDescription).orElse(null)
                 : null;
-        String houseNumber = resident.getPropertyId() != null
-                ? propertyRepository.findById(resident.getPropertyId()).map(Property::getHouseNumber).orElse(null)
+        Property property = resident.getPropertyId() != null
+                ? propertyRepository.findById(resident.getPropertyId()).orElse(null)
                 : null;
+        String houseNumber = property != null ? property.getHouseNumber() : null;
+        String fullAddress = composeReceiptAddress(property);
         String receiptNumber = "NECDA-PYMT-RCPT-"+System.currentTimeMillis() +"-"+ payment.getId();
         String message = MessageTemplates.paymentReceipt(resident.getFullName(), receiptNumber, levyDescription,
                 payment.getAmount(), payment.getPaidAt());
         byte[] pdf = PaymentReceiptPdf.render(resident.getFullName(), receiptNumber, levyDescription,
-                payment.getAmount(), payment.getMethod().name(), payment.getPaidAt(), houseNumber);
+                payment.getAmount(), payment.getMethod().name(), payment.getPaidAt(), houseNumber, fullAddress);
         NotificationAttachment attachment = new NotificationAttachment(receiptNumber + ".pdf", "application/pdf", pdf);
         notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(), message,
                 "Payment receipt " + receiptNumber, attachment);
+    }
+
+    /**
+     * The receipt's address line is composed fresh from house number + road + postcode + the
+     * estate's fixed location, rather than reusing Property.address (free text, inconsistently
+     * filled in across the 2025/2026 data imports) - this way every receipt reads the same way
+     * regardless of what ended up in that field. postcode is left out when not on file (Nigeria's
+     * federal postcode rollout is recent); no property at all means no address line.
+     */
+    private String composeReceiptAddress(Property property) {
+        if (property == null) {
+            return null;
+        }
+        StringBuilder address = new StringBuilder()
+                .append(property.getHouseNumber()).append(", ").append(property.getRoad()).append(", ");
+        if (property.getPostcode() != null && !property.getPostcode().isBlank()) {
+            address.append(property.getPostcode()).append(", ");
+        }
+        return address.append("Nitel Estate Ikorodu Lagos").toString();
     }
 
     private PaymentResponse toResponse(Payment payment) {

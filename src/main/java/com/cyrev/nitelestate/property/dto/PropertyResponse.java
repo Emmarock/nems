@@ -6,10 +6,10 @@ import com.cyrev.nitelestate.property.PropertyType;
 
 public record PropertyResponse(
         Long id,
-        String block,
-        String plot,
+        String road,
         String houseNumber,
         String address,
+        String postcode,
         PropertyType propertyType,
         Long ownerId,
         String ownerName,
@@ -17,7 +17,7 @@ public record PropertyResponse(
         Integer apartmentCount
 ) {
     public static PropertyResponse from(Property p, String ownerName) {
-        return new PropertyResponse(p.getId(), p.getBlock(), p.getPlot(), p.getHouseNumber(), p.getAddress(),
+        return new PropertyResponse(p.getId(), p.getRoad(), p.getHouseNumber(), p.getAddress(), p.getPostcode(),
                 p.getPropertyType(), p.getOwnerId(), ownerName, p.getOccupancyStatus(), p.getApartmentCount());
     }
 }

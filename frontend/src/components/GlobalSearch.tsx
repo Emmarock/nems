@@ -129,7 +129,7 @@ export function GlobalSearch() {
                     <SearchResult
                       key={`p-${p.id}`}
                       title={p.houseNumber}
-                      subtitle={`${p.block}, ${p.plot}`}
+                      subtitle={p.road}
                       onClick={() => select(() => openProperty(p.id))}
                     />
                   ))}

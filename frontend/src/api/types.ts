@@ -112,10 +112,12 @@ export type OccupancyStatus = 'OCCUPIED' | 'VACANT' | 'UNDER_CONSTRUCTION'
 
 export interface Property {
   id: number
-  block: string
-  plot: string
+  /** The estate's own nomenclature — properties are addressed by road, not block/plot. */
+  road: string
   houseNumber: string
   address: string
+  /** Optional — Nigeria's federal postcode rollout is recent, most properties won't have one yet. */
+  postcode: string | null
   propertyType: PropertyType
   ownerId: number | null
   ownerName: string | null
@@ -128,9 +130,9 @@ export interface Property {
 export interface PropertyLookup {
   id: number
   houseNumber: string
-  block: string
-  plot: string
+  road: string
   address: string
+  postcode: string | null
   propertyType: PropertyType
   occupancyStatus: OccupancyStatus
   ownerId: number | null
