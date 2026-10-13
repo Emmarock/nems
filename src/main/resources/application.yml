@@ -93,7 +93,7 @@ nitel:
     termii:
       api-key: ${TERMII_API_KEY:}
       sender-id: ${TERMII_SENDER_ID:NITELESTATE}
-      base-url: ${TERMII_BASE_URL:https://api.ng.termii.com/api}
+      base-url: ${TERMII_BASE_URL:https://v4.api.termii.com/}
     # Email via Resend.
     resend:
       api-key: ${RESEND_API_KEY:}
