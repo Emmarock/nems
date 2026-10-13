@@ -20,14 +20,15 @@ import org.springframework.web.client.RestClient;
  * (see PhoneNumbers) - Twilio rejects anything else outright.
  *
  * Only registered when nitel.notifications.twilio is actually configured (see
- * TwilioSmsConfiguredCondition) and BulkSmsNigeriaSender isn't already handling the SMS channel
- * (that one wins when both are configured) - MockSmsSender takes over when neither is, so
- * local/dev and an unconfigured prod keep working with zero setup.
+ * TwilioSmsConfiguredCondition) and neither BulkSmsNigeriaSender nor TermiiSmsSender is already
+ * handling the SMS channel (Termii wins first, then BulkSMSNigeria, when more than one is
+ * configured) - MockSmsSender takes over when none is, so local/dev and an unconfigured prod
+ * keep working with zero setup.
  */
 @Slf4j
 @Component
 @Conditional(TwilioSmsConfiguredCondition.class)
-@ConditionalOnMissingBean(BulkSmsNigeriaSender.class)
+@ConditionalOnMissingBean({BulkSmsNigeriaSender.class, TermiiSmsSender.class})
 public class TwilioSmsSender implements NotificationSender {
 
     private final RestClient restClient;

@@ -7,11 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
-/** Local/dev default - takes over automatically whenever neither TwilioSmsSender nor
- * BulkSmsNigeriaSender is registered (i.e. no real SMS provider is configured). */
+/** Local/dev default - takes over automatically whenever none of TwilioSmsSender,
+ * BulkSmsNigeriaSender, or TermiiSmsSender is registered (i.e. no real SMS provider is configured). */
 @Slf4j
 @Component
-@ConditionalOnMissingBean({TwilioSmsSender.class, BulkSmsNigeriaSender.class})
+@ConditionalOnMissingBean({TwilioSmsSender.class, BulkSmsNigeriaSender.class, TermiiSmsSender.class})
 public class MockSmsSender implements NotificationSender {
     @Override
     public NotificationChannel channel() {

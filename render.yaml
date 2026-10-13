@@ -68,6 +68,13 @@ services:
       - key: BULKSMS_API_TOKEN
         sync: false
 
+      # Termii (https://developers.termii.com) - takes over the SMS channel from both Twilio and
+      # BulkSMSNigeria the moment this is set (no need to remove those first). sender-id/base-url
+      # have working defaults in application.yml and don't need to be set here unless you want to
+      # override them.
+      - key: TERMII_API_KEY
+        sync: false
+
       # Resend (https://resend.com) - from-email/from-name/base-url have working defaults in
       # application.yml and don't need to be set here unless you want to override them.
       - key: RESEND_API_KEY

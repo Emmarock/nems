@@ -58,11 +58,13 @@ nitel:
     # random subdomain every restart, so a fixed hostname would need editing here every time).
     allowed-origins: ${NITEL_CORS_ORIGINS:http://localhost:5173,https://*.ngrok-free.dev,https://*.ngrok-free.app}
   notifications:
-    # WhatsApp goes through Twilio's Messages API; SMS does too UNLESS bulksms.api-token below is
-    # set, in which case BulkSmsNigeriaSender takes over the SMS channel instead (see
-    # TwilioSmsSender's ConditionalOnMissingBean). Leave unset for local/dev - the senders fall
-    # back to logging instead of calling out. See TwilioSmsSender / TwilioWhatsAppSender for
-    # exactly what "unset" means (blank, not absent).
+    # WhatsApp always goes through Twilio's Messages API. SMS also goes through Twilio UNLESS
+    # bulksms.api-token below is set (BulkSmsNigeriaSender then takes over), UNLESS termii.api-key
+    # is *also* set, in which case TermiiSmsSender wins over both (see that class's own javadoc
+    # for why it now takes top priority, and each sender's ConditionalOnMissingBean chain for the
+    # exact precedence). Leave unset for local/dev - the senders fall back to logging instead of
+    # calling out. See TwilioSmsSender / TwilioWhatsAppSender for exactly what "unset" means
+    # (blank, not absent).
     twilio:
       account-sid: ${TWILIO_ACCOUNT_SID:}
       auth-token: ${TWILIO_AUTH_TOKEN:}
@@ -72,14 +74,26 @@ nitel:
       # your own WhatsApp sender is Meta-approved.
       whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
     # SMS via BulkSMSNigeria (https://www.bulksmsnigeria.com/app/api/docs) - wins over Twilio for
-    # the SMS channel whenever api-token is set. "otp" gateway is used automatically for
-    # transactional sends (e.g. the claim-account verification code); everything else uses
-    # `gateway` below. sender-id is capped at 11 characters by the provider.
+    # the SMS channel whenever api-token is set, but loses to Termii below if that's also set.
+    # "otp" gateway is used automatically for transactional sends (e.g. the claim-account
+    # verification code); everything else uses `gateway` below. sender-id is capped at 11
+    # characters by the provider.
     bulksms:
       api-token: ${BULKSMS_API_TOKEN:}
       sender-id: ${BULKSMS_SENDER_ID:NITELESTATE}
       gateway: ${BULKSMS_GATEWAY:direct-corporate}
       base-url: ${BULKSMS_BASE_URL:https://www.bulksmsnigeria.com/api/v2}
+    # SMS via Termii (https://developers.termii.com/messaging-api) - takes over the SMS channel
+    # from both Twilio and BulkSMSNigeria whenever api-key is set, so switching providers is just
+    # adding this one var (no need to remove the others first). Always sent on Termii's "dnd"
+    # channel, not "generic" - see TermiiSmsSender's javadoc for why (every message this app sends
+    # is effectively transactional, and Termii's own docs warn "generic" is DND-restricted,
+    # time-windowed, and risks the sender ID being blocked if used for this kind of content).
+    # sender-id is capped at 11 characters by the provider.
+    termii:
+      api-key: ${TERMII_API_KEY:}
+      sender-id: ${TERMII_SENDER_ID:NITELESTATE}
+      base-url: ${TERMII_BASE_URL:https://api.ng.termii.com/api}
     # Email via Resend.
     resend:
       api-key: ${RESEND_API_KEY:}

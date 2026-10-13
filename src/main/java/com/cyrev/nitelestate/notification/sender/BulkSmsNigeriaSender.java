@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,9 @@ import java.util.Map;
 /**
  * Sends SMS through BulkSMSNigeria's v2 API (https://www.bulksmsnigeria.com/app/api/docs) —
  * replaces TwilioSmsSender as the SMS channel whenever it's configured (see
- * BulkSmsNigeriaConfiguredCondition / TwilioSmsSender's ConditionalOnMissingBean on this class).
+ * BulkSmsNigeriaConfiguredCondition / TwilioSmsSender's ConditionalOnMissingBean on this class),
+ * but backs off in turn the moment TermiiSmsSender is configured - see TermiiSmsSender's own
+ * javadoc for why that one now takes priority.
  *
  * The provider routes transactional content (OTPs, verification codes) through a dedicated
  * "otp" gateway and rejects it on the regular bulk gateway - see NotificationSender's 4-arg
@@ -29,6 +32,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @Conditional(BulkSmsNigeriaConfiguredCondition.class)
+@ConditionalOnMissingBean(TermiiSmsSender.class)
 public class BulkSmsNigeriaSender implements NotificationSender {
 
     private static final String OTP_GATEWAY = "otp";
