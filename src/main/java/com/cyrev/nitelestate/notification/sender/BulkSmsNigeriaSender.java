@@ -3,10 +3,13 @@ package com.cyrev.nitelestate.notification.sender;
 import com.cyrev.nitelestate.notification.NotificationChannel;
 import com.cyrev.nitelestate.notification.NotificationSender;
 import com.cyrev.nitelestate.notification.Redaction;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -30,6 +33,7 @@ public class BulkSmsNigeriaSender implements NotificationSender {
 
     private static final String OTP_GATEWAY = "otp";
 
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     private final RestClient restClient;
     private final String apiToken;
     private final String senderId;
@@ -70,13 +74,41 @@ public class BulkSmsNigeriaSender implements NotificationSender {
                 "body", message,
                 "gateway", transactional ? OTP_GATEWAY : defaultGateway);
 
-        restClient.post()
+        ResponseEntity<String> response = restClient.post()
                 .uri("/sms")
                 .header("Authorization", "Bearer " + apiToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
-                .toBodilessEntity();
+                .toEntity(String.class);
+
+        // The provider returns HTTP 200 even when it rejects a send outright (insufficient
+        // wallet balance, a sender ID that isn't approved yet, a bad gateway/recipient, ...) -
+        // the real result only shows up in the body, under "error" (see e.g. BSNG-2013 above).
+        // toBodilessEntity() used to discard this, so a rejected send looked identical to a real
+        // one here and in the Notification Log: logged SENT, nothing ever reaching a phone.
+        // Always log the raw response too, so a provider-side rejection this check doesn't
+        // recognize (the provider changes its error shape) is still visible in the service logs.
+        String responseBody = response.getBody();
+        log.info("BulkSMSNigeria response to={} status={} body={}", recipient, response.getStatusCode(), responseBody);
+        String providerError = extractError(responseBody);
+        if (providerError != null) {
+            throw new IllegalStateException("BulkSMSNigeria rejected the message: " + providerError);
+        }
+    }
+
+    /** Null when the response doesn't carry a recognizable error - a parse hiccup alone shouldn't
+     * flip a send that otherwise looks fine into a false FAILED; the raw body is logged either way. */
+    private String extractError(String responseBody) {
+        if (responseBody == null) {
+            return null;
+        }
+        try {
+            JsonNode error = objectMapper.readTree(responseBody).get("error");
+            return (error != null && !error.isNull() && StringUtils.hasText(error.asText())) ? error.asText() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** recipient is E.164 (e.g. "+2348023797036" - see PhoneNumbers) but the provider expects digits only. */
