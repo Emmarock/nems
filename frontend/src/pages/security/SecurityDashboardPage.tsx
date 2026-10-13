@@ -59,7 +59,7 @@ export function SecurityDashboardPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/security">
         <div>
           <h1>Security Dashboard</h1>
           <p className="page-subtitle">Live operational view for the gate team.</p>

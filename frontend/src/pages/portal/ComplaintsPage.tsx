@@ -68,7 +68,7 @@ export function ComplaintsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/complaints">
         <div>
           <h1>My Complaints</h1>
           <p className="page-subtitle">Report electricity, water, security and other issues.</p>

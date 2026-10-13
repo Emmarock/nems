@@ -80,22 +80,18 @@ export function Layout({ children }: { children: ReactNode }) {
     setNavOpen(false)
   }, [location.pathname])
 
-  // The mobile sidebar is a slide-out drawer, hidden by default (see .sidebar's
-  // transform: translateX(-100%) below 768px) - several tour steps spotlight a nav link inside
-  // it, which only has a real on-screen position while the drawer is open.
-  useEffect(() => {
-    if (tour.active) {
-      setNavOpen(true)
-    }
-  }, [tour.active])
-
   if (!user) return null
 
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role) && (!item.landlordOnly || isLandlord(user)))
+  // Every tour step now navigates to a real page and spotlights something on it (see
+  // tour/tourSteps's `route` field) rather than pointing at the sidebar link itself - so the
+  // sidebar just stays out of the way, collapsed, for the whole tour instead of competing for
+  // space with whatever's actually being shown.
+  const sidebarCollapsed = tour.active
 
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${navOpen ? 'open' : ''} ${sidebarCollapsed ? 'tour-collapsed' : ''}`}>
         <div className="sidebar-brand">Nitel Estate</div>
         <div className="sidebar-section">Menu</div>
         {items.map((item) => {
@@ -105,7 +101,6 @@ export function Layout({ children }: { children: ReactNode }) {
               key={item.to}
               to={item.to}
               end={item.to === '/'}
-              data-tour={item.to}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
               <Icon />

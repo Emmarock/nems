@@ -43,7 +43,7 @@ export function NotificationLogsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/notification-logs">
         <div>
           <h1>Notification log</h1>
           <p className="page-subtitle">

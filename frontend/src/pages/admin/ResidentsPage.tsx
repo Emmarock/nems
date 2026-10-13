@@ -92,7 +92,7 @@ export function ResidentsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/residents">
         <div>
           <h1>Residents</h1>
           <p className="page-subtitle">Owner/tenant profiles linked to properties.</p>

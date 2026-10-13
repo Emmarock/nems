@@ -46,7 +46,7 @@ export function VehiclesPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/vehicles">
         <div>
           <h1>Vehicles</h1>
           <p className="page-subtitle">Registered ahead of ANPR.</p>

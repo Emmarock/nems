@@ -1,18 +1,25 @@
 import type { Role } from '../api/types'
 
 export interface TourStep {
-  /** Matches a data-tour attribute in the DOM. Null renders a centered card with no spotlight —
-   * used only for the welcome/closing steps, which have no single element to point at. */
+  /** Route to be on for this step — the tour navigates here before showing it (see
+   * tour/TourContext). Null only for the welcome/closing cards, which have no page of their own
+   * and simply stay wherever the tour already is. */
+  route: string | null
+  /** Matches a data-tour attribute in the DOM, scoped to whatever `route` navigated to. Null
+   * renders a centered card with no spotlight. */
   target: string | null
   title: string
   body: string
 }
 
 /**
- * Per-route copy, shared across every staff tour that includes that route - one nav item means
- * the same thing regardless of which role is looking at it, so the wording lives here once
- * rather than being duplicated per role. RESIDENT's own tour (dashboard cards + portal pages)
- * is built separately below since its content and structure differ enough not to fit this table.
+ * Per-route copy, shared across every staff tour that includes that route - one page means the
+ * same thing regardless of which role is looking at it, so the wording lives here once rather
+ * than being duplicated per role. Each entry's `target` matches the data-tour the page's own
+ * header carries (see e.g. pages/admin/ResidentsPage.tsx) - the tour spotlights the real page
+ * now, not the sidebar link that got you there. RESIDENT's own tour (dashboard cards + portal
+ * pages) is built separately below since its content and structure differ enough not to fit
+ * this table.
  */
 const ROUTE_CONTENT: Record<string, { title: string; body: string }> = {
   '/reports': {
@@ -129,71 +136,85 @@ export const ROLE_HOME: Record<Role, string> = {
 
 const RESIDENT_STEPS: TourStep[] = [
   {
+    route: '/',
     target: 'dashboard-overview',
     title: 'Your account at a glance',
     body: 'This shows what you currently owe, what you’ve already paid, and how many vehicles you have registered.',
   },
   {
+    route: '/',
     target: 'dashboard-access-pass',
     title: 'Your access pass',
     body: 'This QR code is yours personally. Show it at the gate and security scans you straight in — no need to stop and sign a book.',
   },
   {
+    route: '/',
     target: 'dashboard-property',
     title: 'Your property',
     body: 'The house linked to your account. If anything here looks wrong, you can fix it yourself from My Profile.',
   },
   {
+    route: '/portal/profile',
     target: '/portal/profile',
     title: 'My Profile',
     body: 'Update your contact details, correct your house number or road, and see your registered vehicles.',
   },
   {
+    route: '/portal/visitors',
     target: '/portal/visitors',
     title: 'My Visitors',
     body: 'Expecting a guest? Register them here first — they get a QR pass to show security at the gate.',
   },
   {
+    route: '/portal/workers',
     target: '/portal/workers',
     title: 'My Workers',
     body: 'Register domestic staff or contractors the same way, so security knows to let them in and out.',
   },
   {
+    route: '/portal/household',
     target: '/portal/household',
     title: 'My Household',
     body: 'Add family members who live with you. Your landlord reviews the request and approves the pass.',
   },
   {
+    route: '/portal/tenants',
     target: '/portal/tenants',
     title: 'My Tenants',
     body: 'As the property owner, add the tenants living on your property here.',
   },
   {
+    route: '/portal/household-approvals',
     target: '/portal/household-approvals',
     title: 'Household Approvals',
     body: 'Approve household passes your tenants have requested for their own family members.',
   },
   {
+    route: '/portal/vehicles',
     target: '/portal/vehicles',
     title: 'My Vehicles',
     body: 'Register your car here to get it its own QR pass for the gate.',
   },
   {
+    route: '/portal/vehicle-approvals',
     target: '/portal/vehicle-approvals',
     title: 'Vehicle Approvals',
     body: "Approve vehicles your tenants have registered before they're allowed through the gate.",
   },
   {
+    route: '/portal/payments',
     target: '/portal/payments',
     title: 'My Payments',
     body: 'See your balance and levies, and submit a payment receipt for the treasurer to confirm.',
   },
   {
+    route: '/portal/complaints',
     target: '/portal/complaints',
     title: 'My Complaints',
     body: 'Something not working on the estate? Report it here and track what happens to it.',
   },
   {
+    route: '/announcements',
     target: '/announcements',
     title: 'Announcements',
     body: 'Estate-wide notices from management show up here — and the bell icon near the top of the page too.',
@@ -201,7 +222,7 @@ const RESIDENT_STEPS: TourStep[] = [
 ]
 
 /** Hidden for a tenant (a landlord-only page in their own sidebar) — see auth/AuthContext.isLandlord. */
-const RESIDENT_LANDLORD_ONLY_TARGETS = new Set(['/portal/tenants', '/portal/household-approvals', '/portal/vehicle-approvals'])
+const RESIDENT_LANDLORD_ONLY_ROUTES = new Set(['/portal/tenants', '/portal/household-approvals', '/portal/vehicle-approvals'])
 
 const ROLE_LABEL: Partial<Record<Role, string>> = {
   SUPER_ADMIN: 'Super Admin',
@@ -215,29 +236,30 @@ const ROLE_LABEL: Partial<Record<Role, string>> = {
 
 /**
  * Builds the ordered step list for whoever's currently logged in — see tour/TourContext for how
- * this gets run. RESIDENT gets its own hand-written tour (dashboard cards + portal pages,
- * trimmed to what a tenant can actually see); every staff role gets one assembled from
- * ROLE_ROUTES + ROUTE_CONTENT, since those sidebars are just a flat list of estate-wide pages.
+ * this gets run (it navigates to each step's `route` before showing it). RESIDENT gets its own
+ * hand-written tour (dashboard cards + portal pages, trimmed to what a tenant can actually see);
+ * every staff role gets one assembled from ROLE_ROUTES + ROUTE_CONTENT, since those sidebars are
+ * just a flat list of estate-wide pages.
  */
 export function buildTourSteps(role: Role, isLandlordUser: boolean): TourStep[] {
   if (role === 'RESIDENT') {
     const steps = isLandlordUser
       ? RESIDENT_STEPS
-      : RESIDENT_STEPS.filter((s) => s.target === null || !RESIDENT_LANDLORD_ONLY_TARGETS.has(s.target))
+      : RESIDENT_STEPS.filter((s) => s.route === null || !RESIDENT_LANDLORD_ONLY_ROUTES.has(s.route))
     return [welcomeStep('your resident portal'), ...steps, closingStep()]
   }
 
   const routes = ROLE_ROUTES[role] ?? []
   const steps = routes
-    .map((route) => ROUTE_CONTENT[route])
-    .filter((content): content is { title: string; body: string } => Boolean(content))
-    .map((content, i): TourStep => ({ target: routes[i], title: content.title, body: content.body }))
+    .filter((route) => ROUTE_CONTENT[route])
+    .map((route): TourStep => ({ route, target: route, title: ROUTE_CONTENT[route].title, body: ROUTE_CONTENT[route].body }))
 
   return [welcomeStep(`the ${ROLE_LABEL[role] ?? role} workspace`), ...steps, closingStep()]
 }
 
 function welcomeStep(subject: string): TourStep {
   return {
+    route: null,
     target: null,
     title: 'Welcome to Nitel Estate',
     body: `Here's a quick look around ${subject}. It only takes a minute, and you can replay it anytime from the "Take a tour" button near the top of the page.`,
@@ -246,6 +268,7 @@ function welcomeStep(subject: string): TourStep {
 
 function closingStep(): TourStep {
   return {
+    route: null,
     target: null,
     title: "You're all set",
     body: 'That covers the basics. Look out for the "Take a tour" button near the top of the page if you ever want to see this again.',

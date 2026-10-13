@@ -57,7 +57,7 @@ export function VisitorsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/visitors">
         <div>
           <h1>My Visitors</h1>
           <p className="page-subtitle">Create QR visitor passes for guests.</p>

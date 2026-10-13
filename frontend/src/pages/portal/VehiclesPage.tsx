@@ -89,7 +89,7 @@ export function VehiclesPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/vehicles">
         <div>
           <h1>My Vehicles</h1>
           <p className="page-subtitle">Register your vehicles and request window stickers for them.</p>

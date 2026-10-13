@@ -34,7 +34,7 @@ export function RfidPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/security/rfid">
         <div>
           <h1>RFID Tags</h1>
           <p className="page-subtitle">Physical credentials for residents/long-term workers.</p>

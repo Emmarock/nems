@@ -113,7 +113,7 @@ export function ProfilePage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/profile">
         <div>
           <h1>My Profile</h1>
           <p className="page-subtitle">Your personal details, house number, and registered vehicles.</p>

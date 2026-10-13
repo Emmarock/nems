@@ -21,7 +21,7 @@ export function ReportsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/reports">
         <div>
           <h1>Reports</h1>
           <p className="page-subtitle">CDA dashboard, extended with worker/visitor activity.</p>

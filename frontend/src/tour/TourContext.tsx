@@ -14,7 +14,8 @@ interface TourContextValue {
   back: () => void
   skip: () => void
   /** Also used to replay the tour on demand (see Layout's "Take a tour" button) — jumps to this
-   * role's own landing page first since every step's target lives there or in the sidebar it carries. */
+   * role's own landing page first, for the welcome step; every step after that navigates to its
+   * own page as the tour advances (see the route-watching effect below). */
   restart: () => void
 }
 
@@ -35,6 +36,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [stepIndex, setStepIndex] = useState(0)
 
   const steps = useMemo(() => (user ? buildTourSteps(user.role, isLandlord(user)) : []), [user])
+  const currentStep = active ? (steps[stepIndex] ?? null) : null
 
   const storageKey = user ? `${STORAGE_PREFIX}${user.email}` : null
   const homeRoute = user ? ROLE_HOME[user.role] : null
@@ -58,6 +60,18 @@ export function TourProvider({ children }: { children: ReactNode }) {
       navigate(homeRoute)
     }
   }
+
+  // Every step beyond the welcome/closing cards belongs to a specific page (see tourSteps'
+  // `route` field) - navigate there as the active step changes, so whatever it spotlights (see
+  // components/TourOverlay) actually exists in the DOM to measure. Only reacts to the step
+  // itself changing, not to location - location changes AS A RESULT of this same navigate()
+  // call, so also watching it would loop.
+  useEffect(() => {
+    if (currentStep?.route && location.pathname !== currentStep.route) {
+      navigate(currentStep.route)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep])
 
   useEffect(() => {
     if (!user || !storageKey) {
@@ -93,7 +107,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     active,
     stepIndex,
     steps,
-    currentStep: active ? (steps[stepIndex] ?? null) : null,
+    currentStep,
     next,
     back,
     skip: finish,

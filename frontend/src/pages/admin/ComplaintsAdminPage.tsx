@@ -34,7 +34,7 @@ export function ComplaintsAdminPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/complaints">
         <div>
           <h1>Complaints</h1>
           <p className="page-subtitle">OPEN → ASSIGNED → IN PROGRESS → RESOLVED → CLOSED.</p>

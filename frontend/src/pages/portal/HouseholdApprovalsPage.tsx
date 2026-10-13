@@ -45,7 +45,7 @@ export function HouseholdApprovalsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/household-approvals">
         <div>
           <h1>Household Approvals</h1>
           <p className="page-subtitle">

@@ -51,7 +51,7 @@ export function HouseholdMembersAdminPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/household-members">
         <div>
           <h1>Household Members</h1>
           <p className="page-subtitle">Spouse/family passes, sponsored by a resident and approved by the property's landlord — valid until revoked.</p>

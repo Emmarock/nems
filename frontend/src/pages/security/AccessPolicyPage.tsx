@@ -37,7 +37,7 @@ export function AccessPolicyPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/security/policy">
         <div>
           <h1>Access Policy</h1>
           <p className="page-subtitle">

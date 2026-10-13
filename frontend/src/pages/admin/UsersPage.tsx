@@ -44,7 +44,7 @@ export function UsersPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/users">
         <div>
           <h1>Users</h1>
           <p className="page-subtitle">Staff and resident login accounts (Super Admin only).</p>

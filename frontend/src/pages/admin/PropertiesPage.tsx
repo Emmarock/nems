@@ -101,7 +101,7 @@ export function PropertiesPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/properties">
         <div>
           <h1>Properties</h1>
           <p className="page-subtitle">The estate's property registry.</p>

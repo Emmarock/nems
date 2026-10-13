@@ -67,7 +67,7 @@ export function WorkersPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/workers">
         <div>
           <h1>My Workers</h1>
           <p className="page-subtitle">

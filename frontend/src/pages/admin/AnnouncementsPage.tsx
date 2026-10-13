@@ -58,7 +58,7 @@ export function AnnouncementsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/announcements">
         <div>
           <h1>Announcements</h1>
           <p className="page-subtitle">Estate-wide notices via portal, email, SMS, WhatsApp. Click a title to read it in full.</p>

@@ -30,7 +30,7 @@ export function StickerRequestsAdminPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/stickers">
         <div>
           <h1>Vehicle Stickers</h1>
           <p className="page-subtitle">

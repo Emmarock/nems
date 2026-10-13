@@ -61,7 +61,7 @@ export function WorkersAdminPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/workers">
         <div>
           <h1>Workers</h1>
           <p className="page-subtitle">

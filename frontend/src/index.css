@@ -96,6 +96,20 @@ button {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transition: width 200ms ease, padding 200ms ease;
+}
+
+/* components/Layout + tour/TourContext: collapsed while a tour step is spotlighting something
+   that isn't a sidebar link (a Dashboard card, or the centered welcome/closing step), so the
+   page content it's actually pointing at isn't squeezed into less room than it needs. On mobile
+   this is redundant with the drawer already being closed (off-screen via transform) - harmless,
+   just not doing any visible work there. */
+.sidebar.tour-collapsed {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+  border-right-color: transparent;
 }
 
 /* Desktop: "Change password"/"Log out" live in the topbar instead (see .topbar-account-actions) -

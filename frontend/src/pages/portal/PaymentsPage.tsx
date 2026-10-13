@@ -129,7 +129,7 @@ export function PaymentsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/payments">
         <div>
           <h1>{landlord ? 'My Payments' : "My Landlord's Payments"}</h1>
           <p className="page-subtitle">

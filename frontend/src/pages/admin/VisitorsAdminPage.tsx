@@ -35,7 +35,7 @@ export function VisitorsAdminPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/visitors">
         <div>
           <h1>Visitors</h1>
           <p className="page-subtitle">Every visitor pass issued by residents estate-wide (Visitor Module).</p>

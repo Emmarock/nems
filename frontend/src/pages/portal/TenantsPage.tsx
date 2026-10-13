@@ -64,7 +64,7 @@ export function TenantsPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/tenants">
         <div>
           <h1>My Tenants</h1>
           <p className="page-subtitle">Add or remove tenants living on your property.</p>

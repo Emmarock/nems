@@ -56,7 +56,7 @@ export function GatesPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/security/gates">
         <div>
           <h1>Gates</h1>
           <p className="page-subtitle">Register the estate's physical gates.</p>

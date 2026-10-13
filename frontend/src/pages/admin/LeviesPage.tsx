@@ -116,7 +116,7 @@ export function LeviesPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/levies">
         <div>
           <h1>Levies &amp; Invoices</h1>
           <p className="page-subtitle">Define estate charges and raise invoices against residents.</p>

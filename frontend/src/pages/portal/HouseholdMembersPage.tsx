@@ -82,7 +82,7 @@ export function HouseholdMembersPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" data-tour="/portal/household">
         <div>
           <h1>My Household</h1>
           <p className="page-subtitle">
