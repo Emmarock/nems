@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { isLandlord, useAuth } from '../auth/AuthContext'
-import { TOUR_STEPS, type TourStep } from './tourSteps'
+import { buildTourSteps, ROLE_HOME, type TourStep } from './tourSteps'
 
 const STORAGE_PREFIX = 'nems.tour.completed.'
 
@@ -13,18 +13,19 @@ interface TourContextValue {
   next: () => void
   back: () => void
   skip: () => void
-  /** Also used to replay the tour on demand (see Layout's "Take a tour" button) — jumps to the
-   * Dashboard first since every step's target lives there or in the sidebar it carries. */
+  /** Also used to replay the tour on demand (see Layout's "Take a tour" button) — jumps to this
+   * role's own landing page first since every step's target lives there or in the sidebar it carries. */
   restart: () => void
 }
 
 const TourContext = createContext<TourContextValue | null>(null)
 
 /**
- * Resident-only onboarding walkthrough. Auto-starts once per resident (tracked in localStorage,
- * not the backend - losing this on a new device/browser just means a harmless replay, not a
- * meaningful data loss) the first time they're seen with no completed-tour record, and can be
- * replayed anytime via restart(). See components/TourOverlay for the actual rendering.
+ * Per-role onboarding walkthrough, for every role (resident and staff alike). Auto-starts once
+ * per person (tracked in localStorage by email, not the backend - losing this on a new device/
+ * browser just means a harmless replay, not a meaningful data loss) the first time they're seen
+ * with no completed-tour record, and can be replayed anytime via restart(). See
+ * components/TourOverlay for the actual rendering, tour/tourSteps for each role's content.
  */
 export function TourProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -33,12 +34,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
 
-  const steps = useMemo(
-    () => (user ? TOUR_STEPS.filter((s) => !s.landlordOnly || isLandlord(user)) : []),
-    [user],
-  )
+  const steps = useMemo(() => (user ? buildTourSteps(user.role, isLandlord(user)) : []), [user])
 
-  const storageKey = user?.residentId != null ? `${STORAGE_PREFIX}${user.residentId}` : null
+  const storageKey = user ? `${STORAGE_PREFIX}${user.email}` : null
+  const homeRoute = user ? ROLE_HOME[user.role] : null
 
   function finish() {
     setActive(false)
@@ -55,13 +54,13 @@ export function TourProvider({ children }: { children: ReactNode }) {
   function start() {
     setStepIndex(0)
     setActive(true)
-    if (location.pathname !== '/') {
-      navigate('/')
+    if (homeRoute && location.pathname !== homeRoute) {
+      navigate(homeRoute)
     }
   }
 
   useEffect(() => {
-    if (!user || user.role !== 'RESIDENT' || !storageKey) {
+    if (!user || !storageKey) {
       return
     }
     let alreadySeen: string | null = null
@@ -73,10 +72,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (!alreadySeen) {
       start()
     }
-    // Only meant to fire once per resident id becoming known (e.g. right after login) - not on
-    // every location/steps change, which would re-trigger it while the resident is mid-tour.
+    // Only meant to fire once per person becoming known (e.g. right after login) - not on every
+    // location/steps change, which would re-trigger it while they're mid-tour.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.residentId])
+  }, [user?.email])
 
   function next() {
     if (stepIndex + 1 >= steps.length) {

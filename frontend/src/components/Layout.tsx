@@ -140,12 +140,10 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
           <div className="topbar-user">
             <NotificationBell />
-            {user.role === 'RESIDENT' && (
-              <button type="button" className="btn btn-sm" onClick={tour.restart}>
-                <CompassIcon style={{ width: 16, height: 16 }} />
-                Take a tour
-              </button>
-            )}
+            <button type="button" className="btn btn-sm" onClick={tour.restart}>
+              <CompassIcon style={{ width: 16, height: 16 }} />
+              Take a tour
+            </button>
             <span>
               {user.fullName} · <span className="muted">{user.role.replace(/_/g, ' ')}</span>
             </span>
