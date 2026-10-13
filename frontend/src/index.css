@@ -1584,3 +1584,71 @@ select:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Guided tour (components/TourOverlay) - same box-shadow "cutout" technique as
+   .qr-scanner-frame, just data-driven by a measured target rect instead of a fixed inset. */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+.tour-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.tour-spotlight {
+  position: fixed;
+  border-radius: var(--radius);
+  /* The infinite-spread shadow paints everything outside this element's own box, leaving its
+     interior as the natural "cutout" - a zero-size box (no target found / a centered step)
+     still darkens the whole viewport uniformly, since there's no interior to leave clear. */
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55), 0 0 0 2px var(--color-primary);
+  pointer-events: none;
+  transition: top 200ms ease, left 200ms ease, width 200ms ease, height 200ms ease;
+}
+
+.tour-tooltip {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2001;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  animation: modal-pop-in 180ms ease;
+}
+
+.tour-tooltip-progress {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.tour-tooltip-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.tour-tooltip-body {
+  margin: 0 0 16px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tour-tooltip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

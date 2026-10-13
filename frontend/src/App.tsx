@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { NotificationsProvider } from './notifications/NotificationsContext'
 import { EntityDetailProvider } from './entityDetail/EntityDetailContext'
+import { TourProvider } from './tour/TourContext'
 import { EntityDetailModal } from './components/EntityDetailModal'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Layout } from './components/Layout'
@@ -69,6 +70,7 @@ export default function App() {
     <AuthProvider>
       <NotificationsProvider>
       <EntityDetailProvider>
+      <TourProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<SetPasswordPage />} />
@@ -294,6 +296,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </TourProvider>
       <EntityDetailModal />
       </EntityDetailProvider>
       </NotificationsProvider>

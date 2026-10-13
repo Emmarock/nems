@@ -1,12 +1,15 @@
 import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { isLandlord, useAuth } from '../auth/AuthContext'
+import { useTour } from '../tour/TourContext'
 import { NotificationBell } from './NotificationBell'
 import { ChangePasswordModal } from './ChangePasswordModal'
+import { TourOverlay } from './TourOverlay'
 import {
   BellIcon,
   CarIcon,
   ChartIcon,
+  CompassIcon,
   ComplaintIcon,
   CoinsIcon,
   DashboardIcon,
@@ -68,6 +71,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
+  const tour = useTour()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const location = useLocation()
@@ -75,6 +79,15 @@ export function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     setNavOpen(false)
   }, [location.pathname])
+
+  // The mobile sidebar is a slide-out drawer, hidden by default (see .sidebar's
+  // transform: translateX(-100%) below 768px) - several tour steps spotlight a nav link inside
+  // it, which only has a real on-screen position while the drawer is open.
+  useEffect(() => {
+    if (tour.active) {
+      setNavOpen(true)
+    }
+  }, [tour.active])
 
   if (!user) return null
 
@@ -92,6 +105,7 @@ export function Layout({ children }: { children: ReactNode }) {
               key={item.to}
               to={item.to}
               end={item.to === '/'}
+              data-tour={item.to}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
               <Icon />
@@ -126,6 +140,12 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
           <div className="topbar-user">
             <NotificationBell />
+            {user.role === 'RESIDENT' && (
+              <button type="button" className="btn btn-sm" onClick={tour.restart}>
+                <CompassIcon style={{ width: 16, height: 16 }} />
+                Take a tour
+              </button>
+            )}
             <span>
               {user.fullName} · <span className="muted">{user.role.replace(/_/g, ' ')}</span>
             </span>
@@ -144,6 +164,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </div>
 
       {passwordModalOpen && <ChangePasswordModal onClose={() => setPasswordModalOpen(false)} />}
+      <TourOverlay />
     </div>
   )
 }

@@ -57,7 +57,7 @@ export function DashboardPage() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <div className="stat-grid">
+      <div className="stat-grid" data-tour="dashboard-overview">
         <StatCard
           label="Outstanding"
           value={`₦${dashboard.account.outstanding.toLocaleString()}`}
@@ -90,7 +90,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card" style={{ marginBottom: 20 }} data-tour="dashboard-access-pass">
         <div className="media-row">
           <div className="media-icon media-icon-magenta">
             <UserBadgeIcon />
@@ -105,7 +105,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card" style={{ marginBottom: 20 }} data-tour="dashboard-property">
         <div className="section-title" style={{ marginTop: 0 }}>Property</div>
         {dashboard.property ? (
           <div className="media-row">
