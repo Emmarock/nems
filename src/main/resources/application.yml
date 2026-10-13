@@ -77,7 +77,7 @@ nitel:
     # `gateway` below. sender-id is capped at 11 characters by the provider.
     bulksms:
       api-token: ${BULKSMS_API_TOKEN:}
-      sender-id: ${BULKSMS_SENDER_ID:NitelEstate}
+      sender-id: ${BULKSMS_SENDER_ID:NITELESTATE}
       gateway: ${BULKSMS_GATEWAY:direct-corporate}
       base-url: ${BULKSMS_BASE_URL:https://www.bulksmsnigeria.com/api/v2}
     # Email via Resend.
