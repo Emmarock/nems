@@ -22,9 +22,9 @@ import java.util.Map;
  * BulkSmsNigeriaConfiguredCondition / TwilioSmsSender's ConditionalOnMissingBean on this class).
  *
  * The provider routes transactional content (OTPs, verification codes) through a dedicated
- * "otp" gateway and rejects it on the regular bulk gateway (error BSNG-2013) - see
- * NotificationSender's 4-arg send. `transactional` picks that route; everything else (account
- * provisioning, announcements, receipt-shared alerts) uses the configured default gateway.
+ * "otp" gateway and rejects it on the regular bulk gateway - see NotificationSender's 4-arg
+ * send. `transactional` picks that route; everything else (account provisioning, announcements,
+ * receipt-shared alerts) uses the configured default gateway.
  */
 @Slf4j
 @Component
@@ -82,13 +82,21 @@ public class BulkSmsNigeriaSender implements NotificationSender {
                 .retrieve()
                 .toEntity(String.class);
 
-        // The provider returns HTTP 200 even when it rejects a send outright (insufficient
-        // wallet balance, a sender ID that isn't approved yet, a bad gateway/recipient, ...) -
-        // the real result only shows up in the body, under "error" (see e.g. BSNG-2013 above).
-        // toBodilessEntity() used to discard this, so a rejected send looked identical to a real
-        // one here and in the Notification Log: logged SENT, nothing ever reaching a phone.
-        // Always log the raw response too, so a provider-side rejection this check doesn't
-        // recognize (the provider changes its error shape) is still visible in the service logs.
+        // The provider can return HTTP 200 even for a submission it doesn't actually accept -
+        // the real result is in the body: {"status":"success"|"failed", "code":"BSNG-xxxx",
+        // "message":"...", "data":{...}}. toBodilessEntity() used to discard this entirely, so a
+        // rejected submission looked identical to an accepted one here and in the Notification
+        // Log: logged SENT, nothing ever reaching a phone. Always log the raw response too, so a
+        // shape this check doesn't recognize is still visible in the service logs.
+        //
+        // NOTE: a "success" status here only means the provider's SMSC accepted and billed the
+        // submission (see data.cost/data.message_id) - it is NOT a delivery confirmation. Actual
+        // delivery depends on the recipient's network and, in Nigeria, on the sender ID being
+        // DND-bypass approved on that network; a "success" response with the message never
+        // arriving almost always means the sender ID isn't approved yet or the recipient number
+        // is DND-registered, not a bug in this call. BulkSMSNigeria's own dashboard shows the
+        // per-message delivery report (DLR) for data.message_id, which this synchronous response
+        // never carries.
         String responseBody = response.getBody();
         log.info("BulkSMSNigeria response to={} status={} body={}", recipient, response.getStatusCode(), responseBody);
         String providerError = extractError(responseBody);
@@ -97,15 +105,24 @@ public class BulkSmsNigeriaSender implements NotificationSender {
         }
     }
 
-    /** Null when the response doesn't carry a recognizable error - a parse hiccup alone shouldn't
+    /** Null when the response reports success (or doesn't parse) - a parse hiccup alone shouldn't
      * flip a send that otherwise looks fine into a false FAILED; the raw body is logged either way. */
     private String extractError(String responseBody) {
         if (responseBody == null) {
             return null;
         }
         try {
-            JsonNode error = objectMapper.readTree(responseBody).get("error");
-            return (error != null && !error.isNull() && StringUtils.hasText(error.asText())) ? error.asText() : null;
+            JsonNode json = objectMapper.readTree(responseBody);
+            String status = json.path("status").asText("");
+            if ("success".equalsIgnoreCase(status)) {
+                return null;
+            }
+            String code = json.path("code").asText("");
+            String message = json.path("message").asText("");
+            if (!StringUtils.hasText(status) && !StringUtils.hasText(code) && !StringUtils.hasText(message)) {
+                return null;
+            }
+            return (StringUtils.hasText(code) ? code + ": " : "") + (StringUtils.hasText(message) ? message : status);
         } catch (Exception e) {
             return null;
         }
