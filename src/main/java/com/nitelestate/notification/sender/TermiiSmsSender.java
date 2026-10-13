@@ -80,7 +80,7 @@ public class TermiiSmsSender implements NotificationSender {
                 "api_key", apiKey);
 
         ResponseEntity<String> response = restClient.post()
-                .uri("/sms/send")
+                .uri("/api/sms/send")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
