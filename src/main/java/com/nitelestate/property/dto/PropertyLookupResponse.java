@@ -1,0 +1,31 @@
+package com.nitelestate.property.dto;
+
+import com.nitelestate.billing.dto.AccountBalanceResponse;
+import com.nitelestate.billing.dto.LevyBalanceResponse;
+import com.nitelestate.payment.dto.PaymentResponse;
+import com.nitelestate.property.OccupancyStatus;
+import com.nitelestate.property.PropertyType;
+
+import java.util.List;
+
+/**
+ * What an enforcement officer sees scanning a building's QR pass — the property itself plus its
+ * owning resident's full payment picture, so compliance can be checked on the spot without
+ * looking the resident up separately.
+ */
+public record PropertyLookupResponse(
+        Long id,
+        String houseNumber,
+        String road,
+        String address,
+        String postcode,
+        PropertyType propertyType,
+        OccupancyStatus occupancyStatus,
+        Long ownerId,
+        String ownerName,
+        String ownerPhone,
+        AccountBalanceResponse balance,
+        List<LevyBalanceResponse> levyBreakdown,
+        List<PaymentResponse> recentPayments
+) {
+}

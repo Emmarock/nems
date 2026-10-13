@@ -3,7 +3,7 @@
 # not on a paid-by-the-GB log drain.
 logging:
   level:
-    com.cyrev.nitelestate: INFO
+    com.nitelestate: INFO
     org.hibernate.SQL: WARN
 
 spring:

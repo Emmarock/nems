@@ -1,0 +1,31 @@
+package com.nitelestate.worker.dto;
+
+import com.nitelestate.worker.Worker;
+import com.nitelestate.worker.WorkerCategory;
+import com.nitelestate.worker.WorkerStatus;
+
+import java.time.LocalDate;
+
+public record WorkerResponse(
+        Long id,
+        String fullName,
+        String phone,
+        String nationalId,
+        String contractorName,
+        String workType,
+        WorkerCategory workerCategory,
+        Long siteId,
+        String siteHouseNumber,
+        Long sponsorResidentId,
+        LocalDate startDate,
+        LocalDate expectedEndDate,
+        WorkerStatus status,
+        String qrToken,
+        String photo
+) {
+    public static WorkerResponse from(Worker w, String siteHouseNumber) {
+        return new WorkerResponse(w.getId(), w.getFullName(), w.getPhone(), w.getNationalId(), w.getContractorName(),
+                w.getWorkType(), w.getWorkerCategory(), w.getSiteId(), siteHouseNumber, w.getSponsorResidentId(), w.getStartDate(),
+                w.getExpectedEndDate(), w.getStatus(), w.getQrToken(), w.getPhoto());
+    }
+}

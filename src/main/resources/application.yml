@@ -103,5 +103,5 @@ nitel:
 
 logging:
   level:
-    com.cyrev.nitelestate: DEBUG
+    com.nitelestate: DEBUG
     org.hibernate.SQL: WARN
