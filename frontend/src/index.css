@@ -1599,6 +1599,26 @@ select:disabled {
   text-overflow: ellipsis;
 }
 
+/* components/Footer - shown on every page (Layout's app shell + every standalone auth page). */
+.app-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 16px 20px;
+}
+
+/* Auth pages (.login-page) are a full-viewport centered layout with nothing to scroll - pin the
+   footer to the bottom there instead of letting it push the centered card off-center, and
+   lighten it since that page's background is a dark gradient, not the app's own light one. */
+.login-page .app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  color: rgba(255, 255, 255, 0.7);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
 /* Guided tour (components/TourOverlay) - same box-shadow "cutout" technique as
    .qr-scanner-frame, just data-driven by a measured target rect instead of a fixed inset. */
 .tour-root {

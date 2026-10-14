@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { apiErrorMessage, consumeAuthMessage, consumePostLoginRedirect } from '../../api/client'
+import { Footer } from '../../components/Footer'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -63,6 +64,7 @@ export function LoginPage() {
           Already a resident but don't have a login? <Link to="/claim-account">Claim your account</Link>
         </p>
       </div>
+      <Footer />
     </div>
   )
 }

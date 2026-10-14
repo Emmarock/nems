@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { authApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
+import { Footer } from '../../components/Footer'
 
 /**
  * Lands here from the one-time link in an onboarding email (?token=...) — unauthenticated, the
@@ -55,6 +56,7 @@ export function SetPasswordPage() {
             Go to login
           </button>
         </div>
+        <Footer />
       </div>
     )
   }
@@ -94,6 +96,7 @@ export function SetPasswordPage() {
           </button>
         </form>
       </div>
+      <Footer />
     </div>
   )
 }

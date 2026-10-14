@@ -5,6 +5,7 @@ import { useTour } from '../tour/TourContext'
 import { NotificationBell } from './NotificationBell'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { TourOverlay } from './TourOverlay'
+import { Footer } from './Footer'
 import {
   BellIcon,
   CarIcon,
@@ -154,6 +155,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="content">{children}</main>
+        <Footer />
       </div>
 
       {passwordModalOpen && <ChangePasswordModal onClose={() => setPasswordModalOpen(false)} />}

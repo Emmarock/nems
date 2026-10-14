@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { authApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
+import { Footer } from '../../components/Footer'
 
 /**
  * Blocks the app entirely (see ProtectedRoute) until a bulk-created or admin-reset account sets
@@ -88,6 +89,7 @@ export function ForcePasswordChangePage() {
           </button>
         </form>
       </div>
+      <Footer />
     </div>
   )
 }

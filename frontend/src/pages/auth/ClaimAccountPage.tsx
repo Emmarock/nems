@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { authApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
+import { Footer } from '../../components/Footer'
 
 type Step = 'phone' | 'code' | 'done'
 
@@ -59,6 +60,7 @@ export function ClaimAccountPage() {
             Back to login
           </Link>
         </div>
+        <Footer />
       </div>
     )
   }
@@ -113,6 +115,7 @@ export function ClaimAccountPage() {
             </button>
           </p>
         </div>
+        <Footer />
       </div>
     )
   }
@@ -144,6 +147,7 @@ export function ClaimAccountPage() {
           <Link to="/login">Back to login</Link>
         </p>
       </div>
+      <Footer />
     </div>
   )
 }
