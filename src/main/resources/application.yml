@@ -92,7 +92,7 @@ nitel:
     # sender-id is capped at 11 characters by the provider.
     termii:
       api-key: ${TERMII_API_KEY:}
-      sender-id: ${TERMII_SENDER_ID:NITELESTATE}
+      sender-id: ${TERMII_SENDER_ID:OE Alert}
       base-url: ${TERMII_BASE_URL:https://v4.api.termii.com/}
     # Email via Resend.
     resend:
