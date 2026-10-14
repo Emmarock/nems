@@ -8,11 +8,12 @@ type Step = 'phone' | 'code' | 'done'
 
 /**
  * Public, unauthenticated entry point for a resident who already exists in the system but never
- * got (or lost) their login. Two steps: a WhatsApp + SMS code to the phone already on file proves
- * the caller actually controls that phone (not just that they know the number), then the
- * verified code unlocks sending a reset-password link to whatever email they supply. Both steps
- * report a real error back — an unrecognized phone in step 1, a wrong/expired code in step 2 —
- * see UserService.startClaimAccount/verifyClaimAccount.
+ * got (or lost) their login. Two steps: an SMS code to the phone already on file (the same
+ * number they're registered with on the resident WhatsApp group, not a WhatsApp message itself)
+ * proves the caller actually controls that phone, then the verified code unlocks sending a
+ * reset-password link to whatever email they supply. Both steps report a real error back — an
+ * unrecognized phone in step 1, a wrong/expired code in step 2 — see
+ * UserService.startClaimAccount/verifyClaimAccount.
  */
 export function ClaimAccountPage() {
   const [step, setStep] = useState<Step>('phone')
@@ -70,10 +71,10 @@ export function ClaimAccountPage() {
       <div className="login-page">
         <div className="login-card">
           <h1>Enter your code</h1>
-          <p>We've sent a 6-digit code to the WhatsApp number on file for that phone number. Enter it below along with the email you'd like your access link sent to.</p>
+          <p>We've sent a 6-digit code via SMS to that phone number. Enter it below along with the email you'd like your access link sent to.</p>
           <form onSubmit={handleVerify}>
             <div className="form-field" style={{ marginBottom: 14 }}>
-              <label htmlFor="code">WhatsApp code</label>
+              <label htmlFor="code">SMS code</label>
               <input
                 id="code"
                 type="text"
@@ -124,7 +125,10 @@ export function ClaimAccountPage() {
     <div className="login-page">
       <div className="login-card">
         <h1>Claim your account</h1>
-        <p>Already a resident but don't have a login yet? Enter your phone number and we'll send a verification code to your WhatsApp.</p>
+        <p>
+          Already a resident but don't have a login yet? Enter the phone number you're registered with on the resident
+          WhatsApp group and we'll send a verification code to it via SMS.
+        </p>
         <form onSubmit={handleStart}>
           <div className="form-field" style={{ marginBottom: 8 }}>
             <label htmlFor="phone">Phone number on file</label>
@@ -140,7 +144,7 @@ export function ClaimAccountPage() {
           </div>
           {error && <p className="error-text">{error}</p>}
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 12 }} disabled={loading}>
-            {loading ? 'Sending…' : 'Send me a WhatsApp code'}
+            {loading ? 'Sending…' : 'Send me an SMS code'}
           </button>
         </form>
         <p className="muted" style={{ textAlign: 'center', fontSize: 13, marginTop: 16, marginBottom: 0 }}>

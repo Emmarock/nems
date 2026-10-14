@@ -286,10 +286,9 @@ public class UserService {
     /**
      * Step 1 of self-service "I'm already a resident, give me access" recovery. Knowing a phone
      * number alone isn't proof of anything - it can be guessed, leaked, or publicly known - so
-     * this only ever sends a one-time code to that number over WhatsApp and SMS (both, so a
-     * resident without WhatsApp installed still gets the code), channels only the real holder of
-     * the phone can read. No email goes out here, and no link is issued until verifyClaimAccount
-     * confirms the code.
+     * this only ever sends a one-time code to that number over SMS, a channel only the real
+     * holder of the phone can read. No email goes out here, and no link is issued until
+     * verifyClaimAccount confirms the code.
      *
      * Reports an unmatched phone back to the caller rather than staying silent - a deliberate
      * trade: this does let someone probe which phone numbers are on file, but a clear "that
@@ -315,7 +314,6 @@ public class UserService {
         resident.setClaimOtpAttempts(0);
         residentRepository.save(resident);
         String message = MessageTemplates.claimOtp(code);
-        notificationService.dispatch(NotificationChannel.WHATSAPP, normalizedPhone, message);
         // transactional=true - BulkSmsNigeriaSender routes this through the provider's OTP
         // gateway instead of the bulk one, which rejects OTP-shaped content outright.
         notificationService.dispatch(NotificationChannel.SMS, normalizedPhone, message, true);

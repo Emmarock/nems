@@ -39,7 +39,7 @@ public final class MessageTemplates {
     }
 
     /**
-     * WhatsApp-only verification code, step 1 of self-service account recovery (see
+     * SMS verification code, step 1 of self-service account recovery (see
      * UserService.startClaimAccount) — proves the requester controls the resident's phone before
      * any reset link is emailed anywhere.
      */
