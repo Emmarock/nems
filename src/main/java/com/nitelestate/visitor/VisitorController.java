@@ -6,6 +6,7 @@ import com.nitelestate.security.CurrentUser;
 import com.nitelestate.visitor.dto.VisitorLookupResponse;
 import com.nitelestate.visitor.dto.VisitorRequest;
 import com.nitelestate.visitor.dto.VisitorResponse;
+import com.nitelestate.visitor.dto.VisitorScanResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -55,22 +56,18 @@ public class VisitorController {
         return visitorService.search(null, q, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "validFrom")));
     }
 
-    /** Gate-side QR scan: shows the destination (host resident + property) to confirm (spec §9). */
+    /** Gate-side QR scan: shows the destination (host resident + property) to confirm, plus
+     * which direction this particular code is for (spec §9). */
     @GetMapping("/lookup/{qrToken}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN')")
     public VisitorLookupResponse lookup(@PathVariable String qrToken) {
         return visitorService.lookup(qrToken);
     }
 
-    @PostMapping("/checkin/{qrToken}")
+    /** Checks the visitor in or out — the scanned token fixes which, the caller doesn't choose. */
+    @PostMapping("/scan/{qrToken}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
-    public VisitorResponse checkIn(@PathVariable String qrToken, @RequestParam(required = false) Long gateId) {
-        return visitorService.checkIn(qrToken, gateId, currentUser.userId());
-    }
-
-    @PostMapping("/checkout/{qrToken}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
-    public VisitorResponse checkOut(@PathVariable String qrToken, @RequestParam(required = false) Long gateId) {
-        return visitorService.checkOut(qrToken, gateId, currentUser.userId());
+    public VisitorScanResponse scan(@PathVariable String qrToken, @RequestParam(required = false) Long gateId) {
+        return visitorService.scan(qrToken, gateId, currentUser.userId());
     }
 }

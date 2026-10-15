@@ -38,6 +38,7 @@ import type {
   VehicleLookup,
   Visitor,
   VisitorLookup,
+  VisitorScanResult,
   Worker,
   WorkerLookup,
 } from './types'
@@ -221,10 +222,9 @@ export const visitorsApi = {
     client.post<Visitor>('/visitors', body).then((r) => r.data),
   cancel: (id: number) => client.put<Visitor>(`/visitors/${id}/cancel`).then((r) => r.data),
   lookup: (qrToken: string) => client.get<VisitorLookup>(`/visitors/lookup/${qrToken}`).then((r) => r.data),
-  checkIn: (qrToken: string, gateId?: number) =>
-    client.post<Visitor>(`/visitors/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
-  checkOut: (qrToken: string, gateId?: number) =>
-    client.post<Visitor>(`/visitors/checkout/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
+  /** Checks the visitor in or out — which one is fixed by the scanned token, not a choice. */
+  scan: (qrToken: string, gateId?: number) =>
+    client.post<VisitorScanResult>(`/visitors/scan/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
 }
 
 export const workersApi = {

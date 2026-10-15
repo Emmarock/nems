@@ -14,12 +14,14 @@ public record VisitorResponse(
         String hostResidentName,
         Instant validFrom,
         Instant validUntil,
-        String qrToken,
+        String qrTokenEntry,
+        String qrTokenExit,
         VisitorStatus status,
         String photo
 ) {
     public static VisitorResponse from(Visitor v, String hostResidentName) {
         return new VisitorResponse(v.getId(), v.getName(), v.getPhone(), v.getVehiclePlate(), v.getHostResidentId(),
-                hostResidentName, v.getValidFrom(), v.getValidUntil(), v.getQrToken(), v.getStatus(), v.getPhoto());
+                hostResidentName, v.getValidFrom(), v.getValidUntil(), v.getQrTokenEntry(), v.getQrTokenExit(),
+                v.getStatus(), v.getPhoto());
     }
 }

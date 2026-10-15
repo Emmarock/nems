@@ -25,6 +25,7 @@ export function VisitorsPage() {
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [qrVisitor, setQrVisitor] = useState<Visitor | null>(null)
+  const [qrDirection, setQrDirection] = useState<'entry' | 'exit'>('entry')
 
   async function load() {
     setLoading(true)
@@ -94,8 +95,23 @@ export function VisitorsPage() {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {v.status === 'ACTIVE' && (
               <>
-                <button className="btn btn-sm" onClick={() => setQrVisitor(v)}>
-                  View QR pass
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setQrVisitor(v)
+                    setQrDirection('entry')
+                  }}
+                >
+                  View entry QR
+                </button>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setQrVisitor(v)
+                    setQrDirection('exit')
+                  }}
+                >
+                  View exit QR
                 </button>
                 <button className="btn btn-sm" onClick={() => cancel(v.id)}>
                   Cancel
@@ -114,10 +130,15 @@ export function VisitorsPage() {
 
       {qrVisitor && (
         <QrCodeModal
-          title={`Visitor pass — ${qrVisitor.name}`}
+          title={`${qrDirection === 'entry' ? 'Entry' : 'Exit'} pass — ${qrVisitor.name}`}
           subtitle={`Valid until ${new Date(qrVisitor.validUntil).toLocaleString()}`}
-          value={buildScanUrl('visitor', qrVisitor.qrToken)}
-          fileName={`visitor-pass-${qrVisitor.name.replace(/\s+/g, '-').toLowerCase()}`}
+          value={buildScanUrl('visitor', qrDirection === 'entry' ? qrVisitor.qrTokenEntry : qrVisitor.qrTokenExit)}
+          fileName={`visitor-${qrDirection}-pass-${qrVisitor.name.replace(/\s+/g, '-').toLowerCase()}`}
+          helpText={
+            qrDirection === 'entry'
+              ? 'Present this QR code at the gate when arriving. Security will scan it to check you in.'
+              : 'Present this QR code at the gate when leaving. Security will scan it to check you out.'
+          }
           onClose={() => setQrVisitor(null)}
         />
       )}

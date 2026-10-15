@@ -166,16 +166,17 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
   const [scannerOpen, setScannerOpen] = useState(false)
   const { openVisitor, openWorker } = useEntityDetail()
 
-  function apiFor(k: ScanKind) {
-    return k === 'visitor'
-      ? visitorsApi
-      : k === 'worker'
-        ? workersApi
-        : k === 'vehicle'
-          ? vehiclesApi
-          : k === 'household'
-            ? householdMembersApi
-            : residentsApi
+  /** Visitors are scanned via scanVisitor() below, not act() — their pass fixes the direction,
+   * so they're excluded here rather than given a checkIn/checkOut pair that would just alias
+   * the same scan either way. */
+  function apiFor(k: Exclude<ScanKind, 'visitor'>) {
+    return k === 'worker'
+      ? workersApi
+      : k === 'vehicle'
+        ? vehiclesApi
+        : k === 'household'
+          ? householdMembersApi
+          : residentsApi
   }
 
   function nameOf(result: { name?: string; fullName?: string; plateNumber?: string }) {
@@ -184,6 +185,7 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
 
   async function act(action: 'checkin' | 'checkout', e?: FormEvent) {
     e?.preventDefault()
+    if (kind === 'visitor') return // handled by scanVisitor() instead
     if (!qrToken) {
       setError('Scan or paste a QR token first')
       return
@@ -200,8 +202,34 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
       )
       // On check-in, pull up the full profile (photo included, for a worker) rather than leaving
       // the officer with just this one-line summary to go on.
-      if (action === 'checkin' && kind === 'visitor') openVisitor(result.id)
       if (action === 'checkin' && kind === 'worker') openWorker(result.id)
+      setQrToken('')
+      await onDone()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  /** Visitors carry two single-purpose QR codes, so the scanned token fixes the direction —
+   * there's no checkin/checkout choice to make, unlike the other kinds handled by act() above. */
+  async function scanVisitor(e?: FormEvent) {
+    e?.preventDefault()
+    if (!qrToken) {
+      setError('Scan or paste a QR token first')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const gate = gateId ? Number(gateId) : undefined
+      const result = await visitorsApi.scan(qrToken, gate)
+      setMessage(
+        `${result.direction === 'IN' ? 'Checked in' : 'Checked out'} visitor: ${result.visitor.name} (status ${result.visitor.status})`,
+      )
+      if (result.direction === 'IN') openVisitor(result.visitor.id)
       setQrToken('')
       await onDone()
     } catch (err) {
@@ -221,7 +249,7 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
   return (
     <div className="card" style={{ marginBottom: 20 }}>
       <div className="section-title" style={{ marginTop: 0 }}>Gate check-in</div>
-      <form onSubmit={(e) => act('checkin', e)} className="form-grid">
+      <form onSubmit={(e) => (kind === 'visitor' ? scanVisitor(e) : act('checkin', e))} className="form-grid">
         <div className="form-field">
           <label>Pass type</label>
           <select value={kind} onChange={(e) => setKind(e.target.value as ScanKind)}>
@@ -260,12 +288,20 @@ function GateCheckIn({ onDone }: { onDone: () => Promise<void> }) {
         {error && <p className="error-text" style={{ gridColumn: '1 / -1' }}>{error}</p>}
         {message && <p style={{ gridColumn: '1 / -1', color: 'var(--color-success)' }}>{message}</p>}
         <div className="form-field full" style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Checking in…' : 'Check in'}
-          </button>
-          <button className="btn" type="button" disabled={submitting} onClick={() => act('checkout')}>
-            {submitting ? 'Checking out…' : 'Check out'}
-          </button>
+          {kind === 'visitor' ? (
+            <button className="btn btn-primary" type="submit" disabled={submitting}>
+              {submitting ? 'Scanning…' : 'Scan'}
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-primary" type="submit" disabled={submitting}>
+                {submitting ? 'Checking in…' : 'Check in'}
+              </button>
+              <button className="btn" type="button" disabled={submitting} onClick={() => act('checkout')}>
+                {submitting ? 'Checking out…' : 'Check out'}
+              </button>
+            </>
+          )}
         </div>
       </form>
 

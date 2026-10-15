@@ -83,8 +83,8 @@ export function ScanPage() {
     setAuthErrorCode(null)
     try {
       if (kind === 'visitor') {
-        const result = action === 'checkin' ? await visitorsApi.checkIn(qrToken) : await visitorsApi.checkOut(qrToken)
-        setMessage(`${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${result.name}`)
+        const result = await visitorsApi.scan(qrToken)
+        setMessage(`${result.direction === 'IN' ? 'Checked in' : 'Checked out'}: ${result.visitor.name}`)
       } else if (kind === 'worker') {
         const result = action === 'checkin' ? await workersApi.checkIn(qrToken) : await workersApi.checkOut(qrToken)
         setMessage(`${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${result.fullName}`)
@@ -340,7 +340,20 @@ export function ScanPage() {
 
             {message && <p style={{ color: 'var(--color-success)' }}>{message}</p>}
 
-            {canCheckInOut && (
+            {canCheckInOut && kind === 'visitor' && visitor && (
+              <div style={{ marginTop: 16 }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%' }}
+                  disabled={submitting}
+                  onClick={() => act('checkin')}
+                >
+                  {visitor.direction === 'IN' ? 'Check in' : 'Check out'}
+                </button>
+              </div>
+            )}
+
+            {canCheckInOut && kind !== 'visitor' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                 <button className="btn btn-primary" style={{ flex: 1 }} disabled={submitting} onClick={() => act('checkin')}>
                   Check in

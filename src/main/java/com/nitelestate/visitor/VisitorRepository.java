@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface VisitorRepository extends JpaRepository<Visitor, Long>, JpaSpecificationExecutor<Visitor> {
-    Optional<Visitor> findByQrToken(String qrToken);
+    Optional<Visitor> findByQrTokenEntry(String qrTokenEntry);
+    Optional<Visitor> findByQrTokenExit(String qrTokenExit);
     long countByStatus(VisitorStatus status);
 
     /** Due-or-overdue checkouts still ACTIVE - see CheckoutReminderJob. */

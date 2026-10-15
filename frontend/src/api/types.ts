@@ -292,13 +292,17 @@ export interface Visitor {
   hostResidentName: string | null
   validFrom: string
   validUntil: string
-  qrToken: string
+  /** Scanning this always checks the visitor in. */
+  qrTokenEntry: string
+  /** Scanning this always checks the visitor out. */
+  qrTokenExit: string
   status: VisitorStatus
   /** Base64 data URI, submitted at pass-creation time so security can confirm identity at the gate. */
   photo: string | null
 }
 
-/** What security sees scanning a visitor's QR pass — includes the destination to confirm. */
+/** What security sees scanning a visitor's QR pass — includes the destination to confirm, and
+ * which direction this particular code is for (fixed by the token, not a choice). */
 export interface VisitorLookup {
   id: number
   name: string
@@ -315,6 +319,13 @@ export interface VisitorLookup {
   propertyId: number | null
   propertyHouseNumber: string | null
   propertyAddress: string | null
+  direction: AccessDirection
+}
+
+/** What a gate scan of a visitor's QR pass actually did. */
+export interface VisitorScanResult {
+  visitor: Visitor
+  direction: AccessDirection
 }
 
 export type WorkerStatus = 'PENDING' | 'APPROVED' | 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'COMPLETED'

@@ -15,6 +15,7 @@ import com.nitelestate.resident.ResidentRepository;
 import com.nitelestate.visitor.dto.VisitorLookupResponse;
 import com.nitelestate.visitor.dto.VisitorRequest;
 import com.nitelestate.visitor.dto.VisitorResponse;
+import com.nitelestate.visitor.dto.VisitorScanResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -56,7 +57,8 @@ public class VisitorService {
         visitor.setHostResidentId(hostResidentId);
         visitor.setValidFrom(request.validFrom());
         visitor.setValidUntil(request.validUntil());
-        visitor.setQrToken(UUID.randomUUID().toString());
+        visitor.setQrTokenEntry(UUID.randomUUID().toString());
+        visitor.setQrTokenExit(UUID.randomUUID().toString());
         visitor.setStatus(VisitorStatus.ACTIVE);
         visitor.setPhoto(request.photo());
         visitor = visitorRepository.save(visitor);
@@ -101,11 +103,12 @@ public class VisitorService {
 
     /**
      * Read-only gate-side scan: resolves the pass holder's destination (host + property) so
-     * security can confirm it before deciding whether to check the visitor in. No side effects.
+     * security can confirm it, plus the one direction this particular QR code is for.
+     * No side effects.
      */
     public VisitorLookupResponse lookup(String qrToken) {
-        Visitor visitor = visitorRepository.findByQrToken(qrToken)
-                .orElseThrow(() -> new NotFoundException("No visitor pass found for this QR code"));
+        ResolvedVisitor resolved = resolve(qrToken);
+        Visitor visitor = resolved.visitor();
         String flag = evaluateWindow(visitor);
 
         Resident host = residentRepository.findById(visitor.getHostResidentId()).orElse(null);
@@ -118,31 +121,36 @@ public class VisitorService {
                 visitor.getHostResidentId(), host != null ? host.getFullName() : null,
                 host != null ? host.getPhone() : null,
                 property != null ? property.getId() : null, property != null ? property.getHouseNumber() : null,
-                property != null ? property.getAddress() : null);
+                property != null ? property.getAddress() : null,
+                resolved.direction());
     }
 
-    /** Gate-side check-in; flags expired/out-of-window/cancelled passes rather than blocking outright. */
+    /**
+     * Gate-side scan. Each visitor pass carries two QR codes — one that only ever checks the
+     * visitor in, one that only ever checks them out — so which token was scanned fixes the
+     * direction; the caller can't ask for the other one. Flags expired/out-of-window/cancelled
+     * passes on check-in rather than blocking outright, same as before.
+     */
     @Transactional
-    public VisitorResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
-        Visitor visitor = visitorRepository.findByQrToken(qrToken)
-                .orElseThrow(() -> new NotFoundException("No visitor pass found for this QR code"));
+    public VisitorScanResponse scan(String qrToken, Long gateId, Long verifiedByUserId) {
+        ResolvedVisitor resolved = resolve(qrToken);
+        Visitor visitor = resolved.visitor();
+        AccessDirection direction = resolved.direction();
 
-        String flag = evaluateWindow(visitor);
-        accessEventService.record(AccessSubjectType.VISITOR, visitor.getId(), AccessDirection.IN, gateId,
-                verifiedByUserId, flag);
-        auditService.record("Visitor", visitor.getId(), "CHECK_IN", flag);
-        return VisitorResponse.from(visitor, resolveHostName(visitor.getHostResidentId()));
+        String flag = direction == AccessDirection.IN ? evaluateWindow(visitor) : null;
+        accessEventService.record(AccessSubjectType.VISITOR, visitor.getId(), direction, gateId, verifiedByUserId, flag);
+        auditService.record("Visitor", visitor.getId(), direction == AccessDirection.IN ? "CHECK_IN" : "CHECK_OUT", flag);
+        return new VisitorScanResponse(VisitorResponse.from(visitor, resolveHostName(visitor.getHostResidentId())), direction);
     }
 
-    @Transactional
-    public VisitorResponse checkOut(String qrToken, Long gateId, Long verifiedByUserId) {
-        Visitor visitor = visitorRepository.findByQrToken(qrToken)
+    /** Tries the entry code first, then the exit code — the one that matches fixes the direction. */
+    private ResolvedVisitor resolve(String qrToken) {
+        return visitorRepository.findByQrTokenEntry(qrToken).map(v -> new ResolvedVisitor(v, AccessDirection.IN))
+                .or(() -> visitorRepository.findByQrTokenExit(qrToken).map(v -> new ResolvedVisitor(v, AccessDirection.OUT)))
                 .orElseThrow(() -> new NotFoundException("No visitor pass found for this QR code"));
+    }
 
-        accessEventService.record(AccessSubjectType.VISITOR, visitor.getId(), AccessDirection.OUT, gateId,
-                verifiedByUserId, null);
-        auditService.record("Visitor", visitor.getId(), "CHECK_OUT", null);
-        return VisitorResponse.from(visitor, resolveHostName(visitor.getHostResidentId()));
+    private record ResolvedVisitor(Visitor visitor, AccessDirection direction) {
     }
 
     private String evaluateWindow(Visitor visitor) {

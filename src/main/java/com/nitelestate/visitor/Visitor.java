@@ -37,8 +37,13 @@ public class Visitor extends BaseEntity {
     @Column(nullable = false)
     private Instant validUntil;
 
+    /** Scanning this one always checks the visitor in — see VisitorService.resolve. */
     @Column(nullable = false, unique = true)
-    private String qrToken;
+    private String qrTokenEntry;
+
+    /** Scanning this one always checks the visitor out — see VisitorService.resolve. */
+    @Column(nullable = false, unique = true)
+    private String qrTokenExit;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
