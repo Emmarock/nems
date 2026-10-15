@@ -41,8 +41,10 @@ public class Visitor extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String qrTokenEntry;
 
-    /** Scanning this one always checks the visitor out — see VisitorService.resolve. */
-    @Column(nullable = false, unique = true)
+    /** Null until the visitor's first check-in — generated lazily then, so a resident can't hand
+     * out an exit pass before there's anything to exit from, and a no-show never gets one at all.
+     * Scanning it always checks the visitor out — see VisitorService.resolve/scan. */
+    @Column(unique = true)
     private String qrTokenExit;
 
     @Enumerated(EnumType.STRING)

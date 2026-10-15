@@ -7,6 +7,7 @@ import type {
   AccessSubjectType,
   AccountBalance,
   Announcement,
+  UserNotification,
   Complaint,
   ComplaintStatus,
   Dashboard,
@@ -308,6 +309,14 @@ export const announcementsApi = {
   unreadCount: () => client.get<{ unread: number }>('/announcements/unread-count').then((r) => r.data.unread),
   markRead: (id: number) => client.post<void>(`/announcements/${id}/read`).then(() => undefined),
   markUnread: (id: number) => client.post<void>(`/announcements/${id}/unread`).then(() => undefined),
+}
+
+export const userNotificationsApi = {
+  mine: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<UserNotification>>('/notifications', { params }).then((r) => r.data),
+  unreadCount: () => client.get<{ unread: number }>('/notifications/unread-count').then((r) => r.data.unread),
+  markRead: (id: number) => client.post<void>(`/notifications/${id}/read`).then(() => undefined),
+  markUnread: (id: number) => client.post<void>(`/notifications/${id}/unread`).then(() => undefined),
 }
 
 export const reportsApi = {

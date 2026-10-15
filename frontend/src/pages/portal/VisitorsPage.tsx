@@ -24,8 +24,7 @@ export function VisitorsPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
-  const [qrVisitor, setQrVisitor] = useState<Visitor | null>(null)
-  const [qrDirection, setQrDirection] = useState<'entry' | 'exit'>('entry')
+  const [qrPass, setQrPass] = useState<{ visitor: Visitor; direction: 'entry' | 'exit'; token: string } | null>(null)
 
   async function load() {
     setLoading(true)
@@ -97,22 +96,22 @@ export function VisitorsPage() {
               <>
                 <button
                   className="btn btn-sm"
-                  onClick={() => {
-                    setQrVisitor(v)
-                    setQrDirection('entry')
-                  }}
+                  onClick={() => setQrPass({ visitor: v, direction: 'entry', token: v.qrTokenEntry })}
                 >
                   View entry QR
                 </button>
-                <button
-                  className="btn btn-sm"
-                  onClick={() => {
-                    setQrVisitor(v)
-                    setQrDirection('exit')
-                  }}
-                >
-                  View exit QR
-                </button>
+                {v.qrTokenExit ? (
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => setQrPass({ visitor: v, direction: 'exit', token: v.qrTokenExit! })}
+                  >
+                    View exit QR
+                  </button>
+                ) : (
+                  <span className="muted" style={{ fontSize: 12, alignSelf: 'center' }}>
+                    Exit QR available after check-in
+                  </span>
+                )}
                 <button className="btn btn-sm" onClick={() => cancel(v.id)}>
                   Cancel
                 </button>
@@ -128,18 +127,18 @@ export function VisitorsPage() {
         <FormModal title="Create visitor pass" fields={FIELDS} onSubmit={handleSubmit} onClose={() => setModalOpen(false)} />
       )}
 
-      {qrVisitor && (
+      {qrPass && (
         <QrCodeModal
-          title={`${qrDirection === 'entry' ? 'Entry' : 'Exit'} pass — ${qrVisitor.name}`}
-          subtitle={`Valid until ${new Date(qrVisitor.validUntil).toLocaleString()}`}
-          value={buildScanUrl('visitor', qrDirection === 'entry' ? qrVisitor.qrTokenEntry : qrVisitor.qrTokenExit)}
-          fileName={`visitor-${qrDirection}-pass-${qrVisitor.name.replace(/\s+/g, '-').toLowerCase()}`}
+          title={`${qrPass.direction === 'entry' ? 'Entry' : 'Exit'} pass — ${qrPass.visitor.name}`}
+          subtitle={`Valid until ${new Date(qrPass.visitor.validUntil).toLocaleString()}`}
+          value={buildScanUrl('visitor', qrPass.token)}
+          fileName={`visitor-${qrPass.direction}-pass-${qrPass.visitor.name.replace(/\s+/g, '-').toLowerCase()}`}
           helpText={
-            qrDirection === 'entry'
+            qrPass.direction === 'entry'
               ? 'Present this QR code at the gate when arriving. Security will scan it to check you in.'
               : 'Present this QR code at the gate when leaving. Security will scan it to check you out.'
           }
-          onClose={() => setQrVisitor(null)}
+          onClose={() => setQrPass(null)}
         />
       )}
     </div>

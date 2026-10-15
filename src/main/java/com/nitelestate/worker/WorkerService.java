@@ -9,10 +9,15 @@ import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
 import com.nitelestate.common.exception.NotFoundException;
 import com.nitelestate.common.search.Specs;
+import com.nitelestate.notification.MessageTemplates;
+import com.nitelestate.notification.NotificationChannel;
+import com.nitelestate.notification.NotificationService;
+import com.nitelestate.notification.UserNotificationService;
 import com.nitelestate.property.Property;
 import com.nitelestate.property.PropertyRepository;
 import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
+import com.nitelestate.user.UserRepository;
 import com.nitelestate.worker.dto.WorkerLookupResponse;
 import com.nitelestate.worker.dto.WorkerRequest;
 import com.nitelestate.worker.dto.WorkerResponse;
@@ -40,6 +45,9 @@ public class WorkerService {
     private final PropertyRepository propertyRepository;
     private final AccessEventService accessEventService;
     private final AuditService auditService;
+    private final NotificationService notificationService;
+    private final UserNotificationService userNotificationService;
+    private final UserRepository userRepository;
 
     /** ~1.5MB of base64 — comfortably covers a compressed photo (the frontend downscales before upload). */
     private static final int MAX_PHOTO_LENGTH = 2_000_000;
@@ -134,6 +142,7 @@ public class WorkerService {
         accessEventService.record(AccessSubjectType.WORKER, worker.getId(), AccessDirection.IN, gateId,
                 verifiedByUserId, eval.flag());
         auditService.record("Worker", worker.getId(), "CHECK_IN", eval.flag());
+        notifySponsorOfScan(worker, AccessDirection.IN);
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
     }
 
@@ -145,7 +154,29 @@ public class WorkerService {
         accessEventService.record(AccessSubjectType.WORKER, worker.getId(), AccessDirection.OUT, gateId,
                 verifiedByUserId, null);
         auditService.record("Worker", worker.getId(), "CHECK_OUT", null);
+        notifySponsorOfScan(worker, AccessDirection.OUT);
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
+    }
+
+    /**
+     * Lets the sponsoring resident know the moment their worker actually arrives or leaves —
+     * in-app and SMS, same two channels either direction.
+     */
+    private void notifySponsorOfScan(Worker worker, AccessDirection direction) {
+        Resident sponsor = residentRepository.findById(worker.getSponsorResidentId()).orElse(null);
+        if (sponsor == null) {
+            return;
+        }
+        boolean in = direction == AccessDirection.IN;
+        String smsMessage = in
+                ? MessageTemplates.workerCheckedIn(sponsor.getFullName(), worker.getFullName(), worker.getContractorName())
+                : MessageTemplates.workerCheckedOut(sponsor.getFullName(), worker.getFullName(), worker.getContractorName());
+        notificationService.dispatch(NotificationChannel.SMS, sponsor.getPhone(), smsMessage);
+
+        String title = in ? "Worker checked in" : "Worker checked out";
+        String message = worker.getFullName() + " (" + worker.getContractorName() + ") has just checked "
+                + (in ? "in" : "out") + " at the gate.";
+        userRepository.findByResidentId(sponsor.getId()).ifPresent(u -> userNotificationService.notify(u.getId(), title, message));
     }
 
     public PageResponse<AccessEventResponse> logs(Long workerId, Pageable pageable) {

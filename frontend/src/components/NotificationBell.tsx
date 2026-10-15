@@ -7,12 +7,15 @@ import type { Announcement } from '../api/types'
 const DROPDOWN_LIMIT = 6
 
 export function NotificationBell() {
-  const { announcements, unreadCount, markRead, markUnread } = useNotifications()
+  const { announcements, alerts, unreadCount, markRead, markUnread, markAlertRead } = useNotifications()
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const selected = announcements.find((a) => a.id === selectedId) ?? null
+  const recentAlerts = alerts.slice(0, DROPDOWN_LIMIT)
+  const alertsUnread = alerts.filter((a) => !a.read).length
+  const announcementsUnread = announcements.filter((a) => !a.read).length
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -46,9 +49,32 @@ export function NotificationBell() {
 
       {open && (
         <div className="bell-dropdown">
+          {recentAlerts.length > 0 && (
+            <>
+              <div className="bell-dropdown-header">
+                <span>Alerts</span>
+                {alertsUnread > 0 && <span className="muted">{alertsUnread} unread</span>}
+              </div>
+              <ul className="bell-list">
+                {recentAlerts.map((a) => (
+                  <li key={`alert-${a.id}`} className={`bell-item ${a.read ? '' : 'unread'}`}>
+                    <div className="bell-item-main" onClick={() => !a.read && markAlertRead(a.id)}>
+                      <div className="bell-item-title">
+                        {!a.read && <span className="bell-dot" />}
+                        {a.title}
+                      </div>
+                      <div className="bell-item-message">{a.message}</div>
+                      <div className="bell-item-time">{new Date(a.createdAt).toLocaleString()}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
           <div className="bell-dropdown-header">
             <span>Announcements</span>
-            {unreadCount > 0 && <span className="muted">{unreadCount} unread</span>}
+            {announcementsUnread > 0 && <span className="muted">{announcementsUnread} unread</span>}
           </div>
 
           {recent.length === 0 ? (

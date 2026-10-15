@@ -8,10 +8,15 @@ import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
 import com.nitelestate.common.exception.NotFoundException;
 import com.nitelestate.common.search.Specs;
+import com.nitelestate.notification.MessageTemplates;
+import com.nitelestate.notification.NotificationChannel;
+import com.nitelestate.notification.NotificationService;
+import com.nitelestate.notification.UserNotificationService;
 import com.nitelestate.property.Property;
 import com.nitelestate.property.PropertyRepository;
 import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
+import com.nitelestate.user.UserRepository;
 import com.nitelestate.visitor.dto.VisitorLookupResponse;
 import com.nitelestate.visitor.dto.VisitorRequest;
 import com.nitelestate.visitor.dto.VisitorResponse;
@@ -41,6 +46,9 @@ public class VisitorService {
     private final PropertyRepository propertyRepository;
     private final AccessEventService accessEventService;
     private final AuditService auditService;
+    private final NotificationService notificationService;
+    private final UserNotificationService userNotificationService;
+    private final UserRepository userRepository;
 
     @Transactional
     public VisitorResponse create(Long hostResidentId, VisitorRequest request) {
@@ -58,7 +66,9 @@ public class VisitorService {
         visitor.setValidFrom(request.validFrom());
         visitor.setValidUntil(request.validUntil());
         visitor.setQrTokenEntry(UUID.randomUUID().toString());
-        visitor.setQrTokenExit(UUID.randomUUID().toString());
+        // qrTokenExit is deliberately left null here — see scan(): it's generated on first
+        // check-in, so a resident can only ever share it once there's something to exit from,
+        // and a visitor who never shows up never gets one generated at all.
         visitor.setStatus(VisitorStatus.ACTIVE);
         visitor.setPhoto(request.photo());
         visitor = visitorRepository.save(visitor);
@@ -139,8 +149,38 @@ public class VisitorService {
 
         String flag = direction == AccessDirection.IN ? evaluateWindow(visitor) : null;
         accessEventService.record(AccessSubjectType.VISITOR, visitor.getId(), direction, gateId, verifiedByUserId, flag);
+
+        // First real check-in is what unlocks the exit pass — generate it here, once, rather
+        // than at creation time (see the comment on Visitor.qrTokenExit).
+        if (direction == AccessDirection.IN && visitor.getQrTokenExit() == null) {
+            visitor.setQrTokenExit(UUID.randomUUID().toString());
+            visitor = visitorRepository.save(visitor);
+        }
+
         auditService.record("Visitor", visitor.getId(), direction == AccessDirection.IN ? "CHECK_IN" : "CHECK_OUT", flag);
+        notifyHostOfScan(visitor, direction);
         return new VisitorScanResponse(VisitorResponse.from(visitor, resolveHostName(visitor.getHostResidentId())), direction);
+    }
+
+    /**
+     * Lets the host resident know the moment their visitor actually arrives or leaves — in-app
+     * and SMS, same two channels either direction, regardless of whether the host is the
+     * property owner or a sponsoring tenant.
+     */
+    private void notifyHostOfScan(Visitor visitor, AccessDirection direction) {
+        Resident host = residentRepository.findById(visitor.getHostResidentId()).orElse(null);
+        if (host == null) {
+            return;
+        }
+        boolean in = direction == AccessDirection.IN;
+        String smsMessage = in
+                ? MessageTemplates.visitorCheckedIn(host.getFullName(), visitor.getName())
+                : MessageTemplates.visitorCheckedOut(host.getFullName(), visitor.getName());
+        notificationService.dispatch(NotificationChannel.SMS, host.getPhone(), smsMessage);
+
+        String title = in ? "Visitor checked in" : "Visitor checked out";
+        String message = visitor.getName() + " has just checked " + (in ? "in" : "out") + " at the gate.";
+        userRepository.findByResidentId(host.getId()).ifPresent(u -> userNotificationService.notify(u.getId(), title, message));
     }
 
     /** Tries the entry code first, then the exit code — the one that matches fixes the direction. */

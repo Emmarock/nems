@@ -294,8 +294,8 @@ export interface Visitor {
   validUntil: string
   /** Scanning this always checks the visitor in. */
   qrTokenEntry: string
-  /** Scanning this always checks the visitor out. */
-  qrTokenExit: string
+  /** Null until the visitor's first check-in — see VisitorsPage. Scanning it always checks the visitor out. */
+  qrTokenExit: string | null
   status: VisitorStatus
   /** Base64 data URI, submitted at pass-creation time so security can confirm identity at the gate. */
   photo: string | null
@@ -463,6 +463,16 @@ export interface Announcement {
   channels: NotificationChannel[]
   createdAt: string
   read: boolean
+}
+
+/** A personal, in-app alert for the signed-in user — e.g. "your visitor checked in" — distinct
+ * from Announcement, which is estate-wide and every resident sees the same set. */
+export interface UserNotification {
+  id: number
+  title: string
+  message: string
+  read: boolean
+  createdAt: string
 }
 
 export interface Dashboard {

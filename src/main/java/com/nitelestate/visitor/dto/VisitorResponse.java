@@ -15,6 +15,7 @@ public record VisitorResponse(
         Instant validFrom,
         Instant validUntil,
         String qrTokenEntry,
+        /** Null until the visitor's first check-in — see Visitor.qrTokenExit. */
         String qrTokenExit,
         VisitorStatus status,
         String photo

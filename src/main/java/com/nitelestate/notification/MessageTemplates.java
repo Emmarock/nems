@@ -132,6 +132,26 @@ public final class MessageTemplates {
                 + "daily, even mid-contract — reach out to confirm they're not staying on site overnight.";
     }
 
+    /** Sent to the host resident the instant their visitor checks in at the gate — see VisitorService.scan. */
+    public static String visitorCheckedIn(String hostFullName, String visitorName) {
+        return "Hi " + hostFullName + ", your visitor " + visitorName + " has just checked in at the gate on " + BRAND + ".";
+    }
+
+    /** Sent to the host resident the instant their visitor checks out at the gate — see VisitorService.scan. */
+    public static String visitorCheckedOut(String hostFullName, String visitorName) {
+        return "Hi " + hostFullName + ", your visitor " + visitorName + " has just checked out at the gate on " + BRAND + ".";
+    }
+
+    /** Sent to the sponsoring resident the instant their worker checks in at the gate — see WorkerService.checkIn. */
+    public static String workerCheckedIn(String hostFullName, String workerName, String contractorName) {
+        return "Hi " + hostFullName + ", your worker " + workerName + " (" + contractorName + ") has just checked in at the gate on " + BRAND + ".";
+    }
+
+    /** Sent to the sponsoring resident the instant their worker checks out at the gate — see WorkerService.checkOut. */
+    public static String workerCheckedOut(String hostFullName, String workerName, String contractorName) {
+        return "Hi " + hostFullName + ", your worker " + workerName + " (" + contractorName + ") has just checked out at the gate on " + BRAND + ".";
+    }
+
     /**
      * Weekly nag sent straight to a resident whose account is in arrears — see
      * scheduling.ArrearsReminderJob (every Saturday 10am estate-local). Unlike workerCheckoutDue
