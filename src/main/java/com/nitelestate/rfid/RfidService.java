@@ -11,6 +11,8 @@ import com.nitelestate.rfid.dto.RfidTagRequest;
 import com.nitelestate.rfid.dto.RfidTagResponse;
 import com.nitelestate.vehicle.Vehicle;
 import com.nitelestate.vehicle.VehicleRepository;
+import com.nitelestate.visitor.Visitor;
+import com.nitelestate.visitor.VisitorRepository;
 import com.nitelestate.worker.Worker;
 import com.nitelestate.worker.WorkerRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,14 +33,16 @@ public class RfidService {
     private final RfidTagRepository rfidTagRepository;
     private final ResidentRepository residentRepository;
     private final WorkerRepository workerRepository;
+    private final VisitorRepository visitorRepository;
     private final VehicleRepository vehicleRepository;
     private final AuditService auditService;
 
     /**
-     * A worker-assigned tag must be tied to the resident who sponsors that worker - the same
-     * "connected to a resident" relationship a Worker already has (WorkerService.request), just
-     * carried onto the tag too. If the caller only sent assignedWorkerId, the resident is
-     * resolved from the worker automatically; if both were sent, they must agree.
+     * A worker- or visitor-assigned tag must be tied to the resident who sponsors/hosts them -
+     * the same relationship Worker/Visitor already carry (WorkerService.request,
+     * VisitorService.create), just carried onto the tag too. If the caller only sent
+     * assignedWorkerId/assignedVisitorId, the resident is resolved automatically; if both were
+     * sent, they must agree.
      */
     @Transactional
     public RfidTagResponse issue(RfidTagRequest request) {
@@ -57,6 +61,16 @@ public class RfidService {
                         "Worker " + request.assignedWorkerId() + " is not sponsored by resident " + residentId);
             }
         }
+        if (request.assignedVisitorId() != null) {
+            Visitor visitor = visitorRepository.findById(request.assignedVisitorId())
+                    .orElseThrow(() -> new BadRequestException("No visitor found with id " + request.assignedVisitorId()));
+            if (residentId == null) {
+                residentId = visitor.getHostResidentId();
+            } else if (!residentId.equals(visitor.getHostResidentId())) {
+                throw new BadRequestException(
+                        "Visitor " + request.assignedVisitorId() + " is not hosted by resident " + residentId);
+            }
+        }
         if (residentId != null && !residentRepository.existsById(residentId)) {
             throw new BadRequestException("No resident found with id " + residentId);
         }
@@ -68,6 +82,7 @@ public class RfidService {
         tag.setTagId(request.tagId());
         tag.setAssignedResidentId(residentId);
         tag.setAssignedWorkerId(request.assignedWorkerId());
+        tag.setAssignedVisitorId(request.assignedVisitorId());
         tag.setVehicleId(request.vehicleId());
         tag.setStatus(RfidStatus.ACTIVE);
         tag = rfidTagRepository.save(tag);
@@ -102,12 +117,15 @@ public class RfidService {
                 .stream().collect(Collectors.toMap(Resident::getId, Resident::getFullName));
         Map<Long, String> workerNames = workerRepository.findAllById(idsOf(page, RfidTag::getAssignedWorkerId))
                 .stream().collect(Collectors.toMap(Worker::getId, Worker::getFullName));
+        Map<Long, String> visitorNames = visitorRepository.findAllById(idsOf(page, RfidTag::getAssignedVisitorId))
+                .stream().collect(Collectors.toMap(Visitor::getId, Visitor::getName));
         Map<Long, String> vehiclePlates = vehicleRepository.findAllById(idsOf(page, RfidTag::getVehicleId))
                 .stream().collect(Collectors.toMap(Vehicle::getId, Vehicle::getPlateNumber));
 
         return PageResponse.of(page.map(t -> RfidTagResponse.from(t,
                 residentNames.get(t.getAssignedResidentId()),
                 workerNames.get(t.getAssignedWorkerId()),
+                visitorNames.get(t.getAssignedVisitorId()),
                 vehiclePlates.get(t.getVehicleId()))));
     }
 
@@ -120,9 +138,11 @@ public class RfidService {
                 : residentRepository.findById(tag.getAssignedResidentId()).map(Resident::getFullName).orElse(null);
         String workerName = tag.getAssignedWorkerId() == null ? null
                 : workerRepository.findById(tag.getAssignedWorkerId()).map(Worker::getFullName).orElse(null);
+        String visitorName = tag.getAssignedVisitorId() == null ? null
+                : visitorRepository.findById(tag.getAssignedVisitorId()).map(Visitor::getName).orElse(null);
         String vehiclePlate = tag.getVehicleId() == null ? null
                 : vehicleRepository.findById(tag.getVehicleId()).map(Vehicle::getPlateNumber).orElse(null);
-        return RfidTagResponse.from(tag, residentName, workerName, vehiclePlate);
+        return RfidTagResponse.from(tag, residentName, workerName, visitorName, vehiclePlate);
     }
 
     private RfidTag get(Long id) {

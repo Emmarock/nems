@@ -23,6 +23,7 @@ public class RfidTag extends BaseEntity {
 
     private Long assignedResidentId;
     private Long assignedWorkerId;
+    private Long assignedVisitorId;
     private Long vehicleId;
 
     @Enumerated(EnumType.STRING)

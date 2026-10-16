@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { visitorsApi } from '../../api/endpoints'
-import type { PageResponse, Visitor } from '../../api/types'
+import { rfidRequestsApi, visitorsApi } from '../../api/endpoints'
+import type { PageResponse, RfidRequest, Visitor } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
+import { RfidRequestAction } from '../../components/RfidRequestAction'
 import { buildScanUrl } from '../../utils/scanUrl'
 
 const EMPTY: PageResponse<Visitor> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
@@ -25,10 +26,16 @@ export function VisitorsPage() {
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [qrPass, setQrPass] = useState<{ visitor: Visitor; direction: 'entry' | 'exit'; token: string } | null>(null)
+  const [rfidRequests, setRfidRequests] = useState<RfidRequest[]>([])
 
   async function load() {
     setLoading(true)
-    setResult(await visitorsApi.mine({ page, size: 20 }))
+    const [visitors, requests] = await Promise.all([
+      visitorsApi.mine({ page, size: 20 }),
+      rfidRequestsApi.mine({ size: 100 }),
+    ])
+    setResult(visitors)
+    setRfidRequests(requests.content)
     setLoading(false)
   }
 
@@ -112,6 +119,13 @@ export function VisitorsPage() {
                     Exit QR available after check-in
                   </span>
                 )}
+                <RfidRequestAction
+                  subjectType="VISITOR"
+                  subjectId={v.id}
+                  subjectName={v.name}
+                  requests={rfidRequests}
+                  onChanged={load}
+                />
                 <button className="btn btn-sm" onClick={() => cancel(v.id)}>
                   Cancel
                 </button>

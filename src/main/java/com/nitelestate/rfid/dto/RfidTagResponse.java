@@ -10,13 +10,16 @@ public record RfidTagResponse(
         String assignedResidentName,
         Long assignedWorkerId,
         String assignedWorkerName,
+        Long assignedVisitorId,
+        String assignedVisitorName,
         Long vehicleId,
         String vehiclePlateNumber,
         RfidStatus status
 ) {
     public static RfidTagResponse from(RfidTag t, String assignedResidentName, String assignedWorkerName,
-                                        String vehiclePlateNumber) {
+                                        String assignedVisitorName, String vehiclePlateNumber) {
         return new RfidTagResponse(t.getId(), t.getTagId(), t.getAssignedResidentId(), assignedResidentName,
-                t.getAssignedWorkerId(), assignedWorkerName, t.getVehicleId(), vehiclePlateNumber, t.getStatus());
+                t.getAssignedWorkerId(), assignedWorkerName, t.getAssignedVisitorId(), assignedVisitorName,
+                t.getVehicleId(), vehiclePlateNumber, t.getStatus());
     }
 }

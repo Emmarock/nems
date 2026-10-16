@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { workersApi } from '../../api/endpoints'
-import type { PageResponse, Worker } from '../../api/types'
+import { rfidRequestsApi, workersApi } from '../../api/endpoints'
+import type { PageResponse, RfidRequest, Worker } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
+import { RfidRequestAction } from '../../components/RfidRequestAction'
 import { buildScanUrl } from '../../utils/scanUrl'
 
 const EMPTY: PageResponse<Worker> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
@@ -37,10 +38,16 @@ export function WorkersPage() {
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [qrWorker, setQrWorker] = useState<Worker | null>(null)
+  const [rfidRequests, setRfidRequests] = useState<RfidRequest[]>([])
 
   async function load() {
     setLoading(true)
-    setResult(await workersApi.mine({ page, size: 20 }))
+    const [workers, requests] = await Promise.all([
+      workersApi.mine({ page, size: 20 }),
+      rfidRequestsApi.mine({ size: 100 }),
+    ])
+    setResult(workers)
+    setRfidRequests(requests.content)
     setLoading(false)
   }
 
@@ -105,9 +112,18 @@ export function WorkersPage() {
         ]}
         actions={(w) =>
           w.qrToken ? (
-            <button className="btn btn-sm" onClick={() => setQrWorker(w)}>
-              View QR pass
-            </button>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button className="btn btn-sm" onClick={() => setQrWorker(w)}>
+                View QR pass
+              </button>
+              <RfidRequestAction
+                subjectType="WORKER"
+                subjectId={w.id}
+                subjectName={w.fullName}
+                requests={rfidRequests}
+                onChanged={load}
+              />
+            </div>
           ) : (
             <span className="muted">Pending approval</span>
           )

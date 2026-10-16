@@ -583,9 +583,31 @@ export interface RfidTag {
   assignedResidentName: string | null
   assignedWorkerId: number | null
   assignedWorkerName: string | null
+  assignedVisitorId: number | null
+  assignedVisitorName: string | null
   vehicleId: number | null
   vehiclePlateNumber: string | null
   status: RfidStatus
+}
+
+export type RfidRequestStatus = 'PENDING' | 'ISSUED' | 'CANCELLED'
+/** Only VISITOR and WORKER are valid for an RFID request — reuses AccessSubjectType's wider set. */
+export type RfidRequestSubjectType = 'VISITOR' | 'WORKER'
+
+/** A landlord/tenant's request for a physical RFID tag for a visitor or worker without a
+ * smartphone to show a QR pass — see pages/security/RfidPage for security's fulfilment queue. */
+export interface RfidRequest {
+  id: number
+  requestedByResidentId: number
+  requestedByResidentName: string | null
+  subjectType: RfidRequestSubjectType
+  subjectId: number
+  subjectName: string | null
+  subjectPhone: string | null
+  status: RfidRequestStatus
+  issuedTagId: number | null
+  issuedTagTagId: string | null
+  createdAt: string
 }
 
 export interface SecurityDashboard {

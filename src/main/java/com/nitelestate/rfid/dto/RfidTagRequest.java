@@ -6,6 +6,7 @@ public record RfidTagRequest(
         @NotBlank String tagId,
         Long assignedResidentId,
         Long assignedWorkerId,
+        Long assignedVisitorId,
         Long vehicleId
 ) {
 }

@@ -29,6 +29,7 @@ import type {
   ResidentArrears,
   ResidentLookup,
   RfidTag,
+  RfidRequest,
   SecurityDashboard,
   StickerRequest,
   PaymentStatus,
@@ -359,10 +360,27 @@ export const accessEventsApi = {
 export const rfidApi = {
   list: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<RfidTag>>('/rfid', { params }).then((r) => r.data),
-  issue: (body: { tagId: string; assignedResidentId?: number; assignedWorkerId?: number; vehicleId?: number }) =>
-    client.post<RfidTag>('/rfid', body).then((r) => r.data),
+  issue: (body: {
+    tagId: string
+    assignedResidentId?: number
+    assignedWorkerId?: number
+    assignedVisitorId?: number
+    vehicleId?: number
+  }) => client.post<RfidTag>('/rfid', body).then((r) => r.data),
   revoke: (id: number) => client.put<RfidTag>(`/rfid/${id}/revoke`).then((r) => r.data),
   markLost: (id: number) => client.put<RfidTag>(`/rfid/${id}/lost`).then((r) => r.data),
+}
+
+export const rfidRequestsApi = {
+  create: (body: { subjectType: 'VISITOR' | 'WORKER'; subjectId: number }) =>
+    client.post<RfidRequest>('/rfid-requests', body).then((r) => r.data),
+  mine: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<RfidRequest>>('/rfid-requests/mine', { params }).then((r) => r.data),
+  cancel: (id: number) => client.put<RfidRequest>(`/rfid-requests/${id}/cancel`).then((r) => r.data),
+  pending: (params: { page?: number; size?: number } = {}) =>
+    client.get<PageResponse<RfidRequest>>('/rfid-requests/pending', { params }).then((r) => r.data),
+  issue: (id: number, tagId: string) =>
+    client.post<RfidRequest>(`/rfid-requests/${id}/issue`, { tagId }).then((r) => r.data),
 }
 
 export const stickerRequestsApi = {
