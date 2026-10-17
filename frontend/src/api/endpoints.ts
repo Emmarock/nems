@@ -285,6 +285,7 @@ export const householdMembersApi = {
 }
 
 export const complaintsApi = {
+  get: (id: number) => client.get<Complaint>(`/complaints/${id}`).then((r) => r.data),
   mine: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Complaint>>('/complaints/mine', { params }).then((r) => r.data),
   listAll: (params: { status?: ComplaintStatus; page?: number; size?: number } = {}) =>

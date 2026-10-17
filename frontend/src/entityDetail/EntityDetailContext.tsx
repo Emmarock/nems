@@ -7,6 +7,7 @@ export type EntityRef =
   | { type: 'visitor'; id: number }
   | { type: 'worker'; id: number }
   | { type: 'vehicle'; id: number }
+  | { type: 'complaint'; id: number }
 
 interface EntityDetailContextValue {
   stack: EntityRef[]
@@ -16,6 +17,7 @@ interface EntityDetailContextValue {
   openVisitor: (id: number) => void
   openWorker: (id: number) => void
   openVehicle: (id: number) => void
+  openComplaint: (id: number) => void
   back: () => void
   close: () => void
 }
@@ -47,6 +49,7 @@ export function EntityDetailProvider({ children }: { children: ReactNode }) {
         openVisitor: (id) => push({ type: 'visitor', id }),
         openWorker: (id) => push({ type: 'worker', id }),
         openVehicle: (id) => push({ type: 'vehicle', id }),
+        openComplaint: (id) => push({ type: 'complaint', id }),
         back,
         close,
       }}

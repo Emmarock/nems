@@ -14,6 +14,7 @@ import type {
   AccessEvent,
   AccessSubjectType,
   Complaint,
+  ComplaintStatus,
   Gate,
   LevyBalance,
   Property,
@@ -35,7 +36,10 @@ const TITLES = {
   visitor: 'Visitor',
   worker: 'Worker',
   vehicle: 'Vehicle',
+  complaint: 'Complaint',
 } as const
+
+const COMPLAINT_STATUSES: ComplaintStatus[] = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
 
 export function EntityDetailModal() {
   const { stack, openResident, openProperty, openVisitor, openWorker, openVehicle, back, close } = useEntityDetail()
@@ -50,10 +54,12 @@ export function EntityDetailModal() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [workers, setWorkers] = useState<Worker[]>([])
   const [complaints, setComplaints] = useState<Complaint[]>([])
+  const [complaintDetail, setComplaintDetail] = useState<Complaint | null>(null)
   const [gateEvents, setGateEvents] = useState<AccessEvent[]>([])
   const [balanceBreakdown, setBalanceBreakdown] = useState<LevyBalance[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [advancing, setAdvancing] = useState(false)
 
   useEffect(() => {
     if (!current) return
@@ -69,6 +75,7 @@ export function EntityDetailModal() {
     setVehicles([])
     setWorkers([])
     setComplaints([])
+    setComplaintDetail(null)
     setGateEvents([])
     setBalanceBreakdown([])
 
@@ -114,9 +121,13 @@ export function EntityDetailModal() {
       request = workersApi.get(current.id).then((w) => {
         if (!cancelled) setWorkerDetail(w)
       })
-    } else {
+    } else if (current.type === 'vehicle') {
       request = vehiclesApi.get(current.id).then((v) => {
         if (!cancelled) setVehicleDetail(v)
+      })
+    } else {
+      request = complaintsApi.get(current.id).then((c) => {
+        if (!cancelled) setComplaintDetail(c)
       })
     }
 
@@ -140,6 +151,21 @@ export function EntityDetailModal() {
     else if (subjectType === 'VISITOR') openVisitor(subjectId)
     else if (subjectType === 'WORKER') openWorker(subjectId)
     else openVehicle(subjectId)
+  }
+
+  async function advanceComplaintStatus() {
+    if (!complaintDetail) return
+    const nextIndex = Math.min(COMPLAINT_STATUSES.indexOf(complaintDetail.status) + 1, COMPLAINT_STATUSES.length - 1)
+    setAdvancing(true)
+    setError(null)
+    try {
+      const updated = await complaintsApi.updateStatus(complaintDetail.id, COMPLAINT_STATUSES[nextIndex])
+      setComplaintDetail(updated)
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setAdvancing(false)
+    }
   }
 
   return (
@@ -382,6 +408,41 @@ export function EntityDetailModal() {
                   </button>
                 }
               />
+            </dl>
+          )}
+
+          {!loading && !error && current.type === 'complaint' && complaintDetail && (
+            <dl className="detail-list">
+              <Row label="Category" value={<StatusBadge value={complaintDetail.category} />} />
+              <Row label="Priority" value={<StatusBadge value={complaintDetail.priority} />} />
+              <Row label="Status" value={<StatusBadge value={complaintDetail.status} />} />
+              <Row
+                label="Resident"
+                value={
+                  <button type="button" className="link-button" onClick={() => openResident(complaintDetail.residentId)}>
+                    Resident #{complaintDetail.residentId}
+                  </button>
+                }
+              />
+              <Row label="Assigned to" value={complaintDetail.assignedTo} />
+              <Row label="Filed" value={new Date(complaintDetail.createdAt).toLocaleString()} />
+              {complaintDetail.resolvedAt && (
+                <Row label="Resolved" value={new Date(complaintDetail.resolvedAt).toLocaleString()} />
+              )}
+              <Row
+                label="Description"
+                value={<p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{complaintDetail.description}</p>}
+              />
+              {complaintDetail.status !== 'CLOSED' && (
+                <Row
+                  label=" "
+                  value={
+                    <button type="button" className="btn btn-primary btn-sm" disabled={advancing} onClick={advanceComplaintStatus}>
+                      {advancing ? 'Advancing…' : 'Advance status'}
+                    </button>
+                  }
+                />
+              )}
             </dl>
           )}
         </div>

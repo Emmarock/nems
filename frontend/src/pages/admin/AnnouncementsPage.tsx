@@ -86,15 +86,28 @@ export function AnnouncementsPage() {
               </button>
             ),
           },
-          { key: 'message', label: 'Message', render: (a) => <span className="cell-truncate">{a.message}</span> },
+          {
+            key: 'message',
+            label: 'Message',
+            render: (a) => (
+              <button type="button" className="link-button cell-truncate" onClick={() => openDetail(a.id, a.read)}>
+                {a.message}
+              </button>
+            ),
+          },
           { key: 'channels', label: 'Channels', render: (a) => a.channels.join(', ') },
           { key: 'createdAt', label: 'Posted', render: (a) => new Date(a.createdAt).toLocaleString() },
           { key: 'status', label: 'Status', render: (a) => <StatusBadge value={a.read ? 'READ' : 'UNREAD'} /> },
         ]}
         actions={(a) => (
-          <button className="btn btn-sm" onClick={() => toggleRead(a)}>
-            Mark {a.read ? 'unread' : 'read'}
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-sm" onClick={() => openDetail(a.id, a.read)}>
+              View
+            </button>
+            <button className="btn btn-sm" onClick={() => toggleRead(a)}>
+              Mark {a.read ? 'unread' : 'read'}
+            </button>
+          </div>
         )}
       />
 
@@ -115,7 +128,18 @@ export function AnnouncementsPage() {
         />
       )}
 
-      {selected && <AnnouncementDetailModal announcement={selected} onClose={() => setSelectedId(null)} />}
+      {selected && (
+        <AnnouncementDetailModal
+          announcement={selected}
+          onClose={() => {
+            setSelectedId(null)
+            // The modal's own Mark read/unread button goes through NotificationsContext directly
+            // (so the bell updates too) rather than this page's toggleRead/patchLocal, so this
+            // table's local state wouldn't otherwise pick up a change made from inside it.
+            load()
+          }}
+        />
+      )}
     </div>
   )
 }
