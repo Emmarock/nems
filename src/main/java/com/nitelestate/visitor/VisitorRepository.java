@@ -14,4 +14,7 @@ public interface VisitorRepository extends JpaRepository<Visitor, Long>, JpaSpec
 
     /** Due-or-overdue checkouts still ACTIVE - see CheckoutReminderJob. */
     List<Visitor> findByStatusAndValidUntilLessThan(VisitorStatus status, Instant instant);
+
+    /** Checkouts coming up within a window, still ACTIVE - see CheckoutReminderJob.remindApproachingVisitorCheckouts. */
+    List<Visitor> findByStatusAndValidUntilBetween(VisitorStatus status, Instant from, Instant to);
 }

@@ -132,6 +132,26 @@ public final class MessageTemplates {
                 + "daily, even mid-contract — reach out to confirm they're not staying on site overnight.";
     }
 
+    /**
+     * Pre-departure countdown for a visitor pass, sent ~30/20/10 minutes before validUntil — see
+     * CheckoutReminderJob.remindApproachingVisitorCheckouts. Distinct from visitorCheckoutDue,
+     * which only fires once the pass has already reached its end date.
+     */
+    public static String visitorCheckoutApproaching(String visitorName, long minutesLeft) {
+        return "Reminder: " + visitorName + "'s visitor pass on " + BRAND
+                + " ends in about " + minutesLeft + " minutes. Please make sure they're on their way out.";
+    }
+
+    /**
+     * Pre-curfew countdown for a non-domestic worker still on site, sent ~30/20/10 minutes before
+     * the daily 6pm cut-off — see CheckoutReminderJob.remindApproachingWorkerCurfew. A friendly
+     * nudge ahead of time, distinct from workerPastDailyCurfew's post-6pm "something's wrong" catch.
+     */
+    public static String workerCurfewApproaching(String workerFullName, String contractorName, long minutesLeft) {
+        return "Reminder: " + workerFullName + " (" + contractorName + ") on " + BRAND
+                + " needs to check out in about " + minutesLeft + " minutes (by 6pm, the daily cut-off for non-domestic staff).";
+    }
+
     /** Sent to the host resident the instant their visitor checks in at the gate — see VisitorService.scan. */
     public static String visitorCheckedIn(String hostFullName, String visitorName) {
         return "Hi " + hostFullName + ", your visitor " + visitorName + " has just checked in at the gate on " + BRAND + ".";

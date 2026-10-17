@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -49,6 +50,15 @@ import java.util.Set;
  *    daily 6pm curfew, independent of how much contract time they have left - catches someone
  *    sleeping on site rather than leaving at the end of the work day. Fires once, shortly after
  *    6pm.
+ *
+ * 3. remindApproachingVisitorCheckouts: a real-time countdown to a visitor pass's own validUntil,
+ *    at any time of day - starts 30 minutes before, re-fires every 10 minutes (so roughly three
+ *    times: ~30, ~20, ~10 minutes out) and stops the moment validUntil passes. A friendly
+ *    heads-up ahead of time, distinct from #1's "already due" sweep.
+ *
+ * 4. remindApproachingWorkerCurfew: the same 30-minute/10-minute countdown as #3, but anchored on
+ *    the fixed 18:00 daily curfew instead of a per-visitor time - fires at 17:30/17:40/17:50.
+ *    Complements #2's post-6pm "still here" catch rather than replacing it.
  */
 @Slf4j
 @Service
@@ -59,6 +69,8 @@ public class CheckoutReminderJob {
     private static final ZoneId ESTATE_ZONE = ZoneId.of("Africa/Lagos");
     private static final LocalTime WINDOW_START = LocalTime.of(18, 20);
     private static final LocalTime WINDOW_END = LocalTime.of(22, 0);
+    private static final LocalTime CURFEW = LocalTime.of(18, 0);
+    private static final Duration APPROACHING_WINDOW = Duration.ofMinutes(30);
 
     private final WorkerRepository workerRepository;
     private final VisitorRepository visitorRepository;
@@ -111,6 +123,63 @@ public class CheckoutReminderJob {
             }
         }
         log.info("Daily on-site curfew check: {} non-domestic worker(s) still checked in past 6pm", flagged);
+    }
+
+    /**
+     * Pre-departure countdown for visitors, distinct from remindLandlordsOfDueCheckouts above
+     * (which only starts once a pass has reached its end date, and only runs in the 18:20-22:00
+     * evening sweep). This one is real-time and applies to any checkout time of day: it fires
+     * every 10 minutes, catching whichever ACTIVE visitors have validUntil falling in the next 30
+     * minutes — since the job runs every 10 minutes and the window is 30 minutes wide, a given
+     * visitor naturally gets caught ~3 times (roughly 30, 20, then 10 minutes out) and stops being
+     * caught the moment validUntil passes, with no extra per-visitor state needed to track "have
+     * we already reminded about this one" or how many times.
+     */
+    @Scheduled(cron = "0 */10 * * * *", zone = "Africa/Lagos")
+    @Transactional(readOnly = true)
+    public void remindApproachingVisitorCheckouts() {
+        Instant now = Instant.now();
+        List<Visitor> approaching = visitorRepository.findByStatusAndValidUntilBetween(
+                VisitorStatus.ACTIVE, now, now.plus(APPROACHING_WINDOW));
+
+        for (Visitor visitor : approaching) {
+            long minutesLeft = roundToNearestTen(Duration.between(now, visitor.getValidUntil()).toMinutes());
+            notifyLandlordAndSponsor(visitor.getHostResidentId(),
+                    MessageTemplates.visitorCheckoutApproaching(visitor.getName(), minutesLeft));
+        }
+        if (!approaching.isEmpty()) {
+            log.info("Approaching-checkout reminder: {} visitor(s) due within 30 minutes", approaching.size());
+        }
+    }
+
+    /**
+     * Pre-curfew countdown for non-domestic staff, same spirit as remindApproachingVisitorCheckouts
+     * above but anchored on the fixed 18:00 curfew instead of a per-visitor validUntil, so it's
+     * scheduled directly at 17:30/17:40/17:50 rather than needing a sliding-window query. A
+     * friendly nudge ahead of time; remindLandlordsOfOvernightWorkers above remains the separate
+     * post-6pm "they're still here" escalation for anyone who didn't leave in time.
+     */
+    @Scheduled(cron = "0 30,40,50 17 * * *", zone = "Africa/Lagos")
+    @Transactional(readOnly = true)
+    public void remindApproachingWorkerCurfew() {
+        LocalDate today = LocalDate.now(ESTATE_ZONE);
+        long minutesLeft = Duration.between(LocalTime.now(ESTATE_ZONE), CURFEW).toMinutes();
+        List<Worker> withinContract = workerRepository.findByWorkerCategoryAndStatusInAndExpectedEndDateGreaterThanEqual(
+                WorkerCategory.NON_DOMESTIC_STAFF, ACTIVE_WORKER_STATUSES, today);
+
+        int flagged = 0;
+        for (Worker worker : withinContract) {
+            if (accessEventService.isCurrentlyIn(AccessSubjectType.WORKER, worker.getId())) {
+                notifyLandlordAndSponsor(worker.getSponsorResidentId(),
+                        MessageTemplates.workerCurfewApproaching(worker.getFullName(), worker.getContractorName(), minutesLeft));
+                flagged++;
+            }
+        }
+        log.info("Pre-curfew reminder: {} non-domestic worker(s) still on site, {} minute(s) before 6pm", flagged, minutesLeft);
+    }
+
+    private static long roundToNearestTen(long minutes) {
+        return Math.max(Math.round(minutes / 10.0) * 10, 0);
     }
 
     private int remindForWorkers(LocalDate today) {
