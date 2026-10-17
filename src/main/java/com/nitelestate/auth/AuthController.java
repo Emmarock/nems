@@ -67,6 +67,19 @@ public class AuthController {
     }
 
     /**
+     * "Forgot password?" on the login page, for anyone who already has a login (resident or
+     * staff) but can't remember the password — distinct from claim-account below, which is for a
+     * resident who's never had a login at all. Always responds the same way regardless of
+     * whether the identifier matched an account, so the response can't be used to enumerate
+     * which emails/phones have logins here — see UserService.startForgotPassword.
+     */
+    @PostMapping("/forgot-password")
+    @SecurityRequirements
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        userService.startForgotPassword(request.identifier());
+    }
+
+    /**
      * Self-service account recovery for an existing resident who never got (or lost) their
      * login, step 1: send a WhatsApp + SMS code to the phone on file. Errors on an unrecognized
      * phone rather than staying silent — see UserService.startClaimAccount for the trade-off.

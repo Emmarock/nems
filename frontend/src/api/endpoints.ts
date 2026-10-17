@@ -55,6 +55,14 @@ export const authApi = {
   resetPassword: (token: string, newPassword: string) =>
     client.put<void>('/auth/reset-password', { token, newPassword }).then(() => undefined),
   /**
+   * "Forgot password?" for anyone who already has a login but can't remember it — sends a
+   * one-time reset link to whatever real contact channels the account has on file. Always
+   * resolves the same way regardless of whether the identifier matched anything, see
+   * UserService.startForgotPassword.
+   */
+  forgotPassword: (identifier: string) =>
+    client.post<void>('/auth/forgot-password', { identifier }).then(() => undefined),
+  /**
    * Self-service recovery for an existing resident with no login (or who lost access to it).
    * Step 1: sends a WhatsApp code to the phone on file — always resolves the same way regardless
    * of whether anything matched, see UserService.startClaimAccount.

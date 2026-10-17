@@ -48,6 +48,19 @@ public final class MessageTemplates {
                 + "Don't share this code with anyone.";
     }
 
+    /**
+     * Sent when someone who already has a login uses "Forgot password?" on the login page — see
+     * UserService.startForgotPassword. Unlike accountClaimed (a brand-new login being set up for
+     * the first time), this one explicitly reassures a reader who didn't request it that nothing
+     * has changed yet, since an existing, working password is what's at stake here.
+     */
+    public static String passwordResetRequested(String resetUrl) {
+        return "We received a request to reset your " + BRAND + " password.\n\n"
+                + "Set a new password here: " + resetUrl
+                + "\n\nThis link expires in 24 hours. If you didn't request this, you can ignore this message — "
+                + "your password hasn't been changed.";
+    }
+
     /** Sent when an existing resident claims self-service access via phone+email verification (see UserService.claimAccount). */
     public static String accountClaimed(String fullName, String resetUrl) {
         return "Hi " + fullName + ", we found your account on " + BRAND + ".\n\n"

@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -151,6 +152,51 @@ public class UserService {
         user.setResetTokenHash(null);
         user.setResetTokenExpiresAt(null);
         userRepository.save(user);
+    }
+
+    /**
+     * "Forgot password?" on the login page — for anyone who already has a login (resident or
+     * staff) but can't remember the password. Looks the identifier up the same way login itself
+     * does (email first, then normalized phone — see CustomUserDetailsService), and if it
+     * matches an account with a real email on file, emails a one-time "set your password" link —
+     * email only (not SMS/WhatsApp), since a reset link is more sensitive than the SMS/WhatsApp-
+     * carried OTP claim-account uses, and email is the channel a resident already controls
+     * independently of the phone the estate has on file for them. Silently no-ops on no match or
+     * no real email — reporting "no account with that identifier" would let someone enumerate
+     * which emails/phones have logins on this estate, the same reasoning resetPasswordWithToken
+     * already applies to a bad/expired token.
+     */
+    @Transactional
+    public void startForgotPassword(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            return;
+        }
+        User user = findUserByIdentifier(identifier.trim());
+        if (user == null) {
+            return;
+        }
+        // Prefers the linked Resident's own real email over the login's own field, which is
+        // frequently a synthetic placeholder even when the resident has a real email on file -
+        // same reasoning resolveNotificationEmail already applies to login alerts
+        // (buildLoginEmail can leave the login record's own email synthetic while the resident's
+        // real one is sitting right there).
+        String email = resolveNotificationEmail(user);
+        if (email == null) {
+            return;
+        }
+        String resetUrl = appBaseUrl + "/reset-password?token=" + issueResetToken(user);
+        notificationService.dispatch(NotificationChannel.EMAIL, email, MessageTemplates.passwordResetRequested(resetUrl));
+    }
+
+    private User findUserByIdentifier(String identifier) {
+        Optional<User> user = userRepository.findByEmailIgnoreCase(identifier);
+        if (user.isEmpty()) {
+            String normalizedPhone = PhoneNumbers.normalize(identifier);
+            if (normalizedPhone != null) {
+                user = userRepository.findByPhone(normalizedPhone);
+            }
+        }
+        return user.orElse(null);
     }
 
     /**

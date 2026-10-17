@@ -55,6 +55,9 @@ export function LoginPage() {
               required
             />
           </div>
+          <p style={{ textAlign: 'right', fontSize: 13, margin: '0 0 8px' }}>
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
           {error && <p className="error-text">{error}</p>}
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 12 }} disabled={loading}>
             {loading ? 'Signing in…' : 'Sign in'}
