@@ -12,8 +12,8 @@ public interface VisitorRepository extends JpaRepository<Visitor, Long>, JpaSpec
     Optional<Visitor> findByQrTokenExit(String qrTokenExit);
     long countByStatus(VisitorStatus status);
 
-    /** Due-or-overdue checkouts still ACTIVE - see CheckoutReminderJob. */
-    List<Visitor> findByStatusAndValidUntilLessThan(VisitorStatus status, Instant instant);
+    /** Due-or-overdue checkouts still ACTIVE, not yet reminded about - see CheckoutReminderJob.remindForVisitors. */
+    List<Visitor> findByStatusAndValidUntilLessThanAndCheckoutReminderSentFalse(VisitorStatus status, Instant instant);
 
     /** Checkouts coming up within a window, still ACTIVE - see CheckoutReminderJob.remindApproachingVisitorCheckouts. */
     List<Visitor> findByStatusAndValidUntilBetween(VisitorStatus status, Instant from, Instant to);

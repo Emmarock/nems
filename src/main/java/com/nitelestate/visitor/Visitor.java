@@ -51,6 +51,11 @@ public class Visitor extends BaseEntity {
     @Column(nullable = false, length = 16)
     private VisitorStatus status = VisitorStatus.ACTIVE;
 
+    /** Set once the "pass is overdue" reminder has gone out — see
+     * CheckoutReminderJob.remindForVisitors — so it's a one-time alert, not a repeat every run. */
+    @Column(nullable = false)
+    private boolean checkoutReminderSent = false;
+
     /**
      * A photo of the visitor, submitted at pass-creation time — lets security visually confirm
      * identity against the QR pass at the gate. Stored as a base64 data URI; the frontend

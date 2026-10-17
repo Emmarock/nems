@@ -40,11 +40,10 @@ import java.util.Set;
  * gets one email, not two.
  *
  * 1. remindLandlordsOfDueCheckouts: a worker/visitor's own contract/pass has reached (or passed)
- *    its end date. Fires every 5 minutes in the 18:20-22:00 estate-local window, re-firing every
- *    run a pass stays active past its due date rather than going quiet after one send -
- *    checkIn/checkOut never changes status (see WorkerService.checkOut), so nothing else would
- *    ever stop flagging an overdue pass otherwise. Stops only once actually resolved (worker
- *    marked COMPLETED/SUSPENDED, visitor pass CANCELLED).
+ *    its end date. Checked every 5 minutes in the 18:20-22:00 estate-local window, but sends at
+ *    most once per pass/contract — checkoutReminderSent marks it sent, since checkIn/checkOut
+ *    never changes status (see WorkerService.checkOut) and nothing else would otherwise stop the
+ *    query from matching the same overdue pass run after run.
  *
  * 2. remindLandlordsOfOvernightWorkers: a non-domestic-staff worker is still on site past the
  *    daily 6pm curfew, independent of how much contract time they have left - catches someone
@@ -86,7 +85,7 @@ public class CheckoutReminderJob {
      * own without a separate trigger per partial hour.
      */
     @Scheduled(cron = "0 */5 18-21 * * *", zone = "Africa/Lagos")
-    @Transactional(readOnly = true)
+    @Transactional
     public void remindLandlordsOfDueCheckouts() {
         LocalTime now = LocalTime.now(ESTATE_ZONE);
         if (now.isBefore(WINDOW_START) || now.isAfter(WINDOW_END)) {
@@ -183,20 +182,26 @@ public class CheckoutReminderJob {
     }
 
     private int remindForWorkers(LocalDate today) {
-        List<Worker> due = workerRepository.findByStatusInAndExpectedEndDateLessThanEqual(ACTIVE_WORKER_STATUSES, today);
+        List<Worker> due = workerRepository.findByStatusInAndExpectedEndDateLessThanEqualAndCheckoutReminderSentFalse(
+                ACTIVE_WORKER_STATUSES, today);
         for (Worker worker : due) {
             notifyLandlordAndSponsor(worker.getSponsorResidentId(),
                     MessageTemplates.workerCheckoutDue(worker.getFullName(), worker.getContractorName(), worker.getExpectedEndDate()));
+            worker.setCheckoutReminderSent(true);
+            workerRepository.save(worker);
         }
         return due.size();
     }
 
     private int remindForVisitors(LocalDate today) {
         Instant endOfToday = today.plusDays(1).atStartOfDay(ESTATE_ZONE).toInstant();
-        List<Visitor> due = visitorRepository.findByStatusAndValidUntilLessThan(VisitorStatus.ACTIVE, endOfToday);
+        List<Visitor> due = visitorRepository.findByStatusAndValidUntilLessThanAndCheckoutReminderSentFalse(
+                VisitorStatus.ACTIVE, endOfToday);
         for (Visitor visitor : due) {
             notifyLandlordAndSponsor(visitor.getHostResidentId(),
                     MessageTemplates.visitorCheckoutDue(visitor.getName(), visitor.getValidUntil()));
+            visitor.setCheckoutReminderSent(true);
+            visitorRepository.save(visitor);
         }
         return due.size();
     }

@@ -59,6 +59,11 @@ public class Worker extends BaseEntity {
     @Column(nullable = false, length = 16)
     private WorkerStatus status = WorkerStatus.PENDING;
 
+    /** Set once the "contract is overdue" reminder has gone out — see
+     * CheckoutReminderJob.remindForWorkers — so it's a one-time alert, not a repeat every run. */
+    @Column(nullable = false)
+    private boolean checkoutReminderSent = false;
+
     @Column(unique = true)
     private String qrToken;
 

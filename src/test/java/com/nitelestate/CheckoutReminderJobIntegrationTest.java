@@ -2,6 +2,9 @@ package com.nitelestate;
 
 import com.nitelestate.notification.NotificationLogRepository;
 import com.nitelestate.scheduling.CheckoutReminderJob;
+import com.nitelestate.visitor.Visitor;
+import com.nitelestate.visitor.VisitorRepository;
+import com.nitelestate.visitor.VisitorStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -12,8 +12,13 @@ public interface WorkerRepository extends JpaRepository<Worker, Long>, JpaSpecif
     Optional<Worker> findByQrToken(String qrToken);
     long countByStatus(WorkerStatus status);
 
-    /** Due-or-overdue checkouts still sitting in an active-ish status - see CheckoutReminderJob. */
+    /** Due-or-overdue checkouts still sitting in an active-ish status - see
+     * WorkerService.findDueCheckoutStillOnSite (the admin "browse overdue" list). */
     List<Worker> findByStatusInAndExpectedEndDateLessThanEqual(Collection<WorkerStatus> statuses, LocalDate date);
+
+    /** Same, but only ones not yet reminded about - see CheckoutReminderJob.remindForWorkers. */
+    List<Worker> findByStatusInAndExpectedEndDateLessThanEqualAndCheckoutReminderSentFalse(
+            Collection<WorkerStatus> statuses, LocalDate date);
 
     /** Non-domestic staff still within their contract window - candidates for the daily 6pm on-site curfew check (see CheckoutReminderJob). */
     List<Worker> findByWorkerCategoryAndStatusInAndExpectedEndDateGreaterThanEqual(
