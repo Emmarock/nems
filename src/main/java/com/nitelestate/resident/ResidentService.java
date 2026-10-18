@@ -68,6 +68,8 @@ public class ResidentService {
         boolean emailAdded = isBlank(resident.getEmail()) && !isBlank(request.email());
         apply(resident, request);
         resident = residentRepository.save(resident);
+        syncLoginPhone(resident);
+        syncLoginFullName(resident);
         // A resident captured without one (e.g. bulk-imported from a phone-only record) now has a
         // real address on file - let them know how to get in rather than leaving it a silent edit.
         if (emailAdded) {
@@ -93,6 +95,7 @@ public class ResidentService {
         resident.setEmergencyContact(request.emergencyContact());
         resident = residentRepository.save(resident);
         syncLoginPhone(resident);
+        syncLoginFullName(resident);
         // Most useful for a resident whose login still uses a synthetic placeholder email (see
         // UserService.buildLoginEmail) - this gives them a real "set your password" link the
         // moment they add a real address, not just a silently-updated profile field.
@@ -117,6 +120,23 @@ public class ResidentService {
         userRepository.findByResidentId(resident.getId()).ifPresent(user -> {
             if (!normalized.equals(user.getPhone()) && !userRepository.existsByPhone(normalized)) {
                 user.setPhone(normalized);
+                userRepository.save(user);
+            }
+        });
+    }
+
+    /**
+     * Keeps a resident's login name in step with their profile - app_user.fullName is only ever
+     * copied from Resident.fullName once, at account-creation/bulk-provisioning/claim time (see
+     * UserService.create/bulkCreateResidentAccounts/verifyClaimAccount); nothing else pushes a
+     * later rename back into the linked login row, so the header (read from the login's own
+     * cached name) and the resident's actual profile silently fall out of step otherwise - same
+     * class of bug syncLoginPhone already covers for the phone number.
+     */
+    private void syncLoginFullName(Resident resident) {
+        userRepository.findByResidentId(resident.getId()).ifPresent(user -> {
+            if (!resident.getFullName().equals(user.getFullName())) {
+                user.setFullName(resident.getFullName());
                 userRepository.save(user);
             }
         });
