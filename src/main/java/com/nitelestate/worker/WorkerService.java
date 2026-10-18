@@ -4,6 +4,7 @@ import com.nitelestate.access.AccessDirection;
 import com.nitelestate.access.AccessEventService;
 import com.nitelestate.access.AccessSubjectType;
 import com.nitelestate.access.dto.AccessEventResponse;
+import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
@@ -44,6 +45,7 @@ public class WorkerService {
     private final ResidentRepository residentRepository;
     private final PropertyRepository propertyRepository;
     private final AccessEventService accessEventService;
+    private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
@@ -129,12 +131,17 @@ public class WorkerService {
                 property != null ? property.getAddress() : null);
     }
 
-    /** Gate-side check-in; evaluates the approval/date-range window and flags (not blocks) anomalies. */
+    /**
+     * Gate-side check-in; evaluates the approval/date-range window and flags (not blocks)
+     * anomalies there - but the sponsor's arrears status IS a hard block here (see
+     * AccessPolicyService.requireSponsorEligibleForEntry); checking out is never denied by it.
+     */
     @Transactional
     public WorkerResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
         Worker worker = workerRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No worker pass found for this QR code"));
 
+        accessPolicyService.requireSponsorEligibleForEntry(worker.getSponsorResidentId());
         Evaluation eval = evaluate(worker);
         worker.setStatus(eval.impliedStatus());
         workerRepository.save(worker);

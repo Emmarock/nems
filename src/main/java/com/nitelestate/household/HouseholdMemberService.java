@@ -4,6 +4,7 @@ import com.nitelestate.access.AccessDirection;
 import com.nitelestate.access.AccessEventService;
 import com.nitelestate.access.AccessSubjectType;
 import com.nitelestate.access.dto.AccessEventResponse;
+import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
@@ -37,6 +38,7 @@ public class HouseholdMemberService {
     private final ResidentRepository residentRepository;
     private final PropertyRepository propertyRepository;
     private final AccessEventService accessEventService;
+    private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
 
     /** ~1.5MB of base64 — same cap as Worker/Visitor photos. */
@@ -125,12 +127,17 @@ public class HouseholdMemberService {
                 property != null ? property.getAddress() : null);
     }
 
-    /** Gate-side check-in; evaluates the approval status and flags (not blocks) anomalies. */
+    /**
+     * Gate-side check-in; evaluates the approval status and flags (not blocks) anomalies - but
+     * the sponsor's arrears status IS a hard block here (see
+     * AccessPolicyService.requireSponsorEligibleForEntry); checking out is never denied by it.
+     */
     @Transactional
     public HouseholdMemberResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
         HouseholdMember member = householdMemberRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No household member pass found for this QR code"));
 
+        accessPolicyService.requireSponsorEligibleForEntry(member.getSponsorResidentId());
         String flag = evaluate(member).flag();
         accessEventService.record(AccessSubjectType.HOUSEHOLD_MEMBER, member.getId(), AccessDirection.IN, gateId,
                 verifiedByUserId, flag);

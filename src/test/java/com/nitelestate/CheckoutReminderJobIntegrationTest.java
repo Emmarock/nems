@@ -64,6 +64,9 @@ class CheckoutReminderJobIntegrationTest {
     @Autowired
     private NotificationLogRepository notificationLogRepository;
 
+    @Autowired
+    private VisitorRepository visitorRepository;
+
     private String baseUrl() {
         return "http://localhost:" + port + "/api/v1";
     }
@@ -149,5 +152,45 @@ class CheckoutReminderJobIntegrationTest {
                 n.getChannel().name().equals("EMAIL") && n.getMessage().contains("Curfew Test Worker")
                         && n.getMessage().contains("needs to check out"));
         assertThat(found).isTrue();
+    }
+
+    /**
+     * Proves the "already overdue" reminder's underlying selection query stops matching a pass
+     * once it's been reminded about - the actual mechanism behind "fire once, then stop"
+     * (remindLandlordsOfDueCheckouts is wall-clock-gated to 18:20-22:00 estate-local, so it can't
+     * be exercised directly in a test that may run at any time of day; this checks the repository
+     * contract CheckoutReminderJob.remindForVisitors relies on instead).
+     */
+    @Test
+    void overdueVisitorCheckout_queryExcludesAlreadyReminded() {
+        String residentToken = login("resident@nitelestate.local", "Passw0rd!");
+
+        Map<String, Object> visitorRequest = Map.of(
+                "name", "Already Overdue Visitor",
+                "phone", "+2348099992222",
+                "validFrom", Instant.now().minus(2, ChronoUnit.HOURS).toString(),
+                "validUntil", Instant.now().minus(5, ChronoUnit.MINUTES).toString()
+        );
+        var created = restTemplate.postForEntity(baseUrl() + "/visitors",
+                new HttpEntity<>(visitorRequest, authHeaders(residentToken)), Map.class);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        Long visitorId = ((Number) created.getBody().get("id")).longValue();
+
+        Instant endOfToday = LocalDate.now(java.time.ZoneId.of("Africa/Lagos")).plusDays(1)
+                .atStartOfDay(java.time.ZoneId.of("Africa/Lagos")).toInstant();
+
+        assertThat(visitorRepository.findByStatusAndValidUntilLessThanAndCheckoutReminderSentFalse(
+                        VisitorStatus.ACTIVE, endOfToday))
+                .extracting(Visitor::getId)
+                .contains(visitorId);
+
+        Visitor visitor = visitorRepository.findById(visitorId).orElseThrow();
+        visitor.setCheckoutReminderSent(true);
+        visitorRepository.save(visitor);
+
+        assertThat(visitorRepository.findByStatusAndValidUntilLessThanAndCheckoutReminderSentFalse(
+                        VisitorStatus.ACTIVE, endOfToday))
+                .extracting(Visitor::getId)
+                .doesNotContain(visitorId);
     }
 }

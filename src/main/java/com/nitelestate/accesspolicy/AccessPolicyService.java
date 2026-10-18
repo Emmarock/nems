@@ -5,6 +5,7 @@ import com.nitelestate.accesspolicy.dto.AccessPolicyResponse;
 import com.nitelestate.audit.AuditService;
 import com.nitelestate.billing.AccountService;
 import com.nitelestate.billing.dto.AccountBalanceResponse;
+import com.nitelestate.common.exception.BadRequestException;
 import com.nitelestate.vehicle.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,24 @@ public class AccessPolicyService {
     public String evaluateVehicle(Long vehicleId) {
         Long residentId = vehicleService.findById(vehicleId).residentId();
         return evaluateResident(residentId);
+    }
+
+    /**
+     * Hard block (throws), unlike evaluateResident's advisory flag - a sponsoring resident's
+     * guests, household members, and workers are refused ENTRY outright (not just flagged) once
+     * the sponsor owes beyond the policy threshold. Checked only on check-in: once someone is
+     * already inside the estate, letting them leave is never blocked by this policy.
+     */
+    public void requireSponsorEligibleForEntry(Long sponsorResidentId) {
+        AccessPolicySettings settings = getOrCreate();
+        if (!settings.isEnforceArrears() || sponsorResidentId == null) {
+            return;
+        }
+        AccountBalanceResponse balance = accountService.getBalance(sponsorResidentId);
+        if (balance.outstanding().compareTo(settings.getArrearsThreshold()) > 0) {
+            throw new BadRequestException(
+                    "Entry denied: the resident this pass is sponsored by has outstanding arrears beyond the estate's access policy threshold");
+        }
     }
 
     private AccessPolicySettings getOrCreate() {

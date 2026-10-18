@@ -3,6 +3,7 @@ package com.nitelestate.visitor;
 import com.nitelestate.access.AccessDirection;
 import com.nitelestate.access.AccessEventService;
 import com.nitelestate.access.AccessSubjectType;
+import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
@@ -45,6 +46,7 @@ public class VisitorService {
     private final ResidentRepository residentRepository;
     private final PropertyRepository propertyRepository;
     private final AccessEventService accessEventService;
+    private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
@@ -139,7 +141,9 @@ public class VisitorService {
      * Gate-side scan. Each visitor pass carries two QR codes — one that only ever checks the
      * visitor in, one that only ever checks them out — so which token was scanned fixes the
      * direction; the caller can't ask for the other one. Flags expired/out-of-window/cancelled
-     * passes on check-in rather than blocking outright, same as before.
+     * passes on check-in rather than blocking outright, same as before. The host's arrears
+     * status, however, IS a hard block on check-in (see requireSponsorEligibleForEntry) - once
+     * the visitor is already inside, checking out is never denied by it.
      */
     @Transactional
     public VisitorScanResponse scan(String qrToken, Long gateId, Long verifiedByUserId) {
@@ -147,6 +151,9 @@ public class VisitorService {
         Visitor visitor = resolved.visitor();
         AccessDirection direction = resolved.direction();
 
+        if (direction == AccessDirection.IN) {
+            accessPolicyService.requireSponsorEligibleForEntry(visitor.getHostResidentId());
+        }
         String flag = direction == AccessDirection.IN ? evaluateWindow(visitor) : null;
         accessEventService.record(AccessSubjectType.VISITOR, visitor.getId(), direction, gateId, verifiedByUserId, flag);
 
