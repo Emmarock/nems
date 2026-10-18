@@ -12,22 +12,36 @@ import { apiErrorMessage } from '../../api/client'
 
 const EMPTY: PageResponse<Resident> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
-const FIELDS: FieldConfig[] = [
+const RESIDENT_TYPE_FIELD: FieldConfig = {
+  name: 'residentType',
+  label: 'Resident type',
+  type: 'select',
+  required: true,
+  options: [
+    { value: 'OWNER', label: 'Owner' },
+    { value: 'TENANT', label: 'Tenant' },
+    { value: 'LANDLORD', label: 'Landlord' },
+  ],
+}
+
+// No property field on CREATE: a new resident rarely has a property on file yet - it's linked
+// the other way around, by searching for this resident when the property itself gets created
+// (see PropertiesPage's owner field). Editing still offers it, for reassigning an existing
+// resident to a different (already-created) property.
+const CREATE_FIELDS: FieldConfig[] = [
+  { name: 'fullName', label: 'Full name', required: true, full: true },
+  { name: 'phone', label: 'Phone', required: true },
+  { name: 'email', label: 'Email' },
+  RESIDENT_TYPE_FIELD,
+  { name: 'emergencyContact', label: 'Emergency contact', full: true },
+]
+
+const EDIT_FIELDS: FieldConfig[] = [
   { name: 'fullName', label: 'Full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   { name: 'email', label: 'Email' },
   { name: 'propertyId', label: 'Property ID', type: 'number' },
-  {
-    name: 'residentType',
-    label: 'Resident type',
-    type: 'select',
-    required: true,
-    options: [
-      { value: 'OWNER', label: 'Owner' },
-      { value: 'TENANT', label: 'Tenant' },
-      { value: 'LANDLORD', label: 'Landlord' },
-    ],
-  },
+  RESIDENT_TYPE_FIELD,
   { name: 'emergencyContact', label: 'Emergency contact', full: true },
 ]
 
@@ -153,7 +167,7 @@ export function ResidentsPage() {
       {modalOpen && (
         <FormModal
           title={editing ? 'Edit resident' : 'New resident'}
-          fields={FIELDS}
+          fields={editing ? EDIT_FIELDS : CREATE_FIELDS}
           initial={editing ?? {}}
           onSubmit={handleSubmit}
           onClose={() => { setModalOpen(false); setEditing(null) }}

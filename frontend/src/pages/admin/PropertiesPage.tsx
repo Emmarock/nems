@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { propertiesApi } from '../../api/endpoints'
+import { propertiesApi, residentsApi } from '../../api/endpoints'
 import type { PageResponse, Property } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
@@ -42,7 +42,17 @@ const FIELDS: FieldConfig[] = [
       { value: 'UNDER_CONSTRUCTION', label: 'Under construction' },
     ],
   },
-  { name: 'ownerId', label: 'Owner resident ID', type: 'number' },
+  {
+    name: 'ownerId',
+    label: 'Owner',
+    type: 'search',
+    labelField: 'ownerName',
+    searchPlaceholder: 'Type a resident name…',
+    searchFn: async (q) => {
+      const page = await residentsApi.list({ q, page: 0, size: 10 })
+      return page.content.map((r) => ({ value: String(r.id), label: `${r.fullName} · ${r.phone}` }))
+    },
+  },
   { name: 'apartmentCount', label: 'Apartment count (caps active tenants)', type: 'number' },
 ]
 

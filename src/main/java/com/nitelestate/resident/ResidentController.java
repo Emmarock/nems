@@ -36,7 +36,7 @@ public class ResidentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY')")
     public ResidentResponse update(@PathVariable Long id, @Valid @RequestBody ResidentRequest request) {
         return residentService.update(id, request);
     }
