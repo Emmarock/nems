@@ -9,6 +9,12 @@ import { Pagination } from '../../components/Pagination'
 import { ResetPasswordModal } from '../../components/ResetPasswordModal'
 import { BulkCreateResidentAccountsModal } from '../../components/BulkCreateResidentAccountsModal'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { apiErrorMessage } from '../../api/client'
+
+function inviteStatus(user: User): string | null {
+  if (!user.mustChangePassword) return null
+  return user.inviteLinkExpired ? 'EXPIRED' : 'PENDING'
+}
 
 const EMPTY: PageResponse<User> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
@@ -21,6 +27,8 @@ export function UsersPage() {
   const debouncedQuery = useDebouncedValue(query)
   const [resetTarget, setResetTarget] = useState<User | null>(null)
   const [bulkCreateOpen, setBulkCreateOpen] = useState(false)
+  const [resendingId, setResendingId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -42,6 +50,19 @@ export function UsersPage() {
     await load()
   }
 
+  async function resendInvite(user: User) {
+    setResendingId(user.id)
+    setError(null)
+    try {
+      await usersApi.resendInvite(user.id)
+      await load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setResendingId(null)
+    }
+  }
+
   return (
     <div>
       <div className="page-header" data-tour="/users">
@@ -61,6 +82,8 @@ export function UsersPage() {
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search users by name, email, role…" />
 
+      {error && <p className="error-text">{error}</p>}
+
       <DataTable
         loading={loading}
         rows={result.content}
@@ -72,6 +95,7 @@ export function UsersPage() {
           { key: 'phone', label: 'Phone', render: (u) => u.phone ?? <span className="muted">—</span> },
           { key: 'role', label: 'Role', render: (u) => <StatusBadge value={u.role} /> },
           { key: 'status', label: 'Status', render: (u) => <StatusBadge value={u.status} /> },
+          { key: 'invite', label: 'Invite', render: (u) => <StatusBadge value={inviteStatus(u)} /> },
         ]}
         actions={(u) => (
           <div style={{ display: 'flex', gap: 6 }}>
@@ -81,6 +105,11 @@ export function UsersPage() {
             <button className="btn btn-sm" onClick={() => toggleStatus(u)}>
               {u.status === 'ACTIVE' ? 'Disable' : 'Enable'}
             </button>
+            {u.mustChangePassword && (
+              <button className="btn btn-sm" disabled={resendingId === u.id} onClick={() => resendInvite(u)}>
+                {resendingId === u.id ? 'Sending…' : 'Resend invite'}
+              </button>
+            )}
           </div>
         )}
       />

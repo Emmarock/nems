@@ -35,6 +35,9 @@ export interface User {
   role: Role
   status: 'ACTIVE' | 'DISABLED'
   residentId: number | null
+  mustChangePassword: boolean
+  /** True once mustChangePassword's "set your password" link has passed its 24h validity (or none was ever issued). */
+  inviteLinkExpired: boolean
 }
 
 export type ResidentType = 'OWNER' | 'TENANT' | 'LANDLORD'

@@ -60,4 +60,10 @@ public class UserController {
     public void resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request.newPassword());
     }
+
+    /** Resends a fresh "set your password" link for a still-pending invite (e.g. the original one expired). */
+    @PostMapping("/{id}/resend-invite")
+    public UserResponse resendInvite(@PathVariable Long id) {
+        return userService.resendInvite(id);
+    }
 }

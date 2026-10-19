@@ -109,6 +109,33 @@ public class UserService {
     }
 
     /**
+     * Admin action for a pending invite whose "set your password" link has gone stale (expired,
+     * or the holder lost the original message) - mints a fresh reset token and resends it on
+     * every channel the account has a real contact method for, same selection as notifyNewAccount.
+     * Restricted to accounts that still have a pending invite (mustChangePassword): resending a
+     * reset-token link for an account that already has its own password would let whoever
+     * receives this message take it over, so this must not be usable as a backdoor reset for an
+     * active account - that's what resetPassword (admin-set) and forgot-password are for.
+     */
+    @Transactional
+    public UserResponse resendInvite(Long userId) {
+        User user = get(userId);
+        if (!user.isMustChangePassword()) {
+            throw new BadRequestException("This account already has a password set - there's no pending invite to resend");
+        }
+        String resetUrl = appBaseUrl + "/reset-password?token=" + issueResetToken(user);
+        String message = MessageTemplates.accountClaimed(user.getFullName(), resetUrl);
+        if (isRealEmail(user.getEmail())) {
+            notificationService.dispatch(NotificationChannel.EMAIL, user.getEmail(), message);
+        }
+        if (user.getPhone() != null) {
+            notificationService.dispatch(NotificationChannel.SMS, user.getPhone(), message);
+            notificationService.dispatch(NotificationChannel.WHATSAPP, user.getPhone(), message);
+        }
+        return UserResponse.from(user);
+    }
+
+    /**
      * Self-service: any authenticated user changing their own password must prove they know the
      * current one (a temporary password counts - it's still "the current one"). Always clears
      * mustChangePassword, since choosing your own password is exactly what that flag is waiting for.
