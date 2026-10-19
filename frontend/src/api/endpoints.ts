@@ -25,6 +25,7 @@ import type {
   Property,
   PropertyLookup,
   BulkCreateResidentUsersResult,
+  ResendInviteResult,
   Resident,
   ResidentArrears,
   ResidentLookup,
@@ -87,7 +88,7 @@ export const usersApi = {
     client
       .post<BulkCreateResidentUsersResult>('/users/bulk-create-residents', { residentIds })
       .then((r) => r.data),
-  resendInvite: (id: number) => client.post<User>(`/users/${id}/resend-invite`).then((r) => r.data),
+  resendInvite: (id: number) => client.post<ResendInviteResult>(`/users/${id}/resend-invite`).then((r) => r.data),
 }
 
 export const residentsApi = {

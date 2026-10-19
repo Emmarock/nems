@@ -40,6 +40,14 @@ export interface User {
   inviteLinkExpired: boolean
 }
 
+/** resetUrl is returned once, directly to the admin - it's never shown anywhere else (every
+ * logged/persisted copy of the dispatched message has its token redacted), so this is the only
+ * way to get a working link when no real email/SMS provider is configured yet. */
+export interface ResendInviteResult {
+  user: User
+  resetUrl: string
+}
+
 export type ResidentType = 'OWNER' | 'TENANT' | 'LANDLORD'
 export type ResidentStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 

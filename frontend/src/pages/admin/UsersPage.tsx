@@ -29,6 +29,8 @@ export function UsersPage() {
   const [bulkCreateOpen, setBulkCreateOpen] = useState(false)
   const [resendingId, setResendingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [resentLink, setResentLink] = useState<{ userName: string; resetUrl: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -54,12 +56,25 @@ export function UsersPage() {
     setResendingId(user.id)
     setError(null)
     try {
-      await usersApi.resendInvite(user.id)
+      const { resetUrl } = await usersApi.resendInvite(user.id)
+      setResentLink({ userName: user.fullName, resetUrl })
+      setCopied(false)
       await load()
     } catch (err) {
       setError(apiErrorMessage(err))
     } finally {
       setResendingId(null)
+    }
+  }
+
+  async function copyResentLink() {
+    if (!resentLink) return
+    try {
+      await navigator.clipboard.writeText(resentLink.resetUrl)
+      setCopied(true)
+    } catch {
+      // Clipboard access can fail (permissions, insecure context) - the link is still shown as
+      // plain text, so the admin can select and copy it by hand either way.
     }
   }
 
@@ -124,6 +139,37 @@ export function UsersPage() {
 
       {bulkCreateOpen && (
         <BulkCreateResidentAccountsModal onClose={() => setBulkCreateOpen(false)} onDone={load} />
+      )}
+
+      {resentLink && (
+        <div className="modal-overlay" onClick={() => setResentLink(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <div className="modal-header">
+              <h2>Invite resent — {resentLink.userName}</h2>
+              <button type="button" className="btn btn-sm" onClick={() => setResentLink(null)}>
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p className="muted" style={{ marginTop: 0 }}>
+                A fresh link was sent on every channel this account has (email/SMS/WhatsApp). If none of those
+                are actually configured yet, it's shown here once, unredacted, so you can share it yourself —
+                it can't be retrieved again after you close this.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="text" readOnly value={resentLink.resetUrl} style={{ fontFamily: 'monospace', fontSize: 12 }} />
+                <button type="button" className="btn btn-sm" onClick={copyResentLink}>
+                  {copied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-primary" onClick={() => setResentLink(null)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

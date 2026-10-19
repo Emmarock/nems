@@ -100,8 +100,18 @@ class ResendInviteIntegrationTest {
         var resent = restTemplate.exchange(baseUrl() + "/users/" + userId + "/resend-invite", HttpMethod.POST,
                 new HttpEntity<>(authHeaders(adminToken)), Map.class);
         assertThat(resent.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resent.getBody().get("mustChangePassword")).isEqualTo(true);
-        assertThat(resent.getBody().get("inviteLinkExpired")).isEqualTo(false);
+        Map<String, Object> resentUser = (Map<String, Object>) resent.getBody().get("user");
+        assertThat(resentUser.get("mustChangePassword")).isEqualTo(true);
+        assertThat(resentUser.get("inviteLinkExpired")).isEqualTo(false);
+
+        // The reset URL is handed back here, unredacted, directly to the admin - every other
+        // record of it (console logs, NotificationLog) has its token stripped by Redaction, so
+        // this is the only way to retrieve a WORKING link when no real email/SMS provider is
+        // configured and the dispatched message never actually reaches the resident.
+        String resetUrl = (String) resent.getBody().get("resetUrl");
+        assertThat(resetUrl).contains("/reset-password?token=");
+        String token = resetUrl.substring(resetUrl.indexOf("token=") + "token=".length());
+        assertThat(token).isNotBlank().doesNotContain("REDACTED");
     }
 
     @Test

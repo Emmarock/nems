@@ -11,6 +11,7 @@ import com.nitelestate.notification.NotificationService;
 import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
 import com.nitelestate.user.dto.BulkCreateResidentUsersResponse;
+import com.nitelestate.user.dto.ResendInviteResponse;
 import com.nitelestate.user.dto.UserCreateRequest;
 import com.nitelestate.user.dto.UserResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -118,7 +119,7 @@ public class UserService {
      * active account - that's what resetPassword (admin-set) and forgot-password are for.
      */
     @Transactional
-    public UserResponse resendInvite(Long userId) {
+    public ResendInviteResponse resendInvite(Long userId) {
         User user = get(userId);
         if (!user.isMustChangePassword()) {
             throw new BadRequestException("This account already has a password set - there's no pending invite to resend");
@@ -132,7 +133,13 @@ public class UserService {
             notificationService.dispatch(NotificationChannel.SMS, user.getPhone(), message);
             notificationService.dispatch(NotificationChannel.WHATSAPP, user.getPhone(), message);
         }
-        return UserResponse.from(user);
+        // resetUrl is handed back here, unredacted, directly to the admin who just authenticated
+        // this action - every OTHER record of it (console logs, NotificationLog) has its token
+        // stripped by Redaction, same as a temporary password's only plaintext appearance is
+        // BulkCreateResidentUsersResponse. Without this, there's no way to retrieve a working
+        // link when no real email/SMS provider is configured yet and the dispatch above never
+        // actually reaches the resident.
+        return new ResendInviteResponse(UserResponse.from(user), resetUrl);
     }
 
     /**

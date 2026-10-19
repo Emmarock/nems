@@ -4,6 +4,7 @@ import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.search.Paging;
 import com.nitelestate.user.dto.BulkCreateResidentUsersRequest;
 import com.nitelestate.user.dto.BulkCreateResidentUsersResponse;
+import com.nitelestate.user.dto.ResendInviteResponse;
 import com.nitelestate.user.dto.ResetPasswordRequest;
 import com.nitelestate.user.dto.UserCreateRequest;
 import com.nitelestate.user.dto.UserResponse;
@@ -63,7 +64,7 @@ public class UserController {
 
     /** Resends a fresh "set your password" link for a still-pending invite (e.g. the original one expired). */
     @PostMapping("/{id}/resend-invite")
-    public UserResponse resendInvite(@PathVariable Long id) {
+    public ResendInviteResponse resendInvite(@PathVariable Long id) {
         return userService.resendInvite(id);
     }
 }
