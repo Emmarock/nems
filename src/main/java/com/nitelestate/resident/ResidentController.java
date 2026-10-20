@@ -30,7 +30,7 @@ public class ResidentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'FINANCIAL_SECRETARY')")
     public ResidentResponse create(@Valid @RequestBody ResidentRequest request) {
         return residentService.create(request);
     }

@@ -23,7 +23,7 @@ public class PropertyController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'FINANCIAL_SECRETARY')")
     public PropertyResponse create(@Valid @RequestBody PropertyRequest request) {
         return propertyService.create(request);
     }
