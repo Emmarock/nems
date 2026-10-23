@@ -27,6 +27,7 @@ import type {
   BulkCreateResidentUsersResult,
   ResendInviteResult,
   Resident,
+  Role,
   ResidentArrears,
   ResidentLookup,
   RfidTag,
@@ -42,6 +43,7 @@ import type {
   Visitor,
   VisitorLookup,
   VisitorScanResult,
+  VisitorStatus,
   Worker,
   WorkerLookup,
 } from './types'
@@ -227,7 +229,7 @@ export const meApi = {
 export const visitorsApi = {
   mine: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Visitor>>('/visitors/mine', { params }).then((r) => r.data),
-  listAll: (params: { q?: string; page?: number; size?: number } = {}) =>
+  listAll: (params: { q?: string; status?: VisitorStatus; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Visitor>>('/visitors', { params }).then((r) => r.data),
   get: (id: number) => client.get<Visitor>(`/visitors/${id}`).then((r) => r.data),
   create: (body: { name: string; phone: string; vehiclePlate?: string; validFrom: string; validUntil: string; photo?: string }) =>
@@ -312,14 +314,17 @@ export const complaintsApi = {
   get: (id: number) => client.get<Complaint>(`/complaints/${id}`).then((r) => r.data),
   mine: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Complaint>>('/complaints/mine', { params }).then((r) => r.data),
-  listAll: (params: { status?: ComplaintStatus; page?: number; size?: number } = {}) =>
+  listAll: (params: { status?: ComplaintStatus; openOnly?: boolean; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Complaint>>('/complaints', { params }).then((r) => r.data),
   listByResident: (residentId: number, params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Complaint>>('/complaints', { params: { ...params, residentId } }).then((r) => r.data),
   create: (body: { category: string; description: string; priority?: string }) =>
     client.post<Complaint>('/complaints', body).then((r) => r.data),
-  updateStatus: (id: number, status: ComplaintStatus, assignedTo?: string) =>
-    client.put<Complaint>(`/complaints/${id}/status`, { status, assignedTo }).then((r) => r.data),
+  updateStatus: (id: number, status: ComplaintStatus) =>
+    client.put<Complaint>(`/complaints/${id}/status`, { status }).then((r) => r.data),
+  /** Routes the complaint to a staff role (security, finance, treasurer, ...) - pass null to clear it. */
+  assign: (id: number, assignedRole: Role | null) =>
+    client.put<Complaint>(`/complaints/${id}/assign`, { assignedRole }).then((r) => r.data),
 }
 
 export const notificationLogsApi = {

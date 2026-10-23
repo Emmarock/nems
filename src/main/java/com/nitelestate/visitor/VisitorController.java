@@ -39,7 +39,7 @@ public class VisitorController {
     @PreAuthorize("hasRole('RESIDENT')")
     public PageResponse<VisitorResponse> mine(@RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "20") int size) {
-        return visitorService.search(currentUser.residentId(), null, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "validFrom")));
+        return visitorService.search(currentUser.residentId(), null, null, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "validFrom")));
     }
 
     @GetMapping("/{id}")
@@ -51,9 +51,10 @@ public class VisitorController {
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY')")
     public PageResponse<VisitorResponse> findAll(@RequestParam(required = false) String q,
+                                                  @RequestParam(required = false) VisitorStatus status,
                                                   @RequestParam(defaultValue = "0") int page,
                                                   @RequestParam(defaultValue = "20") int size) {
-        return visitorService.search(null, q, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "validFrom")));
+        return visitorService.search(null, q, status, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "validFrom")));
     }
 
     /** Gate-side QR scan: shows the destination (host resident + property) to confirm, plus

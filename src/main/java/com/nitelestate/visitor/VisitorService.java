@@ -96,9 +96,10 @@ public class VisitorService {
 
     /** {@code hostResidentId} narrows to one resident's own passes ("My Visitors"); {@code q}
      * is the admin/security list's free-text search over name/phone - the two are independent. */
-    public PageResponse<VisitorResponse> search(Long hostResidentId, String q, Pageable pageable) {
+    public PageResponse<VisitorResponse> search(Long hostResidentId, String q, VisitorStatus status, Pageable pageable) {
         Specification<Visitor> spec = Specification.<Visitor>where(Specs.eq(hostResidentId, "hostResidentId"))
-                .and(Specs.contains(q, "name", "phone"));
+                .and(Specs.contains(q, "name", "phone"))
+                .and(Specs.eq(status, "status"));
         var page = visitorRepository.findAll(spec, pageable);
 
         List<Long> hostIds = page.getContent().stream().map(Visitor::getHostResidentId).filter(Objects::nonNull).distinct().toList();

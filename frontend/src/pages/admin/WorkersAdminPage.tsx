@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { workersApi } from '../../api/endpoints'
 import type { PageResponse, Worker } from '../../api/types'
 import { useAuth } from '../../auth/AuthContext'
@@ -16,9 +17,11 @@ const EMPTY: PageResponse<Worker> = { content: [], page: 0, size: 20, totalEleme
 export function WorkersAdminPage() {
   const { user } = useAuth()
   const { openResident } = useEntityDetail()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [result, setResult] = useState<PageResponse<Worker>>(EMPTY)
   const [loading, setLoading] = useState(true)
-  const [activeOnly, setActiveOnly] = useState(false)
+  /** Initialised from ?activeOnly=1 so the dashboard's "Workers on site" card can link straight here. */
+  const [activeOnly, setActiveOnly] = useState(searchParams.get('activeOnly') === '1')
   /** Due (or overdue) for checkout by their own contract end date, but still checked in right now - see CheckoutReminderJob. */
   const [dueOnSiteOnly, setDueOnSiteOnly] = useState(false)
   const [query, setQuery] = useState('')
@@ -77,7 +80,14 @@ export function WorkersAdminPage() {
       <div className="toolbar">
         {!dueOnSiteOnly && (
           <label className="checkbox-field">
-            <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={activeOnly}
+              onChange={(e) => {
+                setActiveOnly(e.target.checked)
+                setSearchParams(e.target.checked ? { activeOnly: '1' } : {})
+              }}
+            />
             Active on site only
           </label>
         )}

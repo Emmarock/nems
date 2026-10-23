@@ -67,8 +67,20 @@ export function SecurityDashboardPage() {
       </div>
 
       <div className="stat-grid">
-        <StatCard label="Visitors active" value={dashboard.visitorsActive} icon={<PersonBadgeIcon />} tone="magenta" />
-        <StatCard label="Workers on site" value={dashboard.workersOnSite} icon={<WrenchIcon />} tone="warning" />
+        <StatCard
+          label="Visitors active"
+          value={dashboard.visitorsActive}
+          icon={<PersonBadgeIcon />}
+          tone="magenta"
+          onClick={() => navigate('/visitors?status=ACTIVE')}
+        />
+        <StatCard
+          label="Workers on site"
+          value={dashboard.workersOnSite}
+          icon={<WrenchIcon />}
+          tone="warning"
+          onClick={() => navigate('/workers?activeOnly=1')}
+        />
         <StatCard
           label="Registered vehicles"
           value={dashboard.registeredVehicles}

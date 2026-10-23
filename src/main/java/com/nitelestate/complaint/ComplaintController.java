@@ -2,6 +2,7 @@ package com.nitelestate.complaint;
 
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.search.Paging;
+import com.nitelestate.complaint.dto.ComplaintAssignRequest;
 import com.nitelestate.complaint.dto.ComplaintRequest;
 import com.nitelestate.complaint.dto.ComplaintResponse;
 import com.nitelestate.complaint.dto.ComplaintUpdateRequest;
@@ -32,13 +33,19 @@ public class ComplaintController {
     @PreAuthorize("hasRole('RESIDENT')")
     public PageResponse<ComplaintResponse> mine(@RequestParam(defaultValue = "0") int page,
                                                  @RequestParam(defaultValue = "20") int size) {
-        return complaintService.search(currentUser.residentId(), null, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+        return complaintService.search(currentUser.residentId(), null, false, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE')")
     public ComplaintResponse updateStatus(@PathVariable Long id, @Valid @RequestBody ComplaintUpdateRequest request) {
         return complaintService.updateStatus(id, request);
+    }
+
+    @PutMapping("/{id}/assign")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE')")
+    public ComplaintResponse assign(@PathVariable Long id, @RequestBody ComplaintAssignRequest request) {
+        return complaintService.assign(id, request.assignedRole());
     }
 
     @GetMapping("/{id}")
@@ -51,8 +58,9 @@ public class ComplaintController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE')")
     public PageResponse<ComplaintResponse> findAll(@RequestParam(required = false) ComplaintStatus status,
                                                     @RequestParam(required = false) Long residentId,
+                                                    @RequestParam(defaultValue = "false") boolean openOnly,
                                                     @RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "20") int size) {
-        return complaintService.search(residentId, status, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+        return complaintService.search(residentId, status, openOnly, Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 }

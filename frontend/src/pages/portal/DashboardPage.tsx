@@ -63,20 +63,29 @@ export function DashboardPage() {
           value={`₦${dashboard.account.outstanding.toLocaleString()}`}
           icon={<CoinsIcon />}
           tone="danger"
+          onClick={() => navigate('/portal/payments')}
         />
         <StatCard
           label="Total due"
           value={`₦${dashboard.account.totalDue.toLocaleString()}`}
           icon={<CoinsIcon />}
           tone="primary"
+          onClick={() => navigate('/portal/payments')}
         />
         <StatCard
           label="Total paid"
           value={`₦${dashboard.account.totalPaid.toLocaleString()}`}
           icon={<CoinsIcon />}
           tone="success"
+          onClick={() => navigate('/portal/payments')}
         />
-        <StatCard label="Vehicles" value={dashboard.vehicles.length} icon={<CarIcon />} tone="teal" />
+        <StatCard
+          label="Vehicles"
+          value={dashboard.vehicles.length}
+          icon={<CarIcon />}
+          tone="teal"
+          onClick={() => navigate('/portal/vehicles')}
+        />
       </div>
 
       {dashboard.account.outstanding > 0 && (

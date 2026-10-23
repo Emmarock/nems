@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { visitorsApi } from '../../api/endpoints'
 import type { PageResponse, Visitor } from '../../api/types'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
@@ -12,26 +13,31 @@ const EMPTY: PageResponse<Visitor> = { content: [], page: 0, size: 20, totalElem
 
 export function VisitorsAdminPage() {
   const { openResident, openVisitor } = useEntityDetail()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [result, setResult] = useState<PageResponse<Visitor>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
+  /** Initialised from ?status=ACTIVE so the dashboard's "Active visitor passes" card can link straight here. */
+  const [activeOnly, setActiveOnly] = useState(searchParams.get('status') === 'ACTIVE')
   const debouncedQuery = useDebouncedValue(query)
 
   async function load() {
     setLoading(true)
-    setResult(await visitorsApi.listAll({ q: debouncedQuery || undefined, page, size: 20 }))
+    setResult(
+      await visitorsApi.listAll({ q: debouncedQuery || undefined, status: activeOnly ? 'ACTIVE' : undefined, page, size: 20 }),
+    )
     setLoading(false)
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, page])
+  }, [debouncedQuery, activeOnly, page])
 
   useEffect(() => {
     setPage(0)
-  }, [debouncedQuery])
+  }, [debouncedQuery, activeOnly])
 
   return (
     <div>
@@ -44,11 +50,31 @@ export function VisitorsAdminPage() {
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search visitors by name or phone…" />
 
+      <div className="toolbar">
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={activeOnly}
+            onChange={(e) => {
+              setActiveOnly(e.target.checked)
+              setSearchParams(e.target.checked ? { status: 'ACTIVE' } : {})
+            }}
+          />
+          Active passes only
+        </label>
+      </div>
+
       <DataTable
         loading={loading}
         rows={result.content}
         rowKey={(v) => v.id}
-        emptyMessage={query ? 'No visitors match your search.' : 'No visitor passes have been issued yet.'}
+        emptyMessage={
+          query
+            ? 'No visitors match your search.'
+            : activeOnly
+              ? 'No active visitor passes right now.'
+              : 'No visitor passes have been issued yet.'
+        }
         columns={[
           {
             key: 'photo',
