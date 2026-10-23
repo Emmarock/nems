@@ -40,6 +40,7 @@ export function WorkersPage() {
   const [editing, setEditing] = useState<Worker | null>(null)
   const [qrWorker, setQrWorker] = useState<Worker | null>(null)
   const [rfidRequests, setRfidRequests] = useState<RfidRequest[]>([])
+  const [suspendingId, setSuspendingId] = useState<number | null>(null)
 
   async function load() {
     setLoading(true)
@@ -90,6 +91,16 @@ export function WorkersPage() {
     await load()
   }
 
+  async function handleSuspend(id: number) {
+    setSuspendingId(id)
+    try {
+      await workersApi.suspend(id)
+      await load()
+    } finally {
+      setSuspendingId(null)
+    }
+  }
+
   return (
     <div>
       <div className="page-header" data-tour="/portal/workers">
@@ -133,6 +144,11 @@ export function WorkersPage() {
             <button className="btn btn-sm" onClick={() => setEditing(w)}>
               Edit
             </button>
+            {w.status !== 'SUSPENDED' && w.status !== 'COMPLETED' && (
+              <button className="btn btn-sm" disabled={suspendingId === w.id} onClick={() => handleSuspend(w.id)}>
+                {suspendingId === w.id ? 'Suspending…' : 'Suspend'}
+              </button>
+            )}
             {w.qrToken ? (
               <>
                 <button className="btn btn-sm" onClick={() => setQrWorker(w)}>

@@ -18,6 +18,7 @@ import com.nitelestate.property.Property;
 import com.nitelestate.property.PropertyRepository;
 import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
+import com.nitelestate.user.Role;
 import com.nitelestate.user.UserRepository;
 import com.nitelestate.worker.dto.WorkerLookupResponse;
 import com.nitelestate.worker.dto.WorkerRequest;
@@ -126,9 +127,17 @@ public class WorkerService {
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
     }
 
+    /**
+     * SUSPENDED is a hard block at the gate (see checkIn) - open to the sponsoring resident as
+     * well as admin/security, since a resident needs to be able to cut off a worker's access
+     * themselves (e.g. a contractor let go mid-contract) without waiting on an administrator.
+     */
     @Transactional
-    public WorkerResponse suspend(Long id) {
+    public WorkerResponse suspend(Long id, Long callerResidentId, Role callerRole) {
         Worker worker = get(id);
+        if (callerRole == Role.RESIDENT && !worker.getSponsorResidentId().equals(callerResidentId)) {
+            throw new BadRequestException("That worker isn't yours to suspend");
+        }
         worker.setStatus(WorkerStatus.SUSPENDED);
         worker = workerRepository.save(worker);
         auditService.record("Worker", worker.getId(), "SUSPEND", null);
@@ -167,14 +176,19 @@ public class WorkerService {
     }
 
     /**
-     * Gate-side check-in; evaluates the approval/date-range window and flags (not blocks)
-     * anomalies there - but the sponsor's arrears status IS a hard block here (see
-     * AccessPolicyService.requireSponsorEligibleForEntry); checking out is never denied by it.
+     * Gate-side check-in; evaluates the approval/date-range window and flags (not blocks) most
+     * anomalies there - but two things ARE hard blocks here: the sponsor's arrears status (see
+     * AccessPolicyService.requireSponsorEligibleForEntry) and the worker's own SUSPENDED status
+     * (a resident or admin suspending a worker must actually keep them out, not just flag them
+     * for security to wave through). Checking out is never denied by either.
      */
     @Transactional
     public WorkerResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
         Worker worker = workerRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No worker pass found for this QR code"));
+        if (worker.getStatus() == WorkerStatus.SUSPENDED) {
+            throw new BadRequestException("This worker's access has been suspended");
+        }
 
         accessPolicyService.requireSponsorEligibleForEntry(worker.getSponsorResidentId());
         Evaluation eval = evaluate(worker);

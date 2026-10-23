@@ -4,6 +4,7 @@ import com.nitelestate.access.dto.AccessEventResponse;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.search.Paging;
 import com.nitelestate.security.CurrentUser;
+import com.nitelestate.user.Role;
 import com.nitelestate.worker.dto.WorkerLookupResponse;
 import com.nitelestate.worker.dto.WorkerRequest;
 import com.nitelestate.worker.dto.WorkerResponse;
@@ -36,10 +37,11 @@ public class WorkerController {
         return workerService.updateMine(currentUser.residentId(), id, request);
     }
 
+    /** Also open to the sponsoring resident (e.g. the worker's contract ended badly) - WorkerService enforces ownership for a RESIDENT caller. */
     @PostMapping("/{id}/suspend")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY', 'RESIDENT')")
     public WorkerResponse suspend(@PathVariable Long id) {
-        return workerService.suspend(id);
+        return workerService.suspend(id, residentIdOrNull(), currentUser.role());
     }
 
     @PostMapping("/{id}/complete")
@@ -104,5 +106,10 @@ public class WorkerController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECURITY')")
     public WorkerResponse checkOut(@PathVariable String qrToken, @RequestParam(required = false) Long gateId) {
         return workerService.checkOut(qrToken, gateId, currentUser.userId());
+    }
+
+    /** SUPER_ADMIN/CDA_ADMIN/SECURITY callers aren't linked to a resident id — residentId() would throw. */
+    private Long residentIdOrNull() {
+        return currentUser.role() == Role.RESIDENT ? currentUser.residentId() : null;
     }
 }
