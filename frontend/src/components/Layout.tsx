@@ -93,7 +93,10 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <aside className={`sidebar ${navOpen ? 'open' : ''} ${sidebarCollapsed ? 'tour-collapsed' : ''}`}>
-        <div className="sidebar-brand">Nitel Estate</div>
+        <div className="sidebar-brand">
+          <img src="/logo.png" alt="" className="sidebar-brand-logo" />
+          Nitel Estate
+        </div>
         <div className="sidebar-section">Menu</div>
         {items.map((item) => {
           const Icon = item.icon

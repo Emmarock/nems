@@ -177,10 +177,19 @@ button {
 }
 
 .sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 700;
   font-size: 15px;
   padding: 0 10px 16px;
   color: var(--color-primary);
+}
+
+.sidebar-brand-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
 }
 
 .sidebar-section {
@@ -1042,6 +1051,17 @@ select:disabled {
   width: 100%;
   max-width: 380px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* Every auth screen (login, forgot/reset/claim password) shares .login-card - putting the logo
+   here brands all of them from one place instead of repeating an <img> in each page. */
+.login-card::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 0 14px;
+  background: url('/logo.png') center / contain no-repeat;
 }
 
 .login-card h1 {
