@@ -442,7 +442,7 @@ export interface Complaint {
   description: string
   status: ComplaintStatus
   priority: ComplaintPriority
-  assignedTo: string | null
+  assignedRole: Role | null
   createdAt: string
   resolvedAt: string | null
 }

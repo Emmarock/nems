@@ -1,6 +1,7 @@
 package com.nitelestate.complaint;
 
 import com.nitelestate.common.BaseEntity;
+import com.nitelestate.user.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -38,7 +39,10 @@ public class Complaint extends BaseEntity {
     @Column(nullable = false, length = 8)
     private ComplaintPriority priority = ComplaintPriority.MEDIUM;
 
-    private String assignedTo;
+    /** Which staff role this complaint has been routed to - SECURITY, TREASURER, etc. - not who filed it. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 24)
+    private Role assignedRole;
 
     private Instant resolvedAt;
 }

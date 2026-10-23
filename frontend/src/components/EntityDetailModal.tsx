@@ -19,12 +19,14 @@ import type {
   LevyBalance,
   Property,
   Resident,
+  Role,
   Vehicle,
   Visitor,
   Worker,
 } from '../api/types'
 import { useEntityDetail } from '../entityDetail/EntityDetailContext'
 import { apiErrorMessage } from '../api/client'
+import { ASSIGNABLE_COMPLAINT_ROLES, ROLE_LABELS } from '../utils/roles'
 import { BalanceBreakdown } from './BalanceBreakdown'
 import { LoadingState } from './LoadingState'
 import { StatusBadge } from './StatusBadge'
@@ -60,6 +62,7 @@ export function EntityDetailModal() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [advancing, setAdvancing] = useState(false)
+  const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
     if (!current) return
@@ -165,6 +168,20 @@ export function EntityDetailModal() {
       setError(apiErrorMessage(err))
     } finally {
       setAdvancing(false)
+    }
+  }
+
+  async function assignComplaint(role: string) {
+    if (!complaintDetail) return
+    setAssigning(true)
+    setError(null)
+    try {
+      const updated = await complaintsApi.assign(complaintDetail.id, (role || null) as Role | null)
+      setComplaintDetail(updated)
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setAssigning(false)
     }
   }
 
@@ -424,7 +441,19 @@ export function EntityDetailModal() {
                   </button>
                 }
               />
-              <Row label="Assigned to" value={complaintDetail.assignedTo} />
+              <Row
+                label="Assigned to"
+                value={
+                  <select value={complaintDetail.assignedRole ?? ''} disabled={assigning} onChange={(e) => assignComplaint(e.target.value)}>
+                    <option value="">Unassigned</option>
+                    {ASSIGNABLE_COMPLAINT_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {ROLE_LABELS[role]}
+                      </option>
+                    ))}
+                  </select>
+                }
+              />
               <Row label="Filed" value={new Date(complaintDetail.createdAt).toLocaleString()} />
               {complaintDetail.resolvedAt && (
                 <Row label="Resolved" value={new Date(complaintDetail.resolvedAt).toLocaleString()} />
