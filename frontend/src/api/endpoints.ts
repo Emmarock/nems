@@ -261,6 +261,20 @@ export const workersApi = {
     expectedEndDate: string
     photo?: string
   }) => client.post<Worker>('/workers', body).then((r) => r.data),
+  update: (
+    id: number,
+    body: {
+      fullName: string
+      phone: string
+      nationalId?: string
+      contractorName: string
+      workType: string
+      workerCategory: Worker['workerCategory']
+      startDate: string
+      expectedEndDate: string
+      photo?: string
+    },
+  ) => client.put<Worker>(`/workers/${id}`, body).then((r) => r.data),
   suspend: (id: number) => client.post<Worker>(`/workers/${id}/suspend`).then((r) => r.data),
   complete: (id: number) => client.post<Worker>(`/workers/${id}/complete`).then((r) => r.data),
   logs: (id: number, params: { page?: number; size?: number } = {}) =>

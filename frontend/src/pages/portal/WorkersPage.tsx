@@ -37,6 +37,7 @@ export function WorkersPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<Worker | null>(null)
   const [qrWorker, setQrWorker] = useState<Worker | null>(null)
   const [rfidRequests, setRfidRequests] = useState<RfidRequest[]>([])
 
@@ -69,6 +70,23 @@ export function WorkersPage() {
       photo: (values.photo as string) || undefined,
     })
     setModalOpen(false)
+    await load()
+  }
+
+  async function handleEditSubmit(values: Record<string, unknown>) {
+    if (!editing) return
+    await workersApi.update(editing.id, {
+      fullName: values.fullName as string,
+      phone: values.phone as string,
+      nationalId: (values.nationalId as string) || undefined,
+      contractorName: values.contractorName as string,
+      workType: values.workType as string,
+      workerCategory: values.workerCategory as Worker['workerCategory'],
+      startDate: values.startDate as string,
+      expectedEndDate: values.expectedEndDate as string,
+      photo: (values.photo as string) || undefined,
+    })
+    setEditing(null)
     await load()
   }
 
@@ -110,24 +128,29 @@ export function WorkersPage() {
           { key: 'expectedEndDate', label: 'Expected end' },
           { key: 'status', label: 'Status', render: (w) => <StatusBadge value={w.status} /> },
         ]}
-        actions={(w) =>
-          w.qrToken ? (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <button className="btn btn-sm" onClick={() => setQrWorker(w)}>
-                View QR pass
-              </button>
-              <RfidRequestAction
-                subjectType="WORKER"
-                subjectId={w.id}
-                subjectName={w.fullName}
-                requests={rfidRequests}
-                onChanged={load}
-              />
-            </div>
-          ) : (
-            <span className="muted">Pending approval</span>
-          )
-        }
+        actions={(w) => (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button className="btn btn-sm" onClick={() => setEditing(w)}>
+              Edit
+            </button>
+            {w.qrToken ? (
+              <>
+                <button className="btn btn-sm" onClick={() => setQrWorker(w)}>
+                  View QR pass
+                </button>
+                <RfidRequestAction
+                  subjectType="WORKER"
+                  subjectId={w.id}
+                  subjectName={w.fullName}
+                  requests={rfidRequests}
+                  onChanged={load}
+                />
+              </>
+            ) : (
+              <span className="muted">Pending approval</span>
+            )}
+          </div>
+        )}
       />
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
@@ -138,6 +161,17 @@ export function WorkersPage() {
           fields={FIELDS}
           onSubmit={handleSubmit}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+
+      {editing && (
+        <FormModal
+          title={`Edit worker — ${editing.fullName}`}
+          fields={FIELDS}
+          initial={editing}
+          submitLabel="Save changes"
+          onSubmit={handleEditSubmit}
+          onClose={() => setEditing(null)}
         />
       )}
 

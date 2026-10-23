@@ -91,6 +91,41 @@ public class WorkerService {
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
     }
 
+    /**
+     * The sponsoring resident editing their own worker's basic details or photo after the
+     * initial request — e.g. correcting a phone number, or adding a photo that wasn't on hand
+     * at request time. Does not touch status/qrToken; a resident can't reassign the site either
+     * (siteId is re-resolved from their own property, same as request()), so this can't be used
+     * to move a worker onto someone else's property.
+     */
+    @Transactional
+    public WorkerResponse updateMine(Long sponsorResidentId, Long id, WorkerRequest request) {
+        Worker worker = get(id);
+        if (!worker.getSponsorResidentId().equals(sponsorResidentId)) {
+            throw new BadRequestException("That worker isn't yours to edit");
+        }
+        if (request.expectedEndDate().isBefore(request.startDate())) {
+            throw new BadRequestException("expectedEndDate cannot be before startDate");
+        }
+        if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
+            throw new BadRequestException("Photo is too large — please use a smaller image");
+        }
+
+        worker.setFullName(request.fullName());
+        worker.setPhone(request.phone());
+        worker.setNationalId(request.nationalId());
+        worker.setContractorName(request.contractorName());
+        worker.setWorkType(request.workType());
+        worker.setWorkerCategory(request.workerCategory());
+        worker.setStartDate(request.startDate());
+        worker.setExpectedEndDate(request.expectedEndDate());
+        worker.setPhoto(request.photo());
+        worker = workerRepository.save(worker);
+
+        auditService.record("Worker", worker.getId(), "UPDATE", worker.getContractorName());
+        return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
+    }
+
     @Transactional
     public WorkerResponse suspend(Long id) {
         Worker worker = get(id);

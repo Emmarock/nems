@@ -30,6 +30,12 @@ public class WorkerController {
         return workerService.request(currentUser.residentId(), request);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('RESIDENT')")
+    public WorkerResponse updateMine(@PathVariable Long id, @Valid @RequestBody WorkerRequest request) {
+        return workerService.updateMine(currentUser.residentId(), id, request);
+    }
+
     @PostMapping("/{id}/suspend")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
     public WorkerResponse suspend(@PathVariable Long id) {
