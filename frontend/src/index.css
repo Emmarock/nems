@@ -253,6 +253,23 @@ button {
   border-bottom: 1px solid var(--color-border);
 }
 
+/* Hidden above the mobile breakpoint - the sidebar's own .sidebar-brand logo is already visible
+   there, so this would just duplicate it right next to the hamburger button that doesn't exist
+   on desktop either (see .icon-btn.sidebar-toggle's display:none above 768px). */
+.topbar-brand-logo {
+  display: none;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .topbar-brand-logo {
+    display: block;
+  }
+}
+
 .topbar-user {
   display: flex;
   align-items: center;

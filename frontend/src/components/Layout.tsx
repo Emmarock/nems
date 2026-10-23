@@ -137,6 +137,10 @@ export function Layout({ children }: { children: ReactNode }) {
           >
             <MenuIcon />
           </button>
+          {/* The sidebar's own logo (.sidebar-brand) sits in the off-screen drawer on mobile, so
+              without this the brand is invisible on every page until the menu is opened — shown
+              only below the 768px breakpoint where that's true (see .topbar-brand in index.css). */}
+          <img src="/logo.png" alt="Nitel Estate" className="topbar-brand-logo" />
           <div className="topbar-user">
             <NotificationBell />
             <button type="button" className="btn btn-sm" onClick={tour.restart}>
