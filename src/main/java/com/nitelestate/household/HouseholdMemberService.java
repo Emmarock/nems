@@ -76,6 +76,32 @@ public class HouseholdMemberService {
     }
 
     /**
+     * The sponsoring resident editing their own household member's details after the initial
+     * request - e.g. correcting a name/phone, or adding a photo that wasn't on hand at request
+     * time. Doesn't touch status/qrToken or the property (that's re-resolved from the sponsor's
+     * own property at request time and can't be changed here, same as Worker.updateMine).
+     */
+    @Transactional
+    public HouseholdMemberResponse updateMine(Long sponsorResidentId, Long id, HouseholdMemberRequest request) {
+        HouseholdMember member = get(id);
+        if (!member.getSponsorResidentId().equals(sponsorResidentId)) {
+            throw new BadRequestException("That household member isn't yours to edit");
+        }
+        if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
+            throw new BadRequestException("Photo is too large — please use a smaller image");
+        }
+
+        member.setFullName(request.fullName());
+        member.setPhone(request.phone());
+        member.setRelationship(request.relationship());
+        member.setPhoto(request.photo());
+        member = householdMemberRepository.save(member);
+
+        auditService.record("HouseholdMember", member.getId(), "UPDATE", member.getFullName());
+        return HouseholdMemberResponse.from(member, resolveHouseNumber(member.getPropertyId()));
+    }
+
+    /**
      * The landlord (or an admin) approves the request, activating the pass and issuing its QR —
      * no validity window to set; the pass is valid indefinitely, same as the home owner's own
      * standing, until revoke() is called.

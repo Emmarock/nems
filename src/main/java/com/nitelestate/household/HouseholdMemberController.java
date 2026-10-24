@@ -30,6 +30,12 @@ public class HouseholdMemberController {
         return householdMemberService.request(currentUser.residentId(), request);
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('RESIDENT')")
+    public HouseholdMemberResponse updateMine(@PathVariable Long id, @Valid @RequestBody HouseholdMemberRequest request) {
+        return householdMemberService.updateMine(currentUser.residentId(), id, request);
+    }
+
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('RESIDENT', 'SUPER_ADMIN', 'CDA_ADMIN')")
     public HouseholdMemberResponse approve(@PathVariable Long id) {

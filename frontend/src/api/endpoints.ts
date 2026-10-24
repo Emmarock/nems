@@ -299,6 +299,8 @@ export const householdMembersApi = {
   get: (id: number) => client.get<HouseholdMember>(`/household-members/${id}`).then((r) => r.data),
   request: (body: { fullName: string; phone: string; relationship: string; photo?: string }) =>
     client.post<HouseholdMember>('/household-members', body).then((r) => r.data),
+  update: (id: number, body: { fullName: string; phone: string; relationship: string; photo?: string }) =>
+    client.put<HouseholdMember>(`/household-members/${id}`, body).then((r) => r.data),
   approve: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/approve`).then((r) => r.data),
   revoke: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/revoke`).then((r) => r.data),
   logs: (id: number, params: { page?: number; size?: number } = {}) =>

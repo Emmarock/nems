@@ -41,6 +41,7 @@ export function HouseholdMembersPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
+  const [editing, setEditing] = useState<HouseholdMember | null>(null)
   const [qrMember, setQrMember] = useState<HouseholdMember | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
@@ -64,6 +65,18 @@ export function HouseholdMembersPage() {
       photo: (values.photo as string) || undefined,
     })
     setModalOpen(false)
+    await load()
+  }
+
+  async function handleEditSubmit(values: Record<string, unknown>) {
+    if (!editing) return
+    await householdMembersApi.update(editing.id, {
+      fullName: values.fullName as string,
+      phone: values.phone as string,
+      relationship: values.relationship as string,
+      photo: (values.photo as string) || undefined,
+    })
+    setEditing(null)
     await load()
   }
 
@@ -117,7 +130,10 @@ export function HouseholdMembersPage() {
           { key: 'status', label: 'Status', render: (m) => <StatusBadge value={m.status} /> },
         ]}
         actions={(m) => (
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button className="btn btn-sm" onClick={() => setEditing(m)}>
+              Edit
+            </button>
             {m.qrToken ? (
               <button className="btn btn-sm" onClick={() => setQrMember(m)}>
                 View QR pass
@@ -142,6 +158,17 @@ export function HouseholdMembersPage() {
           fields={FIELDS}
           onSubmit={handleSubmit}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+
+      {editing && (
+        <FormModal
+          title={`Edit household member — ${editing.fullName}`}
+          fields={FIELDS}
+          initial={editing}
+          submitLabel="Save changes"
+          onSubmit={handleEditSubmit}
+          onClose={() => setEditing(null)}
         />
       )}
 
