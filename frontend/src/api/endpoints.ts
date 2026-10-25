@@ -337,8 +337,14 @@ export const notificationLogsApi = {
 export const announcementsApi = {
   list: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Announcement>>('/announcements', { params }).then((r) => r.data),
-  create: (body: { title: string; message: string; channels: string[]; photo?: string }) =>
-    client.post<Announcement>('/announcements', body).then((r) => r.data),
+  create: (body: {
+    title: string
+    message: string
+    channels: string[]
+    attachment?: string
+    attachmentFilename?: string
+    includeTenants?: boolean
+  }) => client.post<Announcement>('/announcements', body).then((r) => r.data),
   unreadCount: () => client.get<{ unread: number }>('/announcements/unread-count').then((r) => r.data.unread),
   markRead: (id: number) => client.post<void>(`/announcements/${id}/read`).then(() => undefined),
   markUnread: (id: number) => client.post<void>(`/announcements/${id}/unread`).then(() => undefined),

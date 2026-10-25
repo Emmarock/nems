@@ -12,6 +12,7 @@ import com.nitelestate.notification.NotificationService;
 import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
 import com.nitelestate.resident.ResidentStatus;
+import com.nitelestate.resident.ResidentType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,17 +33,21 @@ public class AnnouncementService {
     private final NotificationService notificationService;
     private final AuditService auditService;
 
-    /** ~1.5MB of base64 — same cap as Worker/Visitor/HouseholdMember photos. */
-    private static final int MAX_PHOTO_LENGTH = 2_000_000;
+    /** ~4.5MB of base64 — generous enough for a multi-page meeting-minutes PDF, not just a photo. */
+    private static final int MAX_ATTACHMENT_LENGTH = 6_000_000;
 
     @Transactional
     public AnnouncementResponse create(Long createdByUserId, AnnouncementRequest request) {
-        if (request.photo() != null) {
-            if (request.photo().length() > MAX_PHOTO_LENGTH) {
-                throw new BadRequestException("Photo is too large — please use a smaller image");
+        if (request.attachment() != null) {
+            if (request.attachment().length() > MAX_ATTACHMENT_LENGTH) {
+                throw new BadRequestException("Attachment is too large — please use a smaller file");
+            }
+            String contentType = contentTypeOf(request.attachment());
+            if (!contentType.startsWith("image/") && !contentType.equals("application/pdf")) {
+                throw new BadRequestException("Only images or PDF files can be attached to an announcement");
             }
             if (request.channels().contains(NotificationChannel.SMS)) {
-                throw new BadRequestException("An announcement with an image can't be sent by SMS — remove the image or deselect SMS");
+                throw new BadRequestException("An announcement with an attachment can't be sent by SMS — remove it or deselect SMS");
             }
         }
 
@@ -51,7 +56,10 @@ public class AnnouncementService {
         announcement.setMessage(request.message());
         announcement.setCreatedByUserId(createdByUserId);
         announcement.setChannels(request.channels());
-        announcement.setPhoto(request.photo());
+        announcement.setAttachment(request.attachment());
+        announcement.setAttachmentFilename(request.attachmentFilename());
+        // Unspecified defaults to false - an announcement has to opt tenants in, not opt them out.
+        announcement.setIncludeTenants(Boolean.TRUE.equals(request.includeTenants()));
         announcement = announcementRepository.save(announcement);
 
         broadcast(announcement);
@@ -60,16 +68,30 @@ public class AnnouncementService {
         return AnnouncementResponse.from(announcement, false);
     }
 
-    public PageResponse<AnnouncementResponse> search(Long currentUserId, Pageable pageable) {
+    /**
+     * callerResidentId is null for staff (admins etc. - always see every announcement
+     * regardless of audience) and set for a RESIDENT caller, whose own residentType then decides
+     * whether a tenants-excluded announcement is even in their list at all - not just missing the
+     * SMS/email, invisible outright (see Announcement.includeTenants).
+     */
+    public PageResponse<AnnouncementResponse> search(Long currentUserId, Long callerResidentId, Pageable pageable) {
         Set<Long> readIds = new HashSet<>(announcementReadRepository.findAnnouncementIdsByUserId(currentUserId));
-        return PageResponse.of(announcementRepository.findAll(pageable)
-                .map(a -> AnnouncementResponse.from(a, readIds.contains(a.getId()))));
+        var page = isTenant(callerResidentId)
+                ? announcementRepository.findByIncludeTenantsTrue(pageable)
+                : announcementRepository.findAll(pageable);
+        return PageResponse.of(page.map(a -> AnnouncementResponse.from(a, readIds.contains(a.getId()))));
     }
 
-    public long unreadCount(Long currentUserId) {
-        long total = announcementRepository.count();
+    public long unreadCount(Long currentUserId, Long callerResidentId) {
+        long total = isTenant(callerResidentId) ? announcementRepository.countByIncludeTenantsTrue() : announcementRepository.count();
         long read = announcementReadRepository.countByUserId(currentUserId);
         return Math.max(0, total - read);
+    }
+
+    private boolean isTenant(Long residentId) {
+        return residentId != null && residentRepository.findById(residentId)
+                .map(r -> r.getResidentType() == ResidentType.TENANT)
+                .orElse(false);
     }
 
     @Transactional
@@ -98,7 +120,9 @@ public class AnnouncementService {
             return;
         }
         List<Resident> residents = residentRepository.findAll().stream()
-                .filter(r -> r.getStatus() == ResidentStatus.ACTIVE).toList();
+                .filter(r -> r.getStatus() == ResidentStatus.ACTIVE)
+                .filter(r -> announcement.isIncludeTenants() || r.getResidentType() != ResidentType.TENANT)
+                .toList();
 
         for (Resident resident : residents) {
             if (announcement.getChannels().contains(NotificationChannel.SMS)) {
@@ -111,20 +135,30 @@ public class AnnouncementService {
                 // Subject carries the announcement's title instead of the generic default, so it
                 // actually reads as "Estate-wide water shutdown" in an inbox rather than the same
                 // fixed subject every other notification uses.
-                NotificationAttachment attachment = announcement.getPhoto() != null ? toAttachment(announcement.getPhoto()) : null;
+                NotificationAttachment attachment = announcement.getAttachment() != null
+                        ? toAttachment(announcement.getAttachment(), announcement.getAttachmentFilename())
+                        : null;
                 notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(), announcement.getMessage(),
                         announcement.getTitle(), attachment);
             }
         }
     }
 
-    /** Decodes a "data:image/jpeg;base64,..." URI into an EMAIL attachment — WhatsApp/SMS senders never see this (see NotificationAttachment). */
-    private static NotificationAttachment toAttachment(String dataUri) {
-        int comma = dataUri.indexOf(',');
-        String header = dataUri.substring("data:".length(), comma);
-        String contentType = header.substring(0, header.indexOf(';'));
-        String extension = contentType.substring(contentType.indexOf('/') + 1);
-        byte[] content = Base64.getDecoder().decode(dataUri.substring(comma + 1));
-        return new NotificationAttachment("announcement." + extension, contentType, content);
+    /** The "image/jpeg" part of a "data:image/jpeg;base64,..." URI. */
+    private static String contentTypeOf(String dataUri) {
+        String header = dataUri.substring("data:".length(), dataUri.indexOf(','));
+        return header.substring(0, header.indexOf(';'));
+    }
+
+    /** Decodes a "data:image/jpeg;base64,..." (or application/pdf) URI into an EMAIL attachment —
+     * WhatsApp/SMS senders never see this (see NotificationAttachment). */
+    private static NotificationAttachment toAttachment(String dataUri, String filename) {
+        String contentType = contentTypeOf(dataUri);
+        if (filename == null || filename.isBlank()) {
+            String extension = contentType.equals("application/pdf") ? "pdf" : contentType.substring(contentType.indexOf('/') + 1);
+            filename = "announcement." + extension;
+        }
+        byte[] content = Base64.getDecoder().decode(dataUri.substring(dataUri.indexOf(',') + 1));
+        return new NotificationAttachment(filename, contentType, content);
     }
 }

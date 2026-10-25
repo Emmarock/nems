@@ -12,12 +12,14 @@ public record AnnouncementResponse(
         String message,
         Long createdByUserId,
         Set<NotificationChannel> channels,
-        String photo,
+        String attachment,
+        String attachmentFilename,
+        boolean includeTenants,
         Instant createdAt,
         boolean read
 ) {
     public static AnnouncementResponse from(Announcement a, boolean read) {
         return new AnnouncementResponse(a.getId(), a.getTitle(), a.getMessage(), a.getCreatedByUserId(),
-                a.getChannels(), a.getPhoto(), a.getCreatedAt(), read);
+                a.getChannels(), a.getAttachment(), a.getAttachmentFilename(), a.isIncludeTenants(), a.getCreatedAt(), read);
     }
 }

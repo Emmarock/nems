@@ -31,3 +31,22 @@ export function fileToCompressedDataUrl(file: File, maxDimension = 480, quality 
     reader.readAsDataURL(file)
   })
 }
+
+/**
+ * Reads a non-image file (e.g. a PDF of meeting minutes) straight to a base64 data URI, with no
+ * compression step — unlike fileToCompressedDataUrl, there's no canvas re-encode available for a
+ * PDF. maxBytes guards against an oversized upload before it's even read (the backend enforces
+ * its own cap independently on the resulting base64 string — see AnnouncementService).
+ */
+export function fileToDataUrl(file: File, maxBytes = 4_500_000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > maxBytes) {
+      reject(new Error(`File is too large (max ${Math.round(maxBytes / 1_000_000)}MB)`))
+      return
+    }
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read the selected file'))
+    reader.onload = () => resolve(reader.result as string)
+    reader.readAsDataURL(file)
+  })
+}

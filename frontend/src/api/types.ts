@@ -473,7 +473,9 @@ export interface Announcement {
   message: string
   createdByUserId: number
   channels: NotificationChannel[]
-  photo: string | null
+  attachment: string | null
+  attachmentFilename: string | null
+  includeTenants: boolean
   createdAt: string
   read: boolean
 }

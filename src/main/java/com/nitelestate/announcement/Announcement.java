@@ -42,11 +42,26 @@ public class Announcement extends BaseEntity {
     private Set<NotificationChannel> channels = new HashSet<>();
 
     /**
-     * Optional image, shown in the portal list/detail and emailed as an attachment - never sent
-     * via SMS (AnnouncementService.create rejects that combination), so it's not deliverable
-     * everywhere a plain-text announcement is. Base64 data URI, same convention as Worker/Visitor/
+     * Optional image or PDF (e.g. the secretary sharing meeting minutes) - shown/downloadable in
+     * the portal list/detail and emailed as an attachment. Never sent via SMS
+     * (AnnouncementService.create rejects that combination), so it's not deliverable everywhere a
+     * plain-text announcement is. Base64 data URI, same convention as Worker/Visitor/
      * HouseholdMember photos.
      */
     @Column(columnDefinition = "text")
-    private String photo;
+    private String attachment;
+
+    /** Original filename for {@link #attachment} (e.g. "October CDA Minutes.pdf") - purely
+     * cosmetic, used for the download link/email attachment name instead of a generic one. */
+    private String attachmentFilename;
+
+    /**
+     * Whether this announcement's audience includes tenants - defaults to false (an announcement
+     * has to opt tenants in, not opt them out - see AnnouncementService.create). Controls both who
+     * it's broadcast to (AnnouncementService.broadcast) and who sees it at all in their portal list
+     * (AnnouncementService.search) - a tenant excluded from the audience doesn't just skip the
+     * SMS/email, the announcement doesn't appear for them.
+     */
+    @Column(nullable = false)
+    private boolean includeTenants = false;
 }
