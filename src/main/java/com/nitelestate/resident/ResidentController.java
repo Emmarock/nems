@@ -30,7 +30,7 @@ public class ResidentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'FINANCIAL_SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'FINANCIAL_SECRETARY', 'PRO')")
     public ResidentResponse create(@Valid @RequestBody ResidentRequest request) {
         return residentService.create(request);
     }
@@ -42,13 +42,13 @@ public class ResidentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY', 'PRO')")
     public ResidentResponse findById(@PathVariable Long id) {
         return residentService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY', 'PRO')")
     public PageResponse<ResidentResponse> findAll(@RequestParam(required = false) String q,
                                                    @RequestParam(required = false) Long propertyId,
                                                    @RequestParam(defaultValue = "0") int page,

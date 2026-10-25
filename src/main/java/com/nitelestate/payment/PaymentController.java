@@ -43,13 +43,13 @@ public class PaymentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN', 'PRO')")
     public PaymentResponse findById(@PathVariable Long id) {
         return paymentService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN', 'PRO')")
     public PageResponse<PaymentResponse> findAll(@RequestParam(required = false) String q,
                                                   @RequestParam(required = false) Long residentId,
                                                   @RequestParam(required = false) PaymentStatus status,

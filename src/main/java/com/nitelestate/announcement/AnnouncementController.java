@@ -24,7 +24,7 @@ public class AnnouncementController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'PRO')")
     public AnnouncementResponse create(@Valid @RequestBody AnnouncementRequest request) {
         return announcementService.create(currentUser.userId(), request);
     }

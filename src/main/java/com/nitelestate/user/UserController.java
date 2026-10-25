@@ -39,7 +39,9 @@ public class UserController {
         return userService.bulkCreateResidentAccounts(residentIds);
     }
 
+    /** Read-only, unlike every other endpoint here - also open to PRO (see class-level SUPER_ADMIN-only default). */
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PRO')")
     public PageResponse<UserResponse> findAll(@RequestParam(required = false) String q,
                                                @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "20") int size) {
@@ -47,6 +49,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'PRO')")
     public UserResponse findById(@PathVariable Long id) {
         return userService.findById(id);
     }

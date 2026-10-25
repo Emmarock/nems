@@ -9,6 +9,7 @@ public enum Role {
     TREASURER,
     FINANCIAL_SECRETARY,
     SECRETARY,
+    PRO,
     SECURITY,
     MAINTENANCE,
     RESIDENT

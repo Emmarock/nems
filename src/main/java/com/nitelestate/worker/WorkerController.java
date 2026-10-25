@@ -58,13 +58,13 @@ public class WorkerController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY', 'PRO')")
     public WorkerResponse findById(@PathVariable Long id) {
         return workerService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY', 'PRO')")
     public PageResponse<WorkerResponse> findAll(@RequestParam(required = false) String q,
                                                  @RequestParam(required = false) boolean activeOnly,
                                                  @RequestParam(required = false) Long sponsorResidentId,

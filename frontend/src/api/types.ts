@@ -12,6 +12,7 @@ export type Role =
   | 'TREASURER'
   | 'FINANCIAL_SECRETARY'
   | 'SECRETARY'
+  | 'PRO'
   | 'SECURITY'
   | 'MAINTENANCE'
   | 'RESIDENT'
@@ -472,6 +473,7 @@ export interface Announcement {
   message: string
   createdByUserId: number
   channels: NotificationChannel[]
+  photo: string | null
   createdAt: string
   read: boolean
 }

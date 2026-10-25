@@ -43,13 +43,13 @@ public class VisitorController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY', 'PRO')")
     public VisitorResponse findById(@PathVariable Long id) {
         return visitorService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY', 'PRO')")
     public PageResponse<VisitorResponse> findAll(@RequestParam(required = false) String q,
                                                   @RequestParam(required = false) VisitorStatus status,
                                                   @RequestParam(defaultValue = "0") int page,

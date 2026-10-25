@@ -49,13 +49,13 @@ public class ComplaintController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE', 'PRO')")
     public ComplaintResponse findById(@PathVariable Long id) {
         return complaintService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE', 'PRO')")
     public PageResponse<ComplaintResponse> findAll(@RequestParam(required = false) ComplaintStatus status,
                                                     @RequestParam(required = false) Long residentId,
                                                     @RequestParam(defaultValue = "false") boolean openOnly,

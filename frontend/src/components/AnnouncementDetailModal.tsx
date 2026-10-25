@@ -21,6 +21,13 @@ export function AnnouncementDetailModal({ announcement, onClose }: { announcemen
               {new Date(announcement.createdAt).toLocaleString()} · {announcement.channels.join(', ')}
             </span>
           </div>
+          {announcement.photo && (
+            <img
+              src={announcement.photo}
+              alt=""
+              style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 8, marginBottom: 14 }}
+            />
+          )}
           <p style={{ whiteSpace: 'pre-wrap', margin: 0, lineHeight: 1.6 }}>{announcement.message}</p>
         </div>
         <div className="modal-footer">

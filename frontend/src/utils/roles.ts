@@ -6,6 +6,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   TREASURER: 'Treasurer',
   FINANCIAL_SECRETARY: 'Financial Secretary',
   SECRETARY: 'Secretary',
+  PRO: 'PRO',
   SECURITY: 'Security',
   MAINTENANCE: 'Maintenance',
   RESIDENT: 'Resident',
@@ -18,6 +19,7 @@ export const ASSIGNABLE_COMPLAINT_ROLES: Role[] = [
   'TREASURER',
   'FINANCIAL_SECRETARY',
   'SECRETARY',
+  'PRO',
   'SECURITY',
   'MAINTENANCE',
 ]

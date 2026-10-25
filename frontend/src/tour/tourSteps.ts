@@ -114,6 +114,10 @@ const ROLE_ROUTES: Partial<Record<Role, string[]>> = {
   TREASURER: ['/reports', '/residents', '/properties', '/vehicles', '/levies', '/payments', '/stickers', '/announcements'],
   FINANCIAL_SECRETARY: ['/reports', '/residents', '/properties', '/vehicles', '/levies', '/payments', '/stickers', '/announcements'],
   SECRETARY: ['/residents', '/properties', '/vehicles', '/visitors', '/complaints', '/announcements'],
+  PRO: [
+    '/announcements', '/residents', '/properties', '/vehicles', '/visitors', '/workers',
+    '/payments', '/complaints', '/users',
+  ],
   SECURITY: [
     '/security', '/residents', '/properties', '/vehicles', '/visitors', '/workers',
     '/household-members', '/stickers', '/announcements', '/security/gates', '/security/rfid',
@@ -129,6 +133,7 @@ export const ROLE_HOME: Record<Role, string> = {
   TREASURER: '/reports',
   FINANCIAL_SECRETARY: '/payments',
   SECRETARY: '/residents',
+  PRO: '/announcements',
   SECURITY: '/security',
   MAINTENANCE: '/complaints',
   RESIDENT: '/',

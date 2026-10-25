@@ -8,9 +8,10 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { Pagination } from '../../components/Pagination'
 import { AnnouncementDetailModal } from '../../components/AnnouncementDetailModal'
 import { apiErrorMessage } from '../../api/client'
+import { fileToCompressedDataUrl } from '../../utils/imageResize'
 
 const CHANNEL_OPTIONS = ['PORTAL', 'EMAIL', 'SMS', 'WHATSAPP']
-const CAN_CREATE = new Set(['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY'])
+const CAN_CREATE = new Set(['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'PRO'])
 const EMPTY: PageResponse<Announcement> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 export function AnnouncementsPage() {
@@ -148,11 +149,29 @@ function AnnouncementModal({ onClose, onCreated }: { onClose: () => void; onCrea
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [channels, setChannels] = useState<string[]>(['PORTAL'])
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [imageBusy, setImageBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   function toggleChannel(channel: string) {
     setChannels((prev) => (prev.includes(channel) ? prev.filter((c) => c !== channel) : [...prev, channel]))
+  }
+
+  async function handlePhotoPick(file: File | undefined) {
+    if (!file) return
+    setImageBusy(true)
+    setError(null)
+    try {
+      setPhoto(await fileToCompressedDataUrl(file))
+      // SMS can't carry an image - dropping it here rather than leaving a stale selection the
+      // backend would reject anyway (AnnouncementService.create enforces the same rule).
+      setChannels((prev) => prev.filter((c) => c !== 'SMS'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not process the selected image')
+    } finally {
+      setImageBusy(false)
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -164,7 +183,7 @@ function AnnouncementModal({ onClose, onCreated }: { onClose: () => void; onCrea
     setSubmitting(true)
     setError(null)
     try {
-      await announcementsApi.create({ title, message, channels })
+      await announcementsApi.create({ title, message, channels, photo: photo ?? undefined })
       await onCreated()
     } catch (err) {
       setError(apiErrorMessage(err))
@@ -195,19 +214,43 @@ function AnnouncementModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 <textarea id="message" required value={message} onChange={(e) => setMessage(e.target.value)} />
               </div>
               <div className="form-field full">
+                <label htmlFor="photo">Image (optional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {photo && (
+                    <img
+                      src={photo}
+                      alt=""
+                      style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--color-border)' }}
+                    />
+                  )}
+                  <input id="photo" type="file" accept="image/*" onChange={(e) => handlePhotoPick(e.target.files?.[0])} />
+                  {photo && (
+                    <button type="button" className="btn btn-sm" onClick={() => setPhoto(null)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {imageBusy && <span className="muted" style={{ fontSize: 12 }}>Processing image…</span>}
+              </div>
+              <div className="form-field full">
                 <label>Channels</label>
                 <div style={{ display: 'flex', gap: 14 }}>
-                  {CHANNEL_OPTIONS.map((channel) => (
-                    <label key={channel} className="checkbox-field" style={{ fontWeight: 400 }}>
-                      <input
-                        type="checkbox"
-                        checked={channels.includes(channel)}
-                        onChange={() => toggleChannel(channel)}
-                      />
-                      {channel}
-                    </label>
-                  ))}
+                  {CHANNEL_OPTIONS.map((channel) => {
+                    const disabled = channel === 'SMS' && photo !== null
+                    return (
+                      <label key={channel} className="checkbox-field" style={{ fontWeight: 400, opacity: disabled ? 0.5 : 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={channels.includes(channel)}
+                          disabled={disabled}
+                          onChange={() => toggleChannel(channel)}
+                        />
+                        {channel}
+                      </label>
+                    )
+                  })}
                 </div>
+                {photo && <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>SMS can't carry an image, so it's unavailable while one is attached.</p>}
               </div>
             </div>
           </div>

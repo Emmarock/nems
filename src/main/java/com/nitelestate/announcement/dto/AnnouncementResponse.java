@@ -12,11 +12,12 @@ public record AnnouncementResponse(
         String message,
         Long createdByUserId,
         Set<NotificationChannel> channels,
+        String photo,
         Instant createdAt,
         boolean read
 ) {
     public static AnnouncementResponse from(Announcement a, boolean read) {
         return new AnnouncementResponse(a.getId(), a.getTitle(), a.getMessage(), a.getCreatedByUserId(),
-                a.getChannels(), a.getCreatedAt(), read);
+                a.getChannels(), a.getPhoto(), a.getCreatedAt(), read);
     }
 }

@@ -40,4 +40,13 @@ public class Announcement extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false, length = 16)
     private Set<NotificationChannel> channels = new HashSet<>();
+
+    /**
+     * Optional image, shown in the portal list/detail and emailed as an attachment - never sent
+     * via SMS (AnnouncementService.create rejects that combination), so it's not deliverable
+     * everywhere a plain-text announcement is. Base64 data URI, same convention as Worker/Visitor/
+     * HouseholdMember photos.
+     */
+    @Column(columnDefinition = "text")
+    private String photo;
 }

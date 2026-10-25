@@ -10,6 +10,7 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'TREASURER', label: 'Treasurer' },
   { value: 'FINANCIAL_SECRETARY', label: 'Financial Secretary' },
   { value: 'SECRETARY', label: 'Secretary' },
+  { value: 'PRO', label: 'PRO (Public Relations Officer)' },
   { value: 'SECURITY', label: 'Security' },
   { value: 'MAINTENANCE', label: 'Maintenance' },
   { value: 'RESIDENT', label: 'Resident' },
