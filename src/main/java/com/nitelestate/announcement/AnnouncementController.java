@@ -5,6 +5,7 @@ import com.nitelestate.announcement.dto.AnnouncementResponse;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.search.Paging;
 import com.nitelestate.security.CurrentUser;
+import com.nitelestate.user.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -32,12 +33,13 @@ public class AnnouncementController {
     @GetMapping
     public PageResponse<AnnouncementResponse> findAll(@RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "20") int size) {
-        return announcementService.search(currentUser.userId(), Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
+        return announcementService.search(currentUser.userId(), residentIdOrNull(),
+                Paging.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     @GetMapping("/unread-count")
     public Map<String, Long> unreadCount() {
-        return Map.of("unread", announcementService.unreadCount(currentUser.userId()));
+        return Map.of("unread", announcementService.unreadCount(currentUser.userId(), residentIdOrNull()));
     }
 
     @PostMapping("/{id}/read")
@@ -48,5 +50,10 @@ public class AnnouncementController {
     @PostMapping("/{id}/unread")
     public void markUnread(@PathVariable Long id) {
         announcementService.markUnread(id, currentUser.userId());
+    }
+
+    /** Staff callers (admins, Secretary, PRO, ...) aren't linked to a resident id — residentId() would throw. */
+    private Long residentIdOrNull() {
+        return currentUser.role() == Role.RESIDENT ? currentUser.residentId() : null;
     }
 }
