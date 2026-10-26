@@ -6,6 +6,8 @@ import com.nitelestate.resident.dto.ResidentArrearsResponse;
 import com.nitelestate.resident.dto.ResidentLookupResponse;
 import com.nitelestate.resident.dto.ResidentRequest;
 import com.nitelestate.resident.dto.ResidentResponse;
+import com.nitelestate.resident.dto.ResidentWithPropertyRequest;
+import com.nitelestate.resident.dto.ResidentWithPropertyResponse;
 import com.nitelestate.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,15 @@ public class ResidentController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY')")
     public ResidentResponse update(@PathVariable Long id, @Valid @RequestBody ResidentRequest request) {
         return residentService.update(id, request);
+    }
+
+    /** Only roles that can create both a resident and a property on their own - whoever can't
+     * create a property shouldn't gain the ability to via this combined form either. */
+    @PostMapping("/with-property")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'FINANCIAL_SECRETARY', 'PRO')")
+    public ResidentWithPropertyResponse createWithProperty(@Valid @RequestBody ResidentWithPropertyRequest request) {
+        return residentService.createWithProperty(request);
     }
 
     @GetMapping("/{id}")

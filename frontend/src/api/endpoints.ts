@@ -30,6 +30,7 @@ import type {
   Role,
   ResidentArrears,
   ResidentLookup,
+  ResidentWithPropertyResult,
   RfidTag,
   RfidRequest,
   SecurityDashboard,
@@ -99,6 +100,21 @@ export const residentsApi = {
   get: (id: number) => client.get<Resident>(`/residents/${id}`).then((r) => r.data),
   create: (body: Omit<Resident, 'id' | 'status' | 'registrationDate' | 'propertyHouseNumber'>) =>
     client.post<Resident>('/residents', body).then((r) => r.data),
+  /** Creates the resident and a brand-new property together, already linked both ways — see ResidentService.createWithProperty. */
+  createWithProperty: (body: {
+    fullName: string
+    phone: string
+    email?: string
+    residentType: Resident['residentType']
+    emergencyContact?: string
+    road: string
+    houseNumber: string
+    address: string
+    postcode?: string
+    propertyType: Property['propertyType']
+    occupancyStatus?: Property['occupancyStatus']
+    apartmentCount?: number
+  }) => client.post<ResidentWithPropertyResult>('/residents/with-property', body).then((r) => r.data),
   update: (id: number, body: Omit<Resident, 'id' | 'status' | 'registrationDate' | 'propertyHouseNumber'>) =>
     client.put<Resident>(`/residents/${id}`, body).then((r) => r.data),
   lookup: (qrToken: string) => client.get<ResidentLookup>(`/residents/lookup/${qrToken}`).then((r) => r.data),

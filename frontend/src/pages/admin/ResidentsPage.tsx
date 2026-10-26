@@ -3,6 +3,7 @@ import { residentsApi } from '../../api/endpoints'
 import type { PageResponse, Resident } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
+import { NewResidentWithPropertyModal } from '../../components/NewResidentWithPropertyModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
@@ -49,6 +50,7 @@ export function ResidentsPage() {
   const [result, setResult] = useState<PageResponse<Resident>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [combinedModalOpen, setCombinedModalOpen] = useState(false)
   const [editing, setEditing] = useState<Resident | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
@@ -111,9 +113,14 @@ export function ResidentsPage() {
           <h1>Residents</h1>
           <p className="page-subtitle">Owner/tenant profiles linked to properties.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
-          + New resident
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn" onClick={() => setCombinedModalOpen(true)}>
+            + New resident + property
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
+            + New resident
+          </button>
+        </div>
       </div>
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search residents by name, phone, email, type…" />
@@ -171,6 +178,16 @@ export function ResidentsPage() {
           initial={editing ?? {}}
           onSubmit={handleSubmit}
           onClose={() => { setModalOpen(false); setEditing(null) }}
+        />
+      )}
+
+      {combinedModalOpen && (
+        <NewResidentWithPropertyModal
+          onClose={() => setCombinedModalOpen(false)}
+          onCreated={async () => {
+            setCombinedModalOpen(false)
+            await load()
+          }}
         />
       )}
     </div>

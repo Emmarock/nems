@@ -6,6 +6,7 @@ import com.nitelestate.access.AccessSubjectType;
 import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
 import com.nitelestate.common.dto.PageResponse;
+import com.nitelestate.common.exception.ConflictException;
 import com.nitelestate.common.exception.NotFoundException;
 import com.nitelestate.common.search.Specs;
 import com.nitelestate.household.HouseholdMember;
@@ -13,11 +14,14 @@ import com.nitelestate.household.HouseholdMemberRepository;
 import com.nitelestate.household.HouseholdMemberStatus;
 import com.nitelestate.property.Property;
 import com.nitelestate.property.PropertyRepository;
+import com.nitelestate.property.dto.PropertyResponse;
 import com.nitelestate.resident.dto.MeProfileUpdateRequest;
 import com.nitelestate.resident.dto.ResidentArrearsResponse;
 import com.nitelestate.resident.dto.ResidentLookupResponse;
 import com.nitelestate.resident.dto.ResidentRequest;
 import com.nitelestate.resident.dto.ResidentResponse;
+import com.nitelestate.resident.dto.ResidentWithPropertyRequest;
+import com.nitelestate.resident.dto.ResidentWithPropertyResponse;
 import com.nitelestate.resident.dto.TenantRequest;
 import com.nitelestate.resident.dto.TenantResponse;
 import com.nitelestate.common.exception.BadRequestException;
@@ -60,6 +64,53 @@ public class ResidentService {
         resident = residentRepository.save(resident);
         auditService.record("Resident", resident.getId(), "CREATE", resident.getFullName());
         return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
+    }
+
+    /**
+     * Creates a resident and a brand-new property together, linked both ways in one transaction
+     * - the usual path (create one, then search for it from the other side's form to link) needs
+     * whichever one already exists; this is for when neither does yet. See
+     * ResidentWithPropertyRequest for exactly how the link is decided by residentType.
+     */
+    @Transactional
+    public ResidentWithPropertyResponse createWithProperty(ResidentWithPropertyRequest request) {
+        if (propertyRepository.existsByHouseNumberIgnoreCase(request.houseNumber())) {
+            throw new ConflictException("A property with house number " + request.houseNumber() + " already exists");
+        }
+
+        Property property = new Property();
+        property.setRoad(request.road());
+        property.setHouseNumber(request.houseNumber());
+        property.setAddress(request.address());
+        property.setPostcode(request.postcode());
+        property.setPropertyType(request.propertyType());
+        if (request.occupancyStatus() != null) {
+            property.setOccupancyStatus(request.occupancyStatus());
+        }
+        property.setApartmentCount(request.apartmentCount());
+        property = propertyRepository.save(property);
+
+        Resident resident = new Resident();
+        resident.setFullName(request.fullName());
+        resident.setPhone(request.phone());
+        resident.setEmail(request.email());
+        resident.setResidentType(request.residentType());
+        resident.setEmergencyContact(request.emergencyContact());
+        resident.setPropertyId(property.getId());
+        resident = residentRepository.save(resident);
+
+        if (request.residentType() == ResidentType.OWNER || request.residentType() == ResidentType.LANDLORD) {
+            property.setOwnerId(resident.getId());
+            property = propertyRepository.save(property);
+        }
+
+        auditService.record("Resident", resident.getId(), "CREATE_WITH_PROPERTY", resident.getFullName());
+        auditService.record("Property", property.getId(), "CREATE_WITH_RESIDENT", property.getHouseNumber());
+
+        String ownerName = property.getOwnerId() != null ? resident.getFullName() : null;
+        return new ResidentWithPropertyResponse(
+                ResidentResponse.from(resident, property.getHouseNumber()),
+                PropertyResponse.from(property, ownerName));
     }
 
     @Transactional

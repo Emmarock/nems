@@ -282,6 +282,7 @@ export function EntityDetailModal() {
 
           {!loading && !error && current.type === 'property' && property && (
             <dl className="detail-list">
+              <Row label="Property ID" value={property.id} />
               <Row label="House number" value={property.houseNumber} />
               <Row label="Road" value={property.road} />
               <Row label="Address" value={property.address} />

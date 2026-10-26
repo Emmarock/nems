@@ -65,6 +65,12 @@ export interface Resident {
   registrationDate: string
 }
 
+/** Result of residentsApi.createWithProperty — both records, already linked. */
+export interface ResidentWithPropertyResult {
+  resident: Resident
+  property: Property
+}
+
 /**
  * A landlord adding a tenant also provisions their login in the same step — the plaintext
  * temporaryPassword is returned here once, same convention as BulkCreatedAccount, so the

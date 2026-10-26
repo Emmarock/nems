@@ -3,6 +3,7 @@ import { propertiesApi, residentsApi } from '../../api/endpoints'
 import type { PageResponse, Property } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
+import { NewResidentWithPropertyModal } from '../../components/NewResidentWithPropertyModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
@@ -60,6 +61,7 @@ export function PropertiesPage() {
   const [result, setResult] = useState<PageResponse<Property>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [combinedModalOpen, setCombinedModalOpen] = useState(false)
   const [editing, setEditing] = useState<Property | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
@@ -116,9 +118,14 @@ export function PropertiesPage() {
           <h1>Properties</h1>
           <p className="page-subtitle">The estate's property registry.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
-          + New property
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn" onClick={() => setCombinedModalOpen(true)}>
+            + New resident + property
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
+            + New property
+          </button>
+        </div>
       </div>
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search properties by house, road, address, postcode…" />
@@ -129,6 +136,7 @@ export function PropertiesPage() {
         rowKey={(p) => p.id}
         emptyMessage={query ? 'No properties match your search.' : 'No properties yet.'}
         columns={[
+          { key: 'id', label: 'ID' },
           { key: 'houseNumber', label: 'House' },
           { key: 'road', label: 'Road' },
           { key: 'postcode', label: 'Postcode', render: (p) => p.postcode ?? <span className="muted">—</span> },
@@ -169,6 +177,16 @@ export function PropertiesPage() {
           initial={editing ?? {}}
           onSubmit={handleSubmit}
           onClose={() => { setModalOpen(false); setEditing(null) }}
+        />
+      )}
+
+      {combinedModalOpen && (
+        <NewResidentWithPropertyModal
+          onClose={() => setCombinedModalOpen(false)}
+          onCreated={async () => {
+            setCombinedModalOpen(false)
+            await load()
+          }}
         />
       )}
 
