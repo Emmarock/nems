@@ -161,7 +161,7 @@ export const vehiclesApi = {
 }
 
 export const leviesApi = {
-  list: (params: { page?: number; size?: number } = {}) =>
+  list: (params: { q?: string; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Levy>>('/levies', { params }).then((r) => r.data),
   create: (body: Omit<Levy, 'id' | 'paymentAccountLabel'>) => client.post<Levy>('/levies', body).then((r) => r.data),
   update: (id: number, body: Omit<Levy, 'id' | 'paymentAccountLabel'>) =>

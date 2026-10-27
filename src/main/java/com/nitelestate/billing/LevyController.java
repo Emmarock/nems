@@ -34,9 +34,10 @@ public class LevyController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'RESIDENT')")
-    public PageResponse<LevyResponse> findAll(@RequestParam(defaultValue = "0") int page,
+    public PageResponse<LevyResponse> findAll(@RequestParam(required = false) String q,
+                                               @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "20") int size) {
-        return levyService.search(Paging.of(page, size, Sort.by("name")));
+        return levyService.search(q, Paging.of(page, size, Sort.by("name")));
     }
 
     /** One-time catch-up so a levy meant for everyone isn't only billed to residents created from now on. */
