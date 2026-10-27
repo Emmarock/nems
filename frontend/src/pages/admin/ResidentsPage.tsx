@@ -25,18 +25,6 @@ const RESIDENT_TYPE_FIELD: FieldConfig = {
   ],
 }
 
-// No property field on CREATE: a new resident rarely has a property on file yet - it's linked
-// the other way around, by searching for this resident when the property itself gets created
-// (see PropertiesPage's owner field). Editing still offers it, for reassigning an existing
-// resident to a different (already-created) property.
-const CREATE_FIELDS: FieldConfig[] = [
-  { name: 'fullName', label: 'Full name', required: true, full: true },
-  { name: 'phone', label: 'Phone', required: true },
-  { name: 'email', label: 'Email' },
-  RESIDENT_TYPE_FIELD,
-  { name: 'emergencyContact', label: 'Emergency contact', full: true },
-]
-
 const EDIT_FIELDS: FieldConfig[] = [
   { name: 'fullName', label: 'Full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
@@ -49,8 +37,8 @@ const EDIT_FIELDS: FieldConfig[] = [
 export function ResidentsPage() {
   const [result, setResult] = useState<PageResponse<Resident>>(EMPTY)
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [combinedModalOpen, setCombinedModalOpen] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [editing, setEditing] = useState<Resident | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
@@ -87,7 +75,8 @@ export function ResidentsPage() {
     setPage(0)
   }, [debouncedQuery])
 
-  async function handleSubmit(values: Record<string, unknown>) {
+  async function handleEditSubmit(values: Record<string, unknown>) {
+    if (!editing) return
     const body = {
       fullName: values.fullName as string,
       phone: values.phone as string,
@@ -96,12 +85,8 @@ export function ResidentsPage() {
       residentType: values.residentType as Resident['residentType'],
       emergencyContact: (values.emergencyContact as string) || null,
     }
-    if (editing) {
-      await residentsApi.update(editing.id, body)
-    } else {
-      await residentsApi.create(body)
-    }
-    setModalOpen(false)
+    await residentsApi.update(editing.id, body)
+    setEditModalOpen(false)
     setEditing(null)
     await load()
   }
@@ -114,10 +99,7 @@ export function ResidentsPage() {
           <p className="page-subtitle">Owner/tenant profiles linked to properties.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn" onClick={() => setCombinedModalOpen(true)}>
-            + New resident + property
-          </button>
-          <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true) }}>
+          <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}>
             + New resident
           </button>
         </div>
@@ -153,7 +135,7 @@ export function ResidentsPage() {
         ]}
         actions={(r) => (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button className="btn btn-sm" onClick={() => { setEditing(r); setModalOpen(true) }}>
+            <button className="btn btn-sm" onClick={() => { setEditing(r); setEditModalOpen(true) }}>
               Edit
             </button>
             {r.status === 'SUSPENDED' ? (
@@ -171,21 +153,21 @@ export function ResidentsPage() {
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
 
-      {modalOpen && (
+      {editModalOpen && editing && (
         <FormModal
-          title={editing ? 'Edit resident' : 'New resident'}
-          fields={editing ? EDIT_FIELDS : CREATE_FIELDS}
-          initial={editing ?? {}}
-          onSubmit={handleSubmit}
-          onClose={() => { setModalOpen(false); setEditing(null) }}
+          title="Edit resident"
+          fields={EDIT_FIELDS}
+          initial={editing}
+          onSubmit={handleEditSubmit}
+          onClose={() => { setEditModalOpen(false); setEditing(null) }}
         />
       )}
 
-      {combinedModalOpen && (
+      {createModalOpen && (
         <NewResidentWithPropertyModal
-          onClose={() => setCombinedModalOpen(false)}
+          onClose={() => setCreateModalOpen(false)}
           onCreated={async () => {
-            setCombinedModalOpen(false)
+            setCreateModalOpen(false)
             await load()
           }}
         />

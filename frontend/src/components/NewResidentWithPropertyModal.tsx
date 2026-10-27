@@ -3,9 +3,11 @@ import { residentsApi } from '../api/endpoints'
 import type { Property, Resident, ResidentWithPropertyResult } from '../api/types'
 import { apiErrorMessage } from '../api/client'
 
+// Tenant isn't offered here - a tenant doesn't get their own property (they occupy their
+// landlord's), so they're added via the landlord's own "add tenant" self-service flow instead,
+// never through this admin resident+property form. See ResidentService.createTenant.
 const RESIDENT_TYPE_OPTIONS: { value: Resident['residentType']; label: string }[] = [
   { value: 'OWNER', label: 'Owner' },
-  { value: 'TENANT', label: 'Tenant' },
   { value: 'LANDLORD', label: 'Landlord' },
 ]
 
@@ -25,10 +27,10 @@ const OCCUPANCY_OPTIONS: { value: Property['occupancyStatus']; label: string }[]
 ]
 
 /**
- * Creates a resident and a brand-new property together, already linked both ways - for when
- * neither exists yet and the usual flow (create one, then search for it from the other side's
- * form) has nothing to search for. See ResidentService.createWithProperty: an Owner/Landlord
- * becomes the new property's owner; a Tenant just occupies it, no owner is set.
+ * Creates a resident and a brand-new property together, already linked both ways - the default
+ * way to add a resident, since most don't have a property on file yet. See
+ * ResidentService.createWithProperty: the new resident (Owner or Landlord) becomes the property's
+ * owner. Tenants aren't created here - see RESIDENT_TYPE_OPTIONS above.
  */
 export function NewResidentWithPropertyModal({
   onClose,
@@ -86,7 +88,7 @@ export function NewResidentWithPropertyModal({
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
-            <h2>New resident + property</h2>
+            <h2>New resident</h2>
             <button type="button" className="btn btn-sm" onClick={onClose}>
               ✕
             </button>
@@ -128,9 +130,7 @@ export function NewResidentWithPropertyModal({
               </div>
             </div>
             <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
-              {residentType === 'TENANT'
-                ? "As a tenant, they'll occupy the new property below — no owner is set on it. Add one later by editing the property."
-                : "They'll be set as the new property's owner, and linked to it as their own address."}
+              They'll be set as the new property's owner, and linked to it as their own address.
             </p>
 
             <div className="section-title">Property details</div>
