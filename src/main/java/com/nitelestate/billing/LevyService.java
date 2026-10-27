@@ -76,8 +76,8 @@ public class LevyService {
         return new LevyApplyResponse(residents.size());
     }
 
-    public PageResponse<LevyResponse> search(String q, Pageable pageable) {
-        var page = levyRepository.findAll(Specification.<Levy>where(Specs.contains(q, "name")), pageable);
+    public PageResponse<LevyResponse> search(Pageable pageable) {
+        var page = levyRepository.findAll(pageable);
 
         List<Long> accountIds = page.getContent().stream()
                 .map(Levy::getPaymentAccountId).filter(Objects::nonNull).distinct().toList();

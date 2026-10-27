@@ -104,14 +104,11 @@ export function LeviesPage() {
     {
       name: 'levyId',
       label: 'Levy',
-      type: 'search',
+      type: 'select',
       required: true,
-      labelField: 'levyName',
-      searchPlaceholder: 'Type a levy name…',
-      searchFn: async (q) => {
-        const page = await leviesApi.list({ q, page: 0, size: 10 })
-        return page.content.map((l) => ({ value: String(l.id), label: `${l.name} (₦${l.amount.toLocaleString()})` }))
-      },
+      options: levies.content
+        .filter((l) => l.active)
+        .map((l) => ({ value: String(l.id), label: `${l.name} (₦${l.amount.toLocaleString()})` })),
     },
     { name: 'dueDate', label: 'Due date', type: 'date' },
   ]
