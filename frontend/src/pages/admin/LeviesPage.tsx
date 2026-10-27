@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { invoicesApi, leviesApi, paymentAccountApi } from '../../api/endpoints'
+import { invoicesApi, leviesApi, paymentAccountApi, residentsApi } from '../../api/endpoints'
 import type { Invoice, Levy, PageResponse, PaymentAccount, PaymentAccountChange } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
@@ -10,12 +10,6 @@ import { apiErrorMessage } from '../../api/client'
 import { useAuth } from '../../auth/AuthContext'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
-
-const INVOICE_FIELDS: FieldConfig[] = [
-  { name: 'residentId', label: 'Resident ID', type: 'number', required: true },
-  { name: 'levyId', label: 'Levy ID', type: 'number', required: true },
-  { name: 'dueDate', label: 'Due date', type: 'date' },
-]
 
 const EMPTY_LEVIES: PageResponse<Levy> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 const EMPTY_INVOICES: PageResponse<Invoice> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
@@ -31,6 +25,8 @@ export function LeviesPage() {
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false)
   const [invoiceQuery, setInvoiceQuery] = useState('')
   const debouncedInvoiceQuery = useDebouncedValue(invoiceQuery)
+  const [applyMessage, setApplyMessage] = useState<string | null>(null)
+  const [applyingLevyId, setApplyingLevyId] = useState<number | null>(null)
   const { openResident } = useEntityDetail()
 
   async function load() {
@@ -84,6 +80,35 @@ export function LeviesPage() {
       type: 'checkbox',
       full: true,
     },
+    {
+      name: 'defaultForNewResident',
+      label: 'Invoice this automatically when a resident is created (due that same day)',
+      type: 'checkbox',
+      full: true,
+    },
+  ]
+
+  const invoiceFields = (): FieldConfig[] => [
+    {
+      name: 'residentId',
+      label: 'Resident',
+      type: 'search',
+      required: true,
+      labelField: 'residentName',
+      searchPlaceholder: 'Type a resident name…',
+      searchFn: async (q) => {
+        const page = await residentsApi.list({ q, page: 0, size: 10 })
+        return page.content.map((r) => ({ value: String(r.id), label: `${r.fullName} · ${r.phone}` }))
+      },
+    },
+    {
+      name: 'levyId',
+      label: 'Levy',
+      type: 'select',
+      required: true,
+      options: levies.content.map((l) => ({ value: String(l.id), label: `${l.name} (₦${l.amount.toLocaleString()})` })),
+    },
+    { name: 'dueDate', label: 'Due date', type: 'date' },
   ]
 
   async function saveLevy(values: Record<string, unknown>) {
@@ -94,6 +119,7 @@ export function LeviesPage() {
       active: true,
       vehicleStickerLevy: Boolean(values.vehicleStickerLevy),
       paymentAccountId: values.paymentAccountId ? Number(values.paymentAccountId) : null,
+      defaultForNewResident: Boolean(values.defaultForNewResident),
     }
     if (levyModal !== 'closed' && levyModal !== 'create') {
       await leviesApi.update(levyModal.id, body)
@@ -112,6 +138,20 @@ export function LeviesPage() {
     })
     setInvoiceModalOpen(false)
     await load()
+  }
+
+  async function applyToAllResidents(levy: Levy) {
+    setApplyingLevyId(levy.id)
+    setApplyMessage(null)
+    try {
+      const result = await leviesApi.applyToAllResidents(levy.id)
+      setApplyMessage(`"${levy.name}" is now applied to all ${result.residentsProcessed} active resident(s).`)
+      await load()
+    } catch (err) {
+      setApplyMessage(apiErrorMessage(err))
+    } finally {
+      setApplyingLevyId(null)
+    }
   }
 
   return (
@@ -134,6 +174,11 @@ export function LeviesPage() {
       <PaymentAccountsSection onAccountsChanged={load} />
 
       <div className="section-title">Levies</div>
+      {applyMessage && (
+        <div className="info-banner" style={{ marginBottom: 12 }}>
+          {applyMessage}
+        </div>
+      )}
       <DataTable
         loading={loading}
         rows={levies.content}
@@ -155,11 +200,26 @@ export function LeviesPage() {
             label: 'Vehicle sticker',
             render: (l) => (l.vehicleStickerLevy ? <StatusBadge value="STICKER LEVY" /> : <span className="muted">—</span>),
           },
+          {
+            key: 'defaultForNewResident',
+            label: 'New resident default',
+            render: (l) => (l.defaultForNewResident ? <StatusBadge value="DEFAULT" /> : <span className="muted">—</span>),
+          },
         ]}
         actions={(l) => (
-          <button className="btn btn-sm" onClick={() => setLevyModal(l)}>
-            Edit
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-sm" onClick={() => setLevyModal(l)}>
+              Edit
+            </button>
+            <button
+              className="btn btn-sm"
+              disabled={!l.active || applyingLevyId === l.id}
+              onClick={() => applyToAllResidents(l)}
+              title={l.active ? 'Ensure every active resident has an invoice for this levy' : 'Only active levies can be applied'}
+            >
+              {applyingLevyId === l.id ? 'Applying…' : 'Apply to all residents'}
+            </button>
+          </div>
         )}
       />
       <Pagination page={levies.page} totalPages={levies.totalPages} totalElements={levies.totalElements} onPageChange={setLevyPage} />
@@ -203,6 +263,7 @@ export function LeviesPage() {
                   frequency: levyModal.frequency,
                   paymentAccountId: levyModal.paymentAccountId ? String(levyModal.paymentAccountId) : '',
                   vehicleStickerLevy: levyModal.vehicleStickerLevy,
+                  defaultForNewResident: levyModal.defaultForNewResident,
                 }
           }
           onSubmit={saveLevy}
@@ -212,7 +273,7 @@ export function LeviesPage() {
       {invoiceModalOpen && (
         <FormModal
           title="Generate invoice"
-          fields={INVOICE_FIELDS}
+          fields={invoiceFields()}
           onSubmit={generateInvoice}
           onClose={() => setInvoiceModalOpen(false)}
         />

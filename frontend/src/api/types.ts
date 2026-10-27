@@ -206,6 +206,8 @@ export interface Levy {
   /** Which payment account this levy's payments go to — there isn't one shared account. */
   paymentAccountId: number | null
   paymentAccountLabel: string | null
+  /** If true, a newly created resident is invoiced for this levy automatically, due that same day. */
+  defaultForNewResident: boolean
 }
 
 export type InvoiceStatus = 'ISSUED' | 'CANCELLED'

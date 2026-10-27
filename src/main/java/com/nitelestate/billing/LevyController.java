@@ -1,5 +1,6 @@
 package com.nitelestate.billing;
 
+import com.nitelestate.billing.dto.LevyApplyResponse;
 import com.nitelestate.billing.dto.LevyRequest;
 import com.nitelestate.billing.dto.LevyResponse;
 import com.nitelestate.common.dto.PageResponse;
@@ -36,5 +37,12 @@ public class LevyController {
     public PageResponse<LevyResponse> findAll(@RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "20") int size) {
         return levyService.search(Paging.of(page, size, Sort.by("name")));
+    }
+
+    /** One-time catch-up so a levy meant for everyone isn't only billed to residents created from now on. */
+    @PostMapping("/{id}/apply-to-all-residents")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
+    public LevyApplyResponse applyToAllResidents(@PathVariable Long id) {
+        return levyService.applyToAllResidents(id);
     }
 }

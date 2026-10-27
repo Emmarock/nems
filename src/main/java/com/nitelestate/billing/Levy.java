@@ -44,4 +44,11 @@ public class Levy extends BaseEntity {
      * there isn't one shared account, e.g. Electricity and Development are collected separately.
      * Nullable: a levy can go unassigned until an admin links it to the right account. */
     private Long paymentAccountId;
+
+    /** If true, a resident newly created gets an invoice for this levy automatically (due that
+     * same day) - see InvoiceService.generateDefaultInvoicesForNewResident. Lets the estate's
+     * default onboarding charges (membership form, entrance levy, security fee, sticker, ...) be
+     * configured as ordinary levies rather than hardcoded in application code. */
+    @Column(nullable = false)
+    private boolean defaultForNewResident = false;
 }

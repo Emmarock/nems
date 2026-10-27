@@ -166,6 +166,9 @@ export const leviesApi = {
   create: (body: Omit<Levy, 'id' | 'paymentAccountLabel'>) => client.post<Levy>('/levies', body).then((r) => r.data),
   update: (id: number, body: Omit<Levy, 'id' | 'paymentAccountLabel'>) =>
     client.put<Levy>(`/levies/${id}`, body).then((r) => r.data),
+  /** One-time catch-up: ensures every currently active resident has an invoice for this levy. */
+  applyToAllResidents: (id: number) =>
+    client.post<{ residentsProcessed: number }>(`/levies/${id}/apply-to-all-residents`).then((r) => r.data),
 }
 
 export const invoicesApi = {

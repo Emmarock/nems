@@ -51,6 +51,20 @@ public class InvoiceService {
     }
 
     /**
+     * Raises the estate's default onboarding charges (whichever levies are flagged
+     * Levy.defaultForNewResident - e.g. Membership Form, Devt. Entrance Levy, Annual Security Fee,
+     * the vehicle sticker levy) against a resident just created, due that same day so the resident
+     * can upload a payment receipt for finance to approve right away.
+     */
+    @Transactional
+    public void generateDefaultInvoicesForNewResident(Long residentId) {
+        LocalDate today = LocalDate.now();
+        for (Levy levy : levyRepository.findAllByActiveTrueAndDefaultForNewResidentTrue()) {
+            generate(new InvoiceGenerateRequest(residentId, levy.getId(), today));
+        }
+    }
+
+    /**
      * Reuses the resident's existing open invoice for this levy if one exists, generating a new
      * one only if there isn't - used by resident-initiated payment flows (receipt submission,
      * sticker requests) so a retry (e.g. after a rejected receipt) attaches to the same invoice

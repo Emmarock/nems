@@ -5,6 +5,7 @@ import com.nitelestate.access.AccessEventService;
 import com.nitelestate.access.AccessSubjectType;
 import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
+import com.nitelestate.billing.InvoiceService;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.ConflictException;
 import com.nitelestate.common.exception.NotFoundException;
@@ -53,6 +54,7 @@ public class ResidentService {
     private final AuditService auditService;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final InvoiceService invoiceService;
     /** Repository, not HouseholdMemberService — a plain Spring Data interface has no dependencies
      * of its own to form a cycle with, the same reasoning PaymentService uses for PropertyRepository. */
     private final HouseholdMemberRepository householdMemberRepository;
@@ -63,6 +65,7 @@ public class ResidentService {
         apply(resident, request);
         resident = residentRepository.save(resident);
         auditService.record("Resident", resident.getId(), "CREATE", resident.getFullName());
+        generateDefaultInvoicesUnlessTenant(resident);
         return ResidentResponse.from(resident, resolvePropertyHouseNumber(resident.getPropertyId()));
     }
 
@@ -106,6 +109,7 @@ public class ResidentService {
 
         auditService.record("Resident", resident.getId(), "CREATE_WITH_PROPERTY", resident.getFullName());
         auditService.record("Property", property.getId(), "CREATE_WITH_RESIDENT", property.getHouseNumber());
+        generateDefaultInvoicesUnlessTenant(resident);
 
         String ownerName = property.getOwnerId() != null ? resident.getFullName() : null;
         return new ResidentWithPropertyResponse(
@@ -226,6 +230,8 @@ public class ResidentService {
         tenant = residentRepository.save(tenant);
 
         auditService.record("Resident", tenant.getId(), "LANDLORD_ADD_TENANT", tenant.getFullName());
+        // No generateDefaultInvoicesUnlessTenant call - tenant is always TENANT here, and tenants
+        // aren't billed directly; see that method's own comment.
 
         var accounts = userService.bulkCreateResidentAccounts(List.of(tenant.getId())).created();
         var account = accounts.isEmpty() ? null : accounts.get(0);
@@ -425,6 +431,16 @@ public class ResidentService {
 
     private String resolvePropertyHouseNumber(Long propertyId) {
         return propertyId == null ? null : propertyRepository.findById(propertyId).map(Property::getHouseNumber).orElse(null);
+    }
+
+    /**
+     * Tenants aren't billed directly - the levies are the responsibility of whoever owns/lets the
+     * property (OWNER/LANDLORD), so a TENANT resident never gets the default onboarding invoices.
+     */
+    private void generateDefaultInvoicesUnlessTenant(Resident resident) {
+        if (resident.getResidentType() != ResidentType.TENANT) {
+            invoiceService.generateDefaultInvoicesForNewResident(resident.getId());
+        }
     }
 
     /** A resident's own QR access pass, generated the first time it's asked for. */

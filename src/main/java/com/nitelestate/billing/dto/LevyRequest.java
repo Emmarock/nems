@@ -14,6 +14,8 @@ public record LevyRequest(
         Boolean active,
         Boolean vehicleStickerLevy,
         /** Which payment account this levy's payments go to - null leaves it unassigned. */
-        Long paymentAccountId
+        Long paymentAccountId,
+        /** If true, every newly created resident is invoiced for this levy automatically. */
+        Boolean defaultForNewResident
 ) {
 }
