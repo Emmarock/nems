@@ -8,6 +8,7 @@ import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
 import { buildScanUrl } from '../../utils/scanUrl'
 import { apiErrorMessage } from '../../api/client'
+import { isLandlord, useAuth } from '../../auth/AuthContext'
 
 const EMPTY: PageResponse<HouseholdMember> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
@@ -37,6 +38,9 @@ const FIELDS: FieldConfig[] = [
  * sponsor (here) or the landlord/an admin revokes it.
  */
 export function HouseholdMembersPage() {
+  const { user } = useAuth()
+  // Reinstating is the landlord's call, never a tenant's (the server enforces this too).
+  const canReinstate = isLandlord(user)
   const [result, setResult] = useState<PageResponse<HouseholdMember>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
@@ -80,11 +84,11 @@ export function HouseholdMembersPage() {
     await load()
   }
 
-  async function handleRevoke(id: number) {
+  async function handleAction(id: number, action: (id: number) => Promise<unknown>) {
     setBusyId(id)
     setError(null)
     try {
-      await householdMembersApi.revoke(id)
+      await action(id)
       await load()
     } catch (err) {
       setError(apiErrorMessage(err))
@@ -142,8 +146,17 @@ export function HouseholdMembersPage() {
               <span className="muted">Pending landlord approval</span>
             )}
             {m.status !== 'REVOKED' && (
-              <button className="btn btn-sm" disabled={busyId === m.id} onClick={() => handleRevoke(m.id)}>
+              <button className="btn btn-sm" disabled={busyId === m.id} onClick={() => handleAction(m.id, householdMembersApi.revoke)}>
                 Revoke
+              </button>
+            )}
+            {m.status === 'REVOKED' && canReinstate && (
+              <button
+                className="btn btn-sm btn-primary"
+                disabled={busyId === m.id}
+                onClick={() => handleAction(m.id, householdMembersApi.reinstate)}
+              >
+                {busyId === m.id ? 'Reinstating…' : 'Reinstate'}
               </button>
             )}
           </div>
