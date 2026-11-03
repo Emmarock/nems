@@ -85,7 +85,7 @@ export function HouseholdMembersAdminPage() {
             label: 'Sponsor',
             render: (m) => (
               <button type="button" className="link-button" onClick={() => openResident(m.sponsorResidentId)}>
-                Resident #{m.sponsorResidentId}
+                {m.sponsorResidentName ?? `Resident #${m.sponsorResidentId}`}
               </button>
             ),
           },
