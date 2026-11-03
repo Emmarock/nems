@@ -1098,6 +1098,12 @@ select:disabled {
   margin: 8px 0;
 }
 
+.success-text {
+  color: var(--color-success);
+  font-size: 13px;
+  margin: 8px 0;
+}
+
 .info-banner {
   background: var(--color-warning-soft);
   color: var(--color-warning);

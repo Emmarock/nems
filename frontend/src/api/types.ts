@@ -63,6 +63,8 @@ export interface Resident {
   emergencyContact: string | null
   status: ResidentStatus
   registrationDate: string
+  /** Only set on the landlord's tenant list: true while the tenant hasn't logged in and set a password yet. */
+  invitePending?: boolean | null
 }
 
 /** Result of residentsApi.createWithProperty — both records, already linked. */
