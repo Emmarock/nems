@@ -191,8 +191,8 @@ const RESIDENT_STEPS: TourStep[] = [
   {
     route: '/portal/household-approvals',
     target: '/portal/household-approvals',
-    title: 'Household Approvals',
-    body: 'Approve household passes your tenants have requested for their own family members.',
+    title: 'Tenant Households',
+    body: "Approve household passes your tenants request for their family, revoke one while it isn't needed (e.g. someone is travelling), and reinstate it when they're back.",
   },
   {
     route: '/portal/vehicles',
@@ -203,8 +203,8 @@ const RESIDENT_STEPS: TourStep[] = [
   {
     route: '/portal/vehicle-approvals',
     target: '/portal/vehicle-approvals',
-    title: 'Vehicle Approvals',
-    body: "Approve vehicles your tenants have registered before they're allowed through the gate.",
+    title: 'Tenant Vehicles',
+    body: "Approve vehicles your tenants have registered, or deactivate one so its QR pass stops working at the gate.",
   },
   {
     route: '/portal/payments',

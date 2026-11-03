@@ -125,6 +125,11 @@ public class VehicleService {
             throw new BadRequestException("This tenant already has " + MAX_TENANT_VEHICLES + " approved vehicles — approve a replacement only after deactivating one");
         }
 
+        if (vehicle.getStatus() == VehicleStatus.INACTIVE) {
+            // Reactivating: drop the old QR so a pass saved before deactivation stays dead; a
+            // fresh one is minted the next time the owner opens their pass.
+            vehicle.setQrToken(null);
+        }
         vehicle.setStatus(VehicleStatus.ACTIVE);
         vehicle = vehicleRepository.save(vehicle);
         auditService.record("Vehicle", vehicle.getId(), "APPROVE", null);
@@ -137,19 +142,51 @@ public class VehicleService {
      * (e.g. a tenant navigating here) simply sees an empty page.
      */
     public PageResponse<VehicleResponse> pendingForLandlord(Long callerResidentId, Pageable pageable) {
+        return forLandlord(callerResidentId, VehicleStatus.PENDING_APPROVAL, pageable);
+    }
+
+    /**
+     * Vehicles of residents on the caller's own property, optionally narrowed by status (null = all).
+     * Excludes the landlord's own vehicles - this is their view of their tenants'.
+     */
+    public PageResponse<VehicleResponse> forLandlord(Long callerResidentId, VehicleStatus status, Pageable pageable) {
         List<Property> owned = propertyRepository.findByOwnerId(callerResidentId);
         if (owned.isEmpty()) {
             return new PageResponse<>(List.of(), pageable.getPageNumber(), pageable.getPageSize(), 0, 0);
         }
         List<Long> residentIds = residentRepository.findAll(Specs.eq(owned.get(0).getId(), "propertyId"))
-                .stream().map(Resident::getId).toList();
+                .stream().map(Resident::getId).filter(id -> !id.equals(callerResidentId)).toList();
+        if (residentIds.isEmpty()) {
+            return new PageResponse<>(List.of(), pageable.getPageNumber(), pageable.getPageSize(), 0, 0);
+        }
         Specification<Vehicle> spec = Specification.<Vehicle>where(Specs.in(residentIds, "residentId"))
-                .and(Specs.eq(VehicleStatus.PENDING_APPROVAL, "status"));
+                .and(Specs.eq(status, "status"));
         var page = vehicleRepository.findAll(spec, pageable);
 
         Map<Long, Resident> residents = residentRepository.findAllById(residentIds).stream()
                 .collect(Collectors.toMap(Resident::getId, r -> r));
         return PageResponse.of(page.map(v -> VehicleResponse.from(v, residents.get(v.getResidentId()))));
+    }
+
+    /**
+     * The landlord (or an admin) deactivates a tenant's vehicle. Its QR pass stops working at the
+     * gate straight away - checkIn refuses it and the owner can no longer open the pass - while
+     * checking an already-inside vehicle out is still allowed. Re-approving it later issues a new QR.
+     */
+    @Transactional
+    public VehicleResponse deactivate(Long vehicleId, Long callerResidentId, Role callerRole) {
+        Vehicle vehicle = get(vehicleId);
+        Resident owner = residentRepository.findById(vehicle.getResidentId())
+                .orElseThrow(() -> NotFoundException.of("Resident", vehicle.getResidentId()));
+        requireLandlordOrAdmin(owner.getPropertyId(), callerResidentId, callerRole);
+        if (callerResidentId != null && callerResidentId.equals(owner.getId())) {
+            throw new BadRequestException("This is your own vehicle, not a tenant's");
+        }
+
+        vehicle.setStatus(VehicleStatus.INACTIVE);
+        Vehicle saved = vehicleRepository.save(vehicle);
+        auditService.record("Vehicle", saved.getId(), "DEACTIVATE", null);
+        return VehicleResponse.from(saved, owner);
     }
 
     /** Only the landlord who owns the vehicle owner's property, or an admin, may approve it. */
@@ -208,6 +245,9 @@ public class VehicleService {
         if (vehicle.getStatus() == VehicleStatus.PENDING_APPROVAL) {
             throw new BadRequestException("This vehicle is awaiting the landlord's approval before a pass can be issued");
         }
+        if (vehicle.getStatus() == VehicleStatus.INACTIVE) {
+            throw new BadRequestException("This vehicle has been deactivated - its pass is no longer valid");
+        }
         if (vehicle.getQrToken() == null) {
             vehicle.setQrToken(UUID.randomUUID().toString());
             vehicle = vehicleRepository.save(vehicle);
@@ -253,11 +293,20 @@ public class VehicleService {
                 property != null ? property.getAddress() : null);
     }
 
-    /** Gate-side check-in; flags an inactive vehicle or an owner in arrears rather than blocking outright. */
+    /**
+     * Gate-side check-in. A deactivated vehicle is refused outright (its pass is dead); an owner in
+     * arrears is flagged rather than blocked. Check-out is never refused.
+     */
     @Transactional
     public VehicleResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
         Vehicle vehicle = vehicleRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No vehicle pass found for this QR code"));
+        if (vehicle.getStatus() != VehicleStatus.ACTIVE) {
+            auditService.record("Vehicle", vehicle.getId(), "CHECK_IN_DENIED", vehicle.getStatus().name());
+            throw new BadRequestException(vehicle.getStatus() == VehicleStatus.INACTIVE
+                    ? "Entry denied: this vehicle's pass has been deactivated"
+                    : "Entry denied: this vehicle hasn't been approved yet");
+        }
         Resident resident = residentRepository.findById(vehicle.getResidentId()).orElse(null);
         String flag = evaluateVehicle(vehicle, resident);
 

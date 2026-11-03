@@ -48,6 +48,23 @@ public class HouseholdMemberController {
         return householdMemberService.revoke(id, residentIdOrNull(), currentUser.role());
     }
 
+    /** The landlord (or an admin) restores a revoked pass; it keeps its existing QR code. */
+    @PutMapping("/{id}/reinstate")
+    @PreAuthorize("hasAnyRole('RESIDENT', 'SUPER_ADMIN', 'CDA_ADMIN')")
+    public HouseholdMemberResponse reinstate(@PathVariable Long id) {
+        return householdMemberService.reinstate(id, residentIdOrNull(), currentUser.role());
+    }
+
+    /** Landlord self-service: household members on the caller's own property, filtered by status (omit for all). */
+    @GetMapping("/property")
+    @PreAuthorize("hasRole('RESIDENT')")
+    public PageResponse<HouseholdMemberResponse> forMyProperty(@RequestParam(required = false) HouseholdMemberStatus status,
+                                                                @RequestParam(defaultValue = "0") int page,
+                                                                @RequestParam(defaultValue = "20") int size) {
+        return householdMemberService.forLandlord(currentUser.residentId(), status,
+                Paging.of(page, size, Sort.by("sponsorResidentId", "fullName")));
+    }
+
     @GetMapping("/mine")
     @PreAuthorize("hasRole('RESIDENT')")
     public PageResponse<HouseholdMemberResponse> mine(@RequestParam(defaultValue = "0") int page,

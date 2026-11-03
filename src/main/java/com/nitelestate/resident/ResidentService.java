@@ -335,7 +335,7 @@ public class ResidentService {
 
     /**
      * Lifts a suspension - login re-enabled, but sponsored household passes stay REVOKED (the
-     * landlord re-approves whichever ones should come back, same as any other revoked pass;
+     * landlord reinstates whichever ones should come back - HouseholdMemberService.reinstate;
      * nothing here silently re-grants gate access on a household member's behalf).
      */
     @Transactional

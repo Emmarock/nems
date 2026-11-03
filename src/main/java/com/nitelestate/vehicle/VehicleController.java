@@ -67,6 +67,24 @@ public class VehicleController {
                 Paging.of(page, size, Sort.by("residentId", "plateNumber")));
     }
 
+    /** Landlord self-service: tenants' vehicles on the caller's own property, filtered by status (omit for all). */
+    @GetMapping("/tenants")
+    @PreAuthorize("hasRole('RESIDENT')")
+    public PageResponse<VehicleResponse> tenantVehicles(@RequestParam(required = false) VehicleStatus status,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "20") int size) {
+        return vehicleService.forLandlord(currentUser.residentId(), status,
+                Paging.of(page, size, Sort.by("residentId", "plateNumber")));
+    }
+
+    /** The landlord or an admin deactivates a tenant's vehicle; its QR pass stops working at the gate. */
+    @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('RESIDENT', 'SUPER_ADMIN', 'CDA_ADMIN')")
+    public VehicleResponse deactivate(@PathVariable Long id) {
+        Long callerResidentId = currentUser.role() == Role.RESIDENT ? currentUser.residentId() : null;
+        return vehicleService.deactivate(id, callerResidentId, currentUser.role());
+    }
+
     /** The landlord (found by ownership of the vehicle owner's property) or an admin approves a pending vehicle. */
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('RESIDENT', 'SUPER_ADMIN', 'CDA_ADMIN')")

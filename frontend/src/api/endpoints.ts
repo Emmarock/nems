@@ -14,6 +14,7 @@ import type {
   Gate,
   HouseholdMember,
   HouseholdMemberLookup,
+  HouseholdMemberStatus,
   Invoice,
   LoginResponse,
   Levy,
@@ -41,6 +42,7 @@ import type {
   TenantAddResult,
   User,
   Vehicle,
+  VehicleStatus,
   VehicleLookup,
   Visitor,
   VisitorLookup,
@@ -154,6 +156,11 @@ export const vehiclesApi = {
   pendingApproval: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Vehicle>>('/vehicles/pending-approval', { params }).then((r) => r.data),
   approve: (id: number) => client.put<Vehicle>(`/vehicles/${id}/approve`).then((r) => r.data),
+  /** Landlord: tenants' vehicles on their property; omit status for all. */
+  tenantVehicles: (params: { status?: VehicleStatus; page?: number; size?: number } = {}) =>
+    client.get<PageResponse<Vehicle>>('/vehicles/tenants', { params }).then((r) => r.data),
+  /** Landlord: deactivating kills the vehicle's QR pass at the gate; re-approve to reactivate. */
+  deactivate: (id: number) => client.put<Vehicle>(`/vehicles/${id}/deactivate`).then((r) => r.data),
   lookup: (qrToken: string) => client.get<VehicleLookup>(`/vehicles/lookup/${qrToken}`).then((r) => r.data),
   checkIn: (qrToken: string, gateId?: number) =>
     client.post<Vehicle>(`/vehicles/checkin/${qrToken}`, null, { params: { gateId } }).then((r) => r.data),
@@ -326,6 +333,11 @@ export const householdMembersApi = {
     client.put<HouseholdMember>(`/household-members/${id}`, body).then((r) => r.data),
   approve: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/approve`).then((r) => r.data),
   revoke: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/revoke`).then((r) => r.data),
+  /** Landlord/admin: restore a revoked pass; it keeps its existing QR code. */
+  reinstate: (id: number) => client.put<HouseholdMember>(`/household-members/${id}/reinstate`).then((r) => r.data),
+  /** Landlord: household members on their property; omit status for all. */
+  forMyProperty: (params: { status?: HouseholdMemberStatus; page?: number; size?: number } = {}) =>
+    client.get<PageResponse<HouseholdMember>>('/household-members/property', { params }).then((r) => r.data),
   logs: (id: number, params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<AccessEvent>>(`/household-members/${id}/logs`, { params }).then((r) => r.data),
   lookup: (qrToken: string) => client.get<HouseholdMemberLookup>(`/household-members/lookup/${qrToken}`).then((r) => r.data),

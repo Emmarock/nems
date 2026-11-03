@@ -17,6 +17,7 @@ import com.nitelestate.property.Property;
 import com.nitelestate.property.PropertyRepository;
 import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
+import com.nitelestate.resident.ResidentStatus;
 import com.nitelestate.user.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -133,6 +134,39 @@ public class HouseholdMemberService {
     }
 
     /**
+     * The landlord (or an admin) restores a REVOKED pass, e.g. after a household member's pass
+     * was switched off while they were away for a long stretch. The pass keeps its existing QR
+     * code, so the member's saved pass works again without needing a new one. Only the landlord
+     * may do this, not the sponsoring tenant: re-granting gate access is the landlord's call, same
+     * as the original approval. The sponsor must still be an active resident of this property -
+     * otherwise the person who vouched for this household member is gone.
+     */
+    @Transactional
+    public HouseholdMemberResponse reinstate(Long id, Long callerResidentId, Role callerRole) {
+        HouseholdMember member = get(id);
+        requireLandlordOrAdmin(member.getPropertyId(), callerResidentId, callerRole);
+        if (member.getStatus() != HouseholdMemberStatus.REVOKED) {
+            throw new BadRequestException("Only a revoked household pass can be reinstated");
+        }
+        Resident sponsor = residentRepository.findById(member.getSponsorResidentId()).orElse(null);
+        if (sponsor == null || sponsor.getStatus() != ResidentStatus.ACTIVE
+                || !member.getPropertyId().equals(sponsor.getPropertyId())) {
+            throw new BadRequestException(
+                    "The resident who requested this pass is no longer active on this property, so it can't be reinstated");
+        }
+
+        member.setStatus(HouseholdMemberStatus.ACTIVE);
+        if (member.getQrToken() == null) {
+            // Revoked before it was ever approved - it has no QR yet.
+            member.setQrToken(UUID.randomUUID().toString());
+        }
+        member = householdMemberRepository.save(member);
+
+        auditService.record("HouseholdMember", member.getId(), "REINSTATE", null);
+        return HouseholdMemberResponse.from(member, resolveHouseNumber(member.getPropertyId()), sponsor);
+    }
+
+    /**
      * Read-only gate-side scan: resolves the pass holder's destination (sponsor + property) so
      * security can confirm it before deciding whether to check the household member in. Does not
      * mutate status or write an access event — see checkIn for that.
@@ -162,6 +196,14 @@ public class HouseholdMemberService {
     public HouseholdMemberResponse checkIn(String qrToken, Long gateId, Long verifiedByUserId) {
         HouseholdMember member = householdMemberRepository.findByQrToken(qrToken)
                 .orElseThrow(() -> new NotFoundException("No household member pass found for this QR code"));
+        // A revoked pass (e.g. switched off while the member is away) must actually keep them out,
+        // not just flag them; reinstate() turns it back on. Check-out is never refused.
+        if (member.getStatus() != HouseholdMemberStatus.ACTIVE) {
+            auditService.record("HouseholdMember", member.getId(), "CHECK_IN_DENIED", member.getStatus().name());
+            throw new BadRequestException(member.getStatus() == HouseholdMemberStatus.REVOKED
+                    ? "Entry denied: this household pass has been revoked"
+                    : "Entry denied: this household pass hasn't been approved by the landlord yet");
+        }
 
         accessPolicyService.requireSponsorEligibleForEntry(member.getSponsorResidentId());
         String flag = evaluate(member).flag();
@@ -210,12 +252,17 @@ public class HouseholdMemberService {
      * caller who owns nothing (e.g. a tenant who navigates here) simply sees an empty page.
      */
     public PageResponse<HouseholdMemberResponse> pendingForLandlord(Long callerResidentId, Pageable pageable) {
+        return forLandlord(callerResidentId, HouseholdMemberStatus.PENDING_APPROVAL, pageable);
+    }
+
+    /** Household members on the caller's own property, optionally narrowed by status (null = all). */
+    public PageResponse<HouseholdMemberResponse> forLandlord(Long callerResidentId, HouseholdMemberStatus status, Pageable pageable) {
         List<Property> owned = propertyRepository.findByOwnerId(callerResidentId);
         if (owned.isEmpty()) {
             return new PageResponse<>(List.of(), pageable.getPageNumber(), pageable.getPageSize(), 0, 0);
         }
         Specification<HouseholdMember> spec = Specification.<HouseholdMember>where(Specs.eq(owned.get(0).getId(), "propertyId"))
-                .and(Specs.eq(HouseholdMemberStatus.PENDING_APPROVAL, "status"));
+                .and(Specs.eq(status, "status"));
         var page = householdMemberRepository.findAll(spec, pageable);
         return toResponsePage(page);
     }
