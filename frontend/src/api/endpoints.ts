@@ -27,6 +27,7 @@ import type {
   BulkCreateResidentUsersResult,
   ResendInviteResult,
   Resident,
+  ResidentStatus,
   Role,
   ResidentArrears,
   ResidentLookup,
@@ -222,10 +223,13 @@ export const meApi = {
   /** Landlord self-service — caps how many ACTIVE tenants can be added (see /me/tenants, meApi.addTenant). */
   updateApartmentCount: (apartmentCount: number | null) =>
     client.put<Property>('/me/landlord/apartment-count', { apartmentCount }).then((r) => r.data),
-  tenants: (params: { page?: number; size?: number } = {}) =>
+  tenants: (params: { status?: ResidentStatus; page?: number; size?: number } = {}) =>
     client.get<PageResponse<Resident>>('/me/tenants', { params }).then((r) => r.data),
   addTenant: (body: { fullName: string; phone: string; email?: string; emergencyContact?: string }) =>
     client.post<TenantAddResult>('/me/tenants', body).then((r) => r.data),
+  /** Only while the tenant hasn't joined — also re-sends their invite email to the new address. */
+  updateTenantEmail: (id: number, email: string) =>
+    client.put<Resident>(`/me/tenants/${id}/email`, { email }).then((r) => r.data),
   deactivateTenant: (id: number) => client.put<Resident>(`/me/tenants/${id}/deactivate`).then((r) => r.data),
   /** Tenant self-service: their landlord's account, read-only — billing lives on the landlord's account, not theirs. */
   landlordBalance: () => client.get<AccountBalance>('/me/landlord/account/balance').then((r) => r.data),

@@ -242,13 +242,54 @@ public class ResidentService {
                 account != null ? account.temporaryPassword() : null);
     }
 
-    /** Tenants currently on the caller's own property. */
-    public PageResponse<ResidentResponse> listTenants(Long landlordResidentId, Pageable pageable) {
+    /** Tenants on the caller's own property. {@code status} narrows the list (e.g. ACTIVE only); null returns every tenant, past and present. */
+    public PageResponse<ResidentResponse> listTenants(Long landlordResidentId, ResidentStatus status, Pageable pageable) {
         Property property = requireOwnedProperty(landlordResidentId);
         Specification<Resident> spec = Specification.<Resident>where(Specs.eq(property.getId(), "propertyId"))
-                .and(Specs.eq(ResidentType.TENANT, "residentType"));
+                .and(Specs.eq(ResidentType.TENANT, "residentType"))
+                .and(Specs.eq(status, "status"));
         var page = residentRepository.findAll(spec, pageable);
-        return PageResponse.of(page.map(r -> ResidentResponse.from(r, property.getHouseNumber())));
+        List<Long> ids = page.getContent().stream().map(Resident::getId).toList();
+        Map<Long, Boolean> pendingByResident = userRepository.findAllByResidentIdIn(ids).stream()
+                .collect(Collectors.toMap(com.nitelestate.user.User::getResidentId,
+                        com.nitelestate.user.User::isMustChangePassword, (a, b) -> a));
+        // No login at all also counts as pending - the tenant hasn't joined.
+        return PageResponse.of(page.map(r -> ResidentResponse.from(r, property.getHouseNumber(),
+                pendingByResident.getOrDefault(r.getId(), true))));
+    }
+
+    /**
+     * Landlord fixes a mistyped email on a tenant who hasn't joined yet, and the invite is re-sent
+     * to the corrected address. Once the tenant has set their own password the email is theirs to
+     * manage (MeController profile update), so the landlord can no longer change it.
+     */
+    @Transactional
+    public ResidentResponse updateTenantEmail(Long landlordResidentId, Long tenantId, String email) {
+        Property property = requireOwnedProperty(landlordResidentId);
+        Resident tenant = get(tenantId);
+        if (tenant.getResidentType() != ResidentType.TENANT || !property.getId().equals(tenant.getPropertyId())) {
+            throw new BadRequestException("That resident isn't a tenant on a property you own");
+        }
+        if (tenant.getStatus() != ResidentStatus.ACTIVE) {
+            throw new BadRequestException("Only active tenants can be updated");
+        }
+        String newEmail = email.trim();
+        var user = userRepository.findByResidentId(tenant.getId()).orElse(null);
+        if (user != null && !user.isMustChangePassword()) {
+            throw new BadRequestException("This tenant has already joined - they can update their email from their own profile");
+        }
+
+        String oldEmail = tenant.getEmail();
+        tenant.setEmail(newEmail);
+        tenant = residentRepository.save(tenant);
+        if (user != null) {
+            userService.updatePendingInviteEmail(user.getId(), newEmail);
+        } else {
+            userService.bulkCreateResidentAccounts(List.of(tenant.getId())); // provisions + sends the invite
+        }
+
+        auditService.record("Resident", tenant.getId(), "LANDLORD_UPDATE_TENANT_EMAIL", oldEmail + " -> " + newEmail);
+        return ResidentResponse.from(tenant, property.getHouseNumber(), true);
     }
 
     /**

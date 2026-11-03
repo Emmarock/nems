@@ -341,6 +341,28 @@ public class UserService {
     }
 
     /**
+     * Landlord corrected a tenant's email before the tenant ever logged in: the login moves to the
+     * new address and a fresh "set your password" link is emailed there. Only allowed while the
+     * invite is still pending (mustChangePassword) - once the tenant has set their own password,
+     * letting someone else repoint their login would be an account-takeover path.
+     */
+    @Transactional
+    public void updatePendingInviteEmail(Long userId, String newEmail) {
+        User user = get(userId);
+        if (!user.isMustChangePassword()) {
+            throw new BadRequestException("This tenant has already joined - they can update their email from their own profile");
+        }
+        if (!newEmail.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmailIgnoreCase(newEmail)) {
+            throw new ConflictException("That email is already used by another account");
+        }
+        user.setEmail(newEmail);
+        userRepository.save(user);
+        String resetUrl = appBaseUrl + "/reset-password?token=" + issueResetToken(user);
+        notificationService.dispatch(NotificationChannel.EMAIL, newEmail,
+                MessageTemplates.tenantInvite(user.getFullName(), newEmail, resetUrl));
+    }
+
+    /**
      * "You just signed in" email, fired on every successful login (see AuthController.login).
      * For a resident-linked account, targets Resident.email — their real contact address -
      * rather than the login identifier, which is usually a synthetic placeholder (see

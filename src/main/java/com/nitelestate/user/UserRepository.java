@@ -14,6 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Optional<User> findByPhone(String phone);
     boolean existsByPhone(String phone);
     Optional<User> findByResidentId(Long residentId);
+    List<User> findAllByResidentIdIn(java.util.Collection<Long> residentIds);
     Optional<User> findByResetTokenHash(String resetTokenHash);
 
     @Query("select u.email from User u")

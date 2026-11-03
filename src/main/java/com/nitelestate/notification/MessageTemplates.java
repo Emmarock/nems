@@ -61,6 +61,13 @@ public final class MessageTemplates {
                 + "your password hasn't been changed.";
     }
 
+    /** Re-sent when a landlord corrects a not-yet-joined tenant's email (see UserService.updatePendingInviteEmail). */
+    public static String tenantInvite(String fullName, String loginId, String resetUrl) {
+        return "Hi " + fullName + ", you've been added as a tenant on " + BRAND + ". Your login is " + loginId + ".\n\n"
+                + "Set your password here: " + resetUrl
+                + "\n\nThis link expires in 24 hours.";
+    }
+
     /** Sent when an existing resident claims self-service access via phone+email verification (see UserService.claimAccount). */
     public static String accountClaimed(String fullName, String resetUrl) {
         return "Hi " + fullName + ", we found your account on " + BRAND + ".\n\n"

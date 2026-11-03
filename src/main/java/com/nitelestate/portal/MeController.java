@@ -17,8 +17,10 @@ import com.nitelestate.property.dto.ApartmentCountRequest;
 import com.nitelestate.property.dto.MePropertyUpdateRequest;
 import com.nitelestate.property.dto.PropertyResponse;
 import com.nitelestate.resident.ResidentService;
+import com.nitelestate.resident.ResidentStatus;
 import com.nitelestate.resident.dto.MeProfileUpdateRequest;
 import com.nitelestate.resident.dto.ResidentResponse;
+import com.nitelestate.resident.dto.TenantEmailUpdateRequest;
 import com.nitelestate.resident.dto.TenantRequest;
 import com.nitelestate.resident.dto.TenantResponse;
 import com.nitelestate.security.CurrentUser;
@@ -202,9 +204,10 @@ public class MeController {
 
     /** Landlord self-service: tenants currently on the caller's own property. */
     @GetMapping("/tenants")
-    public PageResponse<ResidentResponse> tenants(@RequestParam(defaultValue = "0") int page,
+    public PageResponse<ResidentResponse> tenants(@RequestParam(required = false) ResidentStatus status,
+                                                    @RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "20") int size) {
-        return residentService.listTenants(currentUser.residentId(), Paging.of(page, size, Sort.by("fullName")));
+        return residentService.listTenants(currentUser.residentId(), status, Paging.of(page, size, Sort.by("fullName")));
     }
 
     /** Landlord self-service: add a tenant to the caller's own property and provision their login. */
@@ -212,6 +215,12 @@ public class MeController {
     @ResponseStatus(HttpStatus.CREATED)
     public TenantResponse addTenant(@Valid @RequestBody TenantRequest request) {
         return residentService.createTenant(currentUser.residentId(), request);
+    }
+
+    /** Landlord self-service: correct a not-yet-joined tenant's email and re-send their invite there. */
+    @PutMapping("/tenants/{id}/email")
+    public ResidentResponse updateTenantEmail(@PathVariable Long id, @Valid @RequestBody TenantEmailUpdateRequest request) {
+        return residentService.updateTenantEmail(currentUser.residentId(), id, request.email());
     }
 
     /** Landlord self-service: deactivate a tenant on the caller's own property (soft-remove). */
