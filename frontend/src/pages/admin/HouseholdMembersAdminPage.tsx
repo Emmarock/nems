@@ -36,11 +36,11 @@ export function HouseholdMembersAdminPage() {
     setPage(0)
   }, [debouncedQuery])
 
-  async function handleRevoke(id: number) {
+  async function handleAction(id: number, action: (id: number) => Promise<unknown>) {
     setBusyId(id)
     setError(null)
     try {
-      await householdMembersApi.revoke(id)
+      await action(id)
       await load()
     } catch (err) {
       setError(apiErrorMessage(err))
@@ -93,8 +93,17 @@ export function HouseholdMembersAdminPage() {
           { key: 'status', label: 'Status', render: (m) => <StatusBadge value={m.status} /> },
         ]}
         actions={(m) =>
-          m.status !== 'REVOKED' && (
-            <button className="btn btn-sm" disabled={busyId === m.id} onClick={() => handleRevoke(m.id)}>
+          m.status === 'REVOKED' ? (
+            // Landlords/admins only - the sponsoring tenant can revoke but never reinstate (server-enforced).
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={busyId === m.id}
+              onClick={() => handleAction(m.id, householdMembersApi.reinstate)}
+            >
+              {busyId === m.id ? 'Reinstating…' : 'Reinstate'}
+            </button>
+          ) : (
+            <button className="btn btn-sm" disabled={busyId === m.id} onClick={() => handleAction(m.id, householdMembersApi.revoke)}>
               Revoke
             </button>
           )
