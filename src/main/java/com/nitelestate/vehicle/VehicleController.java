@@ -63,7 +63,8 @@ public class VehicleController {
     @PreAuthorize("hasRole('RESIDENT')")
     public PageResponse<VehicleResponse> pendingApproval(@RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "20") int size) {
-        return vehicleService.pendingForLandlord(currentUser.residentId(), Paging.of(page, size, Sort.by("plateNumber")));
+        return vehicleService.pendingForLandlord(currentUser.residentId(),
+                Paging.of(page, size, Sort.by("residentId", "plateNumber")));
     }
 
     /** The landlord (found by ownership of the vehicle owner's property) or an admin approves a pending vehicle. */

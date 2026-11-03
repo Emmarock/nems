@@ -224,7 +224,11 @@ public class HouseholdMemberService {
         List<Long> propertyIds = page.getContent().stream().map(HouseholdMember::getPropertyId).filter(Objects::nonNull).distinct().toList();
         Map<Long, String> houseNumbers = propertyRepository.findAllById(propertyIds).stream()
                 .collect(Collectors.toMap(Property::getId, Property::getHouseNumber));
-        return PageResponse.of(page.map(m -> HouseholdMemberResponse.from(m, houseNumbers.get(m.getPropertyId()))));
+        List<Long> sponsorIds = page.getContent().stream().map(HouseholdMember::getSponsorResidentId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, Resident> sponsors = residentRepository.findAllById(sponsorIds).stream()
+                .collect(Collectors.toMap(Resident::getId, r -> r));
+        return PageResponse.of(page.map(m -> HouseholdMemberResponse.from(m, houseNumbers.get(m.getPropertyId()),
+                sponsors.get(m.getSponsorResidentId()))));
     }
 
     /** Only the landlord who owns this property, or an admin, may approve a pending request. */

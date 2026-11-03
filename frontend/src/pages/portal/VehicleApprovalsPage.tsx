@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { vehiclesApi } from '../../api/endpoints'
 import type { PageResponse, Vehicle } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
+import { LoadingState } from '../../components/LoadingState'
 import { Pagination } from '../../components/Pagination'
 import { apiErrorMessage } from '../../api/client'
 
@@ -42,6 +43,18 @@ export function VehicleApprovalsPage() {
     }
   }
 
+  // Group by the tenant who registered each vehicle, so the landlord can see whose it is.
+  // The API sorts by tenant, so a tenant's vehicles stay together across pages.
+  const groups: { residentId: number; residentName: string | null; residentPhone: string | null; vehicles: Vehicle[] }[] = []
+  for (const v of result.content) {
+    let g = groups.find((x) => x.residentId === v.residentId)
+    if (!g) {
+      g = { residentId: v.residentId, residentName: v.residentName, residentPhone: v.residentPhone, vehicles: [] }
+      groups.push(g)
+    }
+    g.vehicles.push(v)
+  }
+
   return (
     <div>
       <div className="page-header" data-tour="/portal/vehicle-approvals">
@@ -56,24 +69,41 @@ export function VehicleApprovalsPage() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <DataTable
-        loading={loading}
-        rows={result.content}
-        rowKey={(v) => v.id}
-        emptyMessage="No vehicles awaiting your approval."
-        columns={[
-          { key: 'plateNumber', label: 'Plate' },
-          { key: 'residentName', label: 'Tenant', render: (v) => v.residentName ?? <span className="muted">—</span> },
-          { key: 'make', label: 'Make', render: (v) => v.make ?? <span className="muted">—</span> },
-          { key: 'model', label: 'Model', render: (v) => v.model ?? <span className="muted">—</span> },
-          { key: 'colour', label: 'Colour', render: (v) => v.colour ?? <span className="muted">—</span> },
-        ]}
-        actions={(v) => (
-          <button className="btn btn-sm btn-primary" disabled={busyId === v.id} onClick={() => handleApprove(v.id)}>
-            {busyId === v.id ? 'Approving…' : 'Approve'}
-          </button>
-        )}
-      />
+      {loading ? (
+        <LoadingState />
+      ) : groups.length === 0 ? (
+        <div className="empty-state">No vehicles awaiting your approval.</div>
+      ) : (
+        groups.map((g) => (
+          <section key={g.residentId} className="card" style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>
+                Requested by {g.residentName ?? `Resident #${g.residentId}`}
+              </h2>
+              <p className="page-subtitle">
+                {[g.residentPhone, `${g.vehicles.length} pending vehicle${g.vehicles.length === 1 ? '' : 's'}`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </div>
+            <DataTable
+              rows={g.vehicles}
+              rowKey={(v) => v.id}
+              columns={[
+                { key: 'plateNumber', label: 'Plate' },
+                { key: 'make', label: 'Make', render: (v) => v.make ?? <span className="muted">—</span> },
+                { key: 'model', label: 'Model', render: (v) => v.model ?? <span className="muted">—</span> },
+                { key: 'colour', label: 'Colour', render: (v) => v.colour ?? <span className="muted">—</span> },
+              ]}
+              actions={(v) => (
+                <button className="btn btn-sm btn-primary" disabled={busyId === v.id} onClick={() => handleApprove(v.id)}>
+                  {busyId === v.id ? 'Approving…' : 'Approve'}
+                </button>
+              )}
+            />
+          </section>
+        ))
+      )}
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
     </div>

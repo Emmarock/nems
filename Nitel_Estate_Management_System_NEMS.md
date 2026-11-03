@@ -68,6 +68,20 @@ Tenant
  └── None
 ```
 
+### Creating a resident (current implementation)
+
+A resident is always created together with their property in one step — there's a single
+**"+ New resident"** action (no separate "resident only" vs. "resident + property" choice), since
+a resident without a property on file is rarely useful in practice.
+
+The resident-type choice on this form is **Owner or Landlord only** — Tenant isn't offered here. A
+tenant doesn't get their own property; they occupy their landlord's, and are added through the
+landlord's own self-service "add tenant" flow in the resident portal instead.
+
+This matters for billing too: **tenants are never billed directly**. Estate levies are the
+landlord/owner's responsibility, so creating a tenant never raises any of the onboarding invoices
+described in section 4.
+
 ---
 
 ## 2. Properties
@@ -99,6 +113,12 @@ Tenant: Mrs. Smith
 ```
 
 This property registry becomes the foundation for billing and resident management.
+
+A property can be created on its own (e.g. vacant land, or before any resident exists) via
+**"+ New property"**, and linked to its owner by searching for the resident's name in the Owner
+field — there's no separate "create resident + property" action on this page; that combined flow
+lives on the Residents page instead (see section 1), since an existing resident can always get a
+new property linked to them this way.
 
 ---
 
@@ -140,28 +160,64 @@ Later, ANPR simply consumes this existing data.
 
 This should be one of the most important modules after resident management.
 
-The CDA should be able to define charges such as:
+Levies aren't hardcoded — the CDA defines them as plain data (name, amount, ANNUAL or ONE_TIME
+frequency, which payment account they pay into) through the admin UI, and anything in that table
+can be invoiced to a resident. The estate's actual current charges:
 
 ```text
-Estate Levy       ₦100,000 / year
-Security Levy      ₦30,000 / year
-Waste Levy         ₦20,000 / year
-Development Levy   ₦50,000 / year
+Membership Form            ₦5,000    one-time
+Devt. Entrance Levy        ₦50,000   one-time  — new residents only
+Annual Security Fee        ₦60,000   annual
+Annual Development Levy    ₦20,000   annual    — existing residents, not new ones (see below)
+Vehicle Sticker Levy        ₦1,500   one-time  — per vehicle
 ```
 
-The system generates the resident's account:
+`Annual Security Fee` and `Annual Development Levy` used to be a single combined charge
+("Security Fee + Yearly Devt. Levy", ₦80,000/yr). They were split so a new resident's one-time
+**Devt. Entrance Levy** and an existing resident's **yearly Development Levy** are no longer the
+same line item — a new resident pays entrance, not the annual development charge, in their first
+year.
+
+### Automatic onboarding invoices
+
+When a new resident is created (Owner or Landlord — tenants are never billed, see section 1), the
+system automatically raises one invoice per levy flagged "invoice this automatically for new
+residents," due that same day:
+
+```text
+MR ADEWALE — new resident
+
+Membership Form             ₦5,000
+Devt. Entrance Levy        ₦50,000
+Annual Security Fee        ₦60,000
+Vehicle Sticker Levy        ₦1,500
+                          ----------
+Total due today           ₦116,500
+```
+
+The resident then uploads a payment receipt against these invoices, and the Treasurer/Financial
+Secretary approves it — the same generic receipt-upload/approval flow used for every other
+invoice, not a special case for onboarding.
+
+### Applying a levy to existing residents
+
+A levy created (or edited) after residents already exist doesn't retroactively bill anyone by
+itself — an admin can explicitly run **"Apply to all residents"** on it, a one-time catch-up that
+raises an invoice for every currently active resident. It's idempotent: running it again reuses
+each resident's existing open invoice for that levy instead of duplicating it.
+
+The system generates the resident's account the same way for any levy, old or new:
 
 ```text
 MR ADEWALE
 
-Estate Levy          ₦100,000
-Security              ₦30,000
-Waste                  ₦20,000
-                    ----------
-Total                ₦150,000
+Annual Security Fee        ₦60,000
+Annual Development Levy    ₦20,000
+                          ----------
+Total                      ₦80,000
 
-Paid                 ₦100,000
-Outstanding           ₦50,000
+Paid                       ₦50,000
+Outstanding                ₦30,000
 ```
 
 The basic calculation should be:
@@ -174,6 +230,11 @@ TOTAL DUE
 ```
 
 This outstanding balance will eventually become one of the inputs to the ANPR access decision.
+
+### Raising an invoice manually
+
+An admin generating an invoice by hand searches for the resident by name and picks the levy from a
+dropdown of active levies — no resident or levy IDs typed anywhere.
 
 ---
 

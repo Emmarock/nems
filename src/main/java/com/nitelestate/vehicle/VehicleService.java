@@ -147,9 +147,9 @@ public class VehicleService {
                 .and(Specs.eq(VehicleStatus.PENDING_APPROVAL, "status"));
         var page = vehicleRepository.findAll(spec, pageable);
 
-        Map<Long, String> residentNames = residentRepository.findAllById(residentIds).stream()
-                .collect(Collectors.toMap(Resident::getId, Resident::getFullName));
-        return PageResponse.of(page.map(v -> VehicleResponse.from(v, residentNames.get(v.getResidentId()))));
+        Map<Long, Resident> residents = residentRepository.findAllById(residentIds).stream()
+                .collect(Collectors.toMap(Resident::getId, r -> r));
+        return PageResponse.of(page.map(v -> VehicleResponse.from(v, residents.get(v.getResidentId()))));
     }
 
     /** Only the landlord who owns the vehicle owner's property, or an admin, may approve it. */

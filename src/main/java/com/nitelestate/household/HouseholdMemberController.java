@@ -60,7 +60,8 @@ public class HouseholdMemberController {
     @PreAuthorize("hasRole('RESIDENT')")
     public PageResponse<HouseholdMemberResponse> pendingApproval(@RequestParam(defaultValue = "0") int page,
                                                                    @RequestParam(defaultValue = "20") int size) {
-        return householdMemberService.pendingForLandlord(currentUser.residentId(), Paging.of(page, size, Sort.by("fullName")));
+        return householdMemberService.pendingForLandlord(currentUser.residentId(),
+                Paging.of(page, size, Sort.by("sponsorResidentId", "fullName")));
     }
 
     @GetMapping("/{id}")

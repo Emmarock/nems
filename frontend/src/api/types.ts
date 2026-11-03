@@ -172,6 +172,8 @@ export interface Vehicle {
   colour: string | null
   residentId: number
   residentName: string | null
+  /** Only populated on the landlord's pending-approval list. */
+  residentPhone: string | null
   status: VehicleStatus
 }
 
@@ -409,6 +411,9 @@ export interface HouseholdMember {
   propertyId: number
   propertyHouseNumber: string | null
   sponsorResidentId: number
+  /** The tenant/resident who requested this pass — lets the landlord see whose household it is. */
+  sponsorResidentName: string | null
+  sponsorResidentPhone: string | null
   status: HouseholdMemberStatus
   qrToken: string | null
   /** Base64 data URI, submitted at request time so security can confirm identity at the gate. */
