@@ -12,6 +12,7 @@ import type {
   ComplaintStatus,
   Dashboard,
   Gate,
+  FaceSearchResult,
   HouseholdMember,
   HouseholdMemberLookup,
   HouseholdMemberStatus,
@@ -463,6 +464,13 @@ export const stickerRequestsApi = {
     client.get<PageResponse<StickerRequest>>('/sticker-requests', { params }).then((r) => r.data),
   request: (vehicleId: number) =>
     client.post<StickerRequest>('/sticker-requests', { vehicleId }).then((r) => r.data),
+}
+
+/** CCTV face search - admins only. image is a base64 data URI of a still from the footage. */
+export const faceSearchApi = {
+  status: () => client.get<{ enabled: boolean }>('/face-search/status').then((r) => r.data),
+  search: (body: { image: string; note?: string }) =>
+    client.post<FaceSearchResult>('/face-search', body).then((r) => r.data),
 }
 
 export const securityDashboardApi = {

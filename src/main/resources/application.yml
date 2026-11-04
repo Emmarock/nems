@@ -41,6 +41,16 @@ springdoc:
     path: /v3/api-docs
 
 nitel:
+  # CCTV face matching against registered workers/household members (com.nitelestate.facematch).
+  # Off by default; turning it on sends their photos to AWS Rekognition. AWS credentials come from
+  # the standard AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars.
+  face-match:
+    enabled: ${NITEL_FACE_MATCH_ENABLED:false}
+    region: ${AWS_REGION:eu-west-1}
+    collection-id: ${NITEL_FACE_COLLECTION:nitel-estate-faces}
+    # Matches below this similarity (0-100) aren't shown. CCTV is often low quality, so keep it high
+    # to limit false leads.
+    min-similarity: ${NITEL_FACE_MIN_SIMILARITY:85}
   app:
     # Used to build links in emails (e.g. "log in" in the account-provisioned message) - the
     # frontend and backend are the same origin in this monolith deploy, so the backend's own

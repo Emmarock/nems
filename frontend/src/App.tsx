@@ -28,6 +28,7 @@ import { PropertiesPage } from './pages/admin/PropertiesPage'
 import { VehiclesPage } from './pages/admin/VehiclesPage'
 import { WorkersAdminPage } from './pages/admin/WorkersAdminPage'
 import { HouseholdMembersAdminPage } from './pages/admin/HouseholdMembersAdminPage'
+import { FaceSearchPage } from './pages/admin/FaceSearchPage'
 import { VisitorsAdminPage } from './pages/admin/VisitorsAdminPage'
 import { LeviesPage } from './pages/admin/LeviesPage'
 import { PaymentsPage } from './pages/admin/PaymentsPage'
@@ -150,6 +151,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY', 'PRO']}>
               {withLayout(<VisitorsAdminPage />)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/face-search"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN']}>
+              {withLayout(<FaceSearchPage />)}
             </ProtectedRoute>
           }
         />

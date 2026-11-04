@@ -6,6 +6,8 @@ import com.nitelestate.access.AccessSubjectType;
 import com.nitelestate.access.dto.AccessEventResponse;
 import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
+import com.nitelestate.facematch.FaceIndexService;
+import com.nitelestate.facematch.FaceSubjectType;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
 import com.nitelestate.common.exception.NotFoundException;
@@ -51,6 +53,7 @@ public class WorkerService {
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
     private final UserRepository userRepository;
+    private final FaceIndexService faceIndexService;
 
     /** ~1.5MB of base64 — comfortably covers a compressed photo (the frontend downscales before upload). */
     private static final int MAX_PHOTO_LENGTH = 2_000_000;
@@ -87,6 +90,7 @@ public class WorkerService {
         worker.setQrToken(UUID.randomUUID().toString());
         worker.setPhoto(request.photo());
         worker = workerRepository.save(worker);
+        faceIndexService.syncAsync(FaceSubjectType.WORKER, worker.getId(), worker.getPhoto());
 
         auditService.record("Worker", worker.getId(), "REQUEST", worker.getContractorName());
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));
@@ -122,6 +126,7 @@ public class WorkerService {
         worker.setExpectedEndDate(request.expectedEndDate());
         worker.setPhoto(request.photo());
         worker = workerRepository.save(worker);
+        faceIndexService.syncAsync(FaceSubjectType.WORKER, worker.getId(), worker.getPhoto());
 
         auditService.record("Worker", worker.getId(), "UPDATE", worker.getContractorName());
         return WorkerResponse.from(worker, resolveSiteHouseNumber(worker.getSiteId()));

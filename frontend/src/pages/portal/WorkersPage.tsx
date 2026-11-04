@@ -12,7 +12,7 @@ import { buildScanUrl } from '../../utils/scanUrl'
 const EMPTY: PageResponse<Worker> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'photo', label: 'Worker photo', type: 'image', full: true },
+  { name: 'photo', label: 'Worker photo (also used to check estate CCTV in security investigations)', type: 'image', full: true },
   { name: 'fullName', label: 'Worker full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   { name: 'nationalId', label: 'National / Work ID' },

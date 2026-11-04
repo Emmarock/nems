@@ -6,6 +6,8 @@ import com.nitelestate.access.AccessSubjectType;
 import com.nitelestate.access.dto.AccessEventResponse;
 import com.nitelestate.accesspolicy.AccessPolicyService;
 import com.nitelestate.audit.AuditService;
+import com.nitelestate.facematch.FaceIndexService;
+import com.nitelestate.facematch.FaceSubjectType;
 import com.nitelestate.common.dto.PageResponse;
 import com.nitelestate.common.exception.BadRequestException;
 import com.nitelestate.common.exception.NotFoundException;
@@ -41,6 +43,7 @@ public class HouseholdMemberService {
     private final AccessEventService accessEventService;
     private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
+    private final FaceIndexService faceIndexService;
 
     /** ~1.5MB of base64 — same cap as Worker/Visitor photos. */
     private static final int MAX_PHOTO_LENGTH = 2_000_000;
@@ -71,6 +74,7 @@ public class HouseholdMemberService {
         member.setStatus(HouseholdMemberStatus.PENDING_APPROVAL);
         member.setPhoto(request.photo());
         member = householdMemberRepository.save(member);
+        faceIndexService.syncAsync(FaceSubjectType.HOUSEHOLD_MEMBER, member.getId(), member.getPhoto());
 
         auditService.record("HouseholdMember", member.getId(), "REQUEST", member.getFullName());
         return HouseholdMemberResponse.from(member, resolveHouseNumber(member.getPropertyId()));
@@ -97,6 +101,7 @@ public class HouseholdMemberService {
         member.setRelationship(request.relationship());
         member.setPhoto(request.photo());
         member = householdMemberRepository.save(member);
+        faceIndexService.syncAsync(FaceSubjectType.HOUSEHOLD_MEMBER, member.getId(), member.getPhoto());
 
         auditService.record("HouseholdMember", member.getId(), "UPDATE", member.getFullName());
         return HouseholdMemberResponse.from(member, resolveHouseNumber(member.getPropertyId()));

@@ -13,7 +13,7 @@ import { isLandlord, useAuth } from '../../auth/AuthContext'
 const EMPTY: PageResponse<HouseholdMember> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'photo', label: 'Photo', type: 'image', full: true },
+  { name: 'photo', label: 'Photo (also used to check estate CCTV in security investigations)', type: 'image', full: true },
   { name: 'fullName', label: 'Full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   {

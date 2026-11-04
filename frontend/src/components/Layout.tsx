@@ -8,6 +8,7 @@ import { TourOverlay } from './TourOverlay'
 import { Footer } from './Footer'
 import {
   BellIcon,
+  CameraIcon,
   CarIcon,
   ChartIcon,
   CompassIcon,
@@ -48,6 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/visitors', label: 'Visitors', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY', 'PRO'], icon: PersonBadgeIcon },
   { to: '/workers', label: 'Workers', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY', 'PRO'], icon: WrenchIcon },
   { to: '/household-members', label: 'Household Members', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY'], icon: PersonBadgeIcon },
+  { to: '/face-search', label: 'CCTV Face Search', roles: ['SUPER_ADMIN', 'CDA_ADMIN'], icon: CameraIcon },
   { to: '/levies', label: 'Levies & Invoices', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY'], icon: CoinsIcon },
   { to: '/payments', label: 'Payments', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'PRO'], icon: CoinsIcon },
   { to: '/stickers', label: 'Vehicle Stickers', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY'], icon: CarIcon },

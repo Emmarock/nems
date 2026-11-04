@@ -646,3 +646,26 @@ export interface SecurityDashboard {
   registeredVehicles: number
   accountsInArrears: number
 }
+
+/** A registered person a CCTV face may belong to. A lead to check, not an identification. */
+export interface FaceCandidate {
+  subjectType: 'WORKER' | 'HOUSEHOLD_MEMBER'
+  subjectId: number
+  fullName: string
+  phone: string | null
+  photo: string | null
+  status: string
+  /** Worker: work type or contractor. Household member: relationship. */
+  role: string | null
+  /** The resident who registered them (employer / sponsor). */
+  sponsorName: string | null
+  sponsorPhone: string | null
+  propertyHouseNumber: string | null
+  similarity: number
+}
+
+/** One entry per face found in the uploaded still; faceImage is the crop that was searched. */
+export interface FaceSearchResult {
+  facesFound: number
+  faces: { faceImage: string; candidates: FaceCandidate[] }[]
+}

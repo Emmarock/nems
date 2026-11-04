@@ -112,6 +112,13 @@
         </dependency>
 
         <!-- Test -->
+        <!-- CCTV face matching (see com.nitelestate.facematch). Only used when nitel.face-match.enabled=true. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>rekognition</artifactId>
+            <version>2.25.60</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
