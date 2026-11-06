@@ -25,7 +25,9 @@ public record WorkerRequest(
          * check already handles a future start date correctly on its own either way. */
         @NotNull LocalDate startDate,
         @NotNull LocalDate expectedEndDate,
-        /** Optional base64 data URI, e.g. "data:image/jpeg;base64,...". Size-capped in WorkerService. */
-        String photo
+        /** Required base64 data URI, e.g. "data:image/jpeg;base64,..." - every worker must have a
+         * photo so security can check them at the gate and CCTV face search can cover them.
+         * Format and size are checked in WorkerService. */
+        @NotBlank(message = "A photo of the worker is required") String photo
 ) {
 }

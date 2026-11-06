@@ -11,7 +11,8 @@ public record VisitorRequest(
         String vehiclePlate,
         @NotNull Instant validFrom,
         @NotNull Instant validUntil,
-        /** Optional base64 data URI, e.g. "data:image/jpeg;base64,...". Size-capped in VisitorService. */
-        String photo
+        /** Required base64 data URI, e.g. "data:image/jpeg;base64,..." - every visitor must have a
+         * photo so security can check them at the gate. Format and size are checked in VisitorService. */
+        @NotBlank(message = "A photo of the visitor is required") String photo
 ) {
 }

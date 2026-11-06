@@ -29,6 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class WorkerModuleIntegrationTest {
 
+    /** A valid 1x1 PNG - workers and visitors must be registered with a photo. */
+    private static final String TEST_PHOTO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("nitel_estate_test")
@@ -67,6 +70,40 @@ class WorkerModuleIntegrationTest {
     }
 
     @Test
+    void workersAndVisitors_cannotBeRegisteredWithoutAPhoto() {
+        String residentToken = login("resident@nitelestate.local", "Passw0rd!");
+
+        Map<String, Object> worker = Map.of(
+                "fullName", "No Photo Worker",
+                "phone", "+2348011113333",
+                "contractorName", "Delta Builders Ltd",
+                "workType", "Masonry",
+                "workerCategory", "NON_DOMESTIC_STAFF",
+                "startDate", LocalDate.now().toString(),
+                "expectedEndDate", LocalDate.now().plusMonths(1).toString()
+        );
+        assertThat(restTemplate.postForEntity(baseUrl() + "/workers",
+                new HttpEntity<>(worker, authHeaders(residentToken)), Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+
+        Map<String, Object> notAnImage = new java.util.HashMap<>(worker);
+        notAnImage.put("photo", "hello");
+        assertThat(restTemplate.postForEntity(baseUrl() + "/workers",
+                new HttpEntity<>(notAnImage, authHeaders(residentToken)), Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+
+        Map<String, Object> visitor = Map.of(
+                "name", "No Photo Visitor",
+                "phone", "+2348011114444",
+                "validFrom", java.time.Instant.now().toString(),
+                "validUntil", java.time.Instant.now().plusSeconds(3600).toString()
+        );
+        assertThat(restTemplate.postForEntity(baseUrl() + "/visitors",
+                new HttpEntity<>(visitor, authHeaders(residentToken)), Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void workerLifecycle_requestCheckIn_reflectsOnSecurityDashboard() {
         String residentToken = login("resident@nitelestate.local", "Passw0rd!");
         String securityToken = login("security@nitelestate.local", "Passw0rd!");
@@ -78,7 +115,8 @@ class WorkerModuleIntegrationTest {
                 "workType", "Construction - foundation",
                 "workerCategory", "NON_DOMESTIC_STAFF",
                 "startDate", LocalDate.now().toString(),
-                "expectedEndDate", LocalDate.now().plusMonths(3).toString()
+                "expectedEndDate", LocalDate.now().plusMonths(3).toString(),
+                "photo", TEST_PHOTO
         );
         var created = restTemplate.postForEntity(baseUrl() + "/workers",
                 new HttpEntity<>(workerRequest, authHeaders(residentToken)), Map.class);

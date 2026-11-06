@@ -58,6 +58,16 @@ public class WorkerService {
     /** ~1.5MB of base64 — comfortably covers a compressed photo (the frontend downscales before upload). */
     private static final int MAX_PHOTO_LENGTH = 2_000_000;
 
+    /** Every worker must have a usable photo - see WorkerRequest.photo. */
+    private static void validatePhoto(String photo) {
+        if (photo == null || !photo.startsWith("data:image/")) {
+            throw new BadRequestException("A photo of the worker is required");
+        }
+        if (photo.length() > MAX_PHOTO_LENGTH) {
+            throw new BadRequestException("Photo is too large — please use a smaller image");
+        }
+    }
+
     /**
      * A resident (or the estate developer) requests worker access — issued immediately, same as
      * a Visitor pass, with no administrator sign-off gate. The site is always the sponsoring
@@ -69,9 +79,7 @@ public class WorkerService {
         if (request.expectedEndDate().isBefore(request.startDate())) {
             throw new BadRequestException("expectedEndDate cannot be before startDate");
         }
-        if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
-            throw new BadRequestException("Photo is too large — please use a smaller image");
-        }
+        validatePhoto(request.photo());
         Resident sponsor = residentRepository.findById(sponsorResidentId)
                 .orElseThrow(() -> NotFoundException.of("Resident", sponsorResidentId));
 
@@ -112,9 +120,7 @@ public class WorkerService {
         if (request.expectedEndDate().isBefore(request.startDate())) {
             throw new BadRequestException("expectedEndDate cannot be before startDate");
         }
-        if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
-            throw new BadRequestException("Photo is too large — please use a smaller image");
-        }
+        validatePhoto(request.photo());
 
         worker.setFullName(request.fullName());
         worker.setPhone(request.phone());

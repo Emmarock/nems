@@ -12,7 +12,7 @@ import { buildScanUrl } from '../../utils/scanUrl'
 const EMPTY: PageResponse<Worker> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'photo', label: 'Worker photo (also used to check estate CCTV in security investigations)', type: 'image', full: true },
+  { name: 'photo', label: 'Worker photo (required, also used to check estate CCTV in security investigations)', type: 'image', required: true, full: true },
   { name: 'fullName', label: 'Worker full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   { name: 'nationalId', label: 'National / Work ID' },
@@ -115,6 +115,12 @@ export function WorkersPage() {
         </button>
       </div>
 
+      {result.content.some((w) => !w.photo) && (
+        <p className="error-text">
+          Some of your workers have no photo. A photo is now required for every worker — use “Add photo” to upload one.
+        </p>
+      )}
+
       <DataTable
         loading={loading}
         rows={result.content}
@@ -141,8 +147,9 @@ export function WorkersPage() {
         ]}
         actions={(w) => (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button className="btn btn-sm" onClick={() => setEditing(w)}>
-              Edit
+            {/* Workers registered before photos became required: prompt the sponsor to add one. */}
+            <button className={w.photo ? 'btn btn-sm' : 'btn btn-sm btn-primary'} onClick={() => setEditing(w)}>
+              {w.photo ? 'Edit' : 'Add photo'}
             </button>
             {w.status !== 'SUSPENDED' && w.status !== 'COMPLETED' && (
               <button className="btn btn-sm" disabled={suspendingId === w.id} onClick={() => handleSuspend(w.id)}>

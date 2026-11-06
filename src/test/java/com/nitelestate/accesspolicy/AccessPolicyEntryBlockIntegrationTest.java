@@ -34,6 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class AccessPolicyEntryBlockIntegrationTest {
 
+    /** A valid 1x1 PNG - workers and visitors must be registered with a photo. */
+    private static final String TEST_PHOTO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("nitel_estate_test")
@@ -82,7 +85,8 @@ class AccessPolicyEntryBlockIntegrationTest {
                 "name", "Visitor Before Arrears",
                 "phone", "+2348011110001",
                 "validFrom", Instant.now().minus(1, ChronoUnit.HOURS).toString(),
-                "validUntil", Instant.now().plus(1, ChronoUnit.DAYS).toString()
+                "validUntil", Instant.now().plus(1, ChronoUnit.DAYS).toString(),
+                "photo", TEST_PHOTO
         );
         var visitorACreated = restTemplate.postForEntity(baseUrl() + "/visitors",
                 new HttpEntity<>(visitorARequest, authHeaders(residentToken)), Map.class);
@@ -114,7 +118,8 @@ class AccessPolicyEntryBlockIntegrationTest {
                 "name", "Visitor After Arrears",
                 "phone", "+2348011110002",
                 "validFrom", Instant.now().minus(1, ChronoUnit.HOURS).toString(),
-                "validUntil", Instant.now().plus(1, ChronoUnit.DAYS).toString()
+                "validUntil", Instant.now().plus(1, ChronoUnit.DAYS).toString(),
+                "photo", TEST_PHOTO
         );
         var visitorBCreated = restTemplate.postForEntity(baseUrl() + "/visitors",
                 new HttpEntity<>(visitorBRequest, authHeaders(residentToken)), Map.class);
@@ -133,7 +138,8 @@ class AccessPolicyEntryBlockIntegrationTest {
                 "workType", "Plumbing",
                 "workerCategory", "NON_DOMESTIC_STAFF",
                 "startDate", LocalDate.now().toString(),
-                "expectedEndDate", LocalDate.now().plusMonths(1).toString()
+                "expectedEndDate", LocalDate.now().plusMonths(1).toString(),
+                "photo", TEST_PHOTO
         );
         var workerCreated = restTemplate.postForEntity(baseUrl() + "/workers",
                 new HttpEntity<>(workerRequest, authHeaders(residentToken)), Map.class);

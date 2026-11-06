@@ -39,6 +39,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class CheckoutReminderJobIntegrationTest {
 
+    /** A valid 1x1 PNG - workers and visitors must be registered with a photo. */
+    private static final String TEST_PHOTO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("nitel_estate_test")
@@ -105,7 +108,8 @@ class CheckoutReminderJobIntegrationTest {
                 "name", "Due Soon Visitor",
                 "phone", "+2348099990000",
                 "validFrom", Instant.now().minus(1, ChronoUnit.HOURS).toString(),
-                "validUntil", Instant.now().plus(15, ChronoUnit.MINUTES).toString()
+                "validUntil", Instant.now().plus(15, ChronoUnit.MINUTES).toString(),
+                "photo", TEST_PHOTO
         );
         var created = restTemplate.postForEntity(baseUrl() + "/visitors",
                 new HttpEntity<>(visitorRequest, authHeaders(residentToken)), Map.class);
@@ -133,7 +137,8 @@ class CheckoutReminderJobIntegrationTest {
                 "workType", "Cleaning",
                 "workerCategory", "NON_DOMESTIC_STAFF",
                 "startDate", LocalDate.now().toString(),
-                "expectedEndDate", LocalDate.now().plusMonths(1).toString()
+                "expectedEndDate", LocalDate.now().plusMonths(1).toString(),
+                "photo", TEST_PHOTO
         );
         var created = restTemplate.postForEntity(baseUrl() + "/workers",
                 new HttpEntity<>(workerRequest, authHeaders(residentToken)), Map.class);
@@ -169,7 +174,8 @@ class CheckoutReminderJobIntegrationTest {
                 "name", "Already Overdue Visitor",
                 "phone", "+2348099992222",
                 "validFrom", Instant.now().minus(2, ChronoUnit.HOURS).toString(),
-                "validUntil", Instant.now().minus(5, ChronoUnit.MINUTES).toString()
+                "validUntil", Instant.now().minus(5, ChronoUnit.MINUTES).toString(),
+                "photo", TEST_PHOTO
         );
         var created = restTemplate.postForEntity(baseUrl() + "/visitors",
                 new HttpEntity<>(visitorRequest, authHeaders(residentToken)), Map.class);

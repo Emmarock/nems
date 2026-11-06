@@ -57,7 +57,10 @@ public class VisitorService {
         if (!request.validUntil().isAfter(request.validFrom())) {
             throw new BadRequestException("validUntil must be after validFrom");
         }
-        if (request.photo() != null && request.photo().length() > MAX_PHOTO_LENGTH) {
+        if (request.photo() == null || !request.photo().startsWith("data:image/")) {
+            throw new BadRequestException("A photo of the visitor is required");
+        }
+        if (request.photo().length() > MAX_PHOTO_LENGTH) {
             throw new BadRequestException("Photo is too large — please use a smaller image");
         }
         Visitor visitor = new Visitor();

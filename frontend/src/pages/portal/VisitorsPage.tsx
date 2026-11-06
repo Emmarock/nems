@@ -12,7 +12,7 @@ import { buildScanUrl } from '../../utils/scanUrl'
 const EMPTY: PageResponse<Visitor> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'photo', label: 'Visitor photo', type: 'image', full: true },
+  { name: 'photo', label: 'Visitor photo (required)', type: 'image', required: true, full: true },
   { name: 'name', label: 'Visitor name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   { name: 'vehiclePlate', label: 'Vehicle plate (optional)' },
