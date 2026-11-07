@@ -46,6 +46,7 @@ export function ResidentsPage() {
   const { openProperty } = useEntityDetail()
   const [busyId, setBusyId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -108,6 +109,7 @@ export function ResidentsPage() {
       <SearchInput value={query} onChange={setQuery} placeholder="Search residents by name, phone, email, type…" />
 
       {error && <p className="error-text">{error}</p>}
+      {notice && <p className="success-text">{notice}</p>}
 
       <DataTable
         loading={loading}
@@ -166,8 +168,9 @@ export function ResidentsPage() {
       {createModalOpen && (
         <NewResidentWithPropertyModal
           onClose={() => setCreateModalOpen(false)}
-          onCreated={async () => {
+          onCreated={async (created) => {
             setCreateModalOpen(false)
+            setNotice(`${created.resident.fullName} added at house number ${created.property.houseNumber}.`)
             await load()
           }}
         />

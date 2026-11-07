@@ -21,7 +21,8 @@ public record ResidentWithPropertyRequest(
         String emergencyContact,
 
         @NotBlank String road,
-        @NotBlank String houseNumber,
+        /** Optional - left blank, the property gets the next number on its road (HouseNumbers.next). */
+        String houseNumber,
         @NotBlank String address,
         /** Optional — Nigeria's federal postcode rollout is recent, most properties won't have one yet. */
         String postcode,

@@ -13,6 +13,7 @@ import com.nitelestate.common.search.Specs;
 import com.nitelestate.household.HouseholdMember;
 import com.nitelestate.household.HouseholdMemberRepository;
 import com.nitelestate.household.HouseholdMemberStatus;
+import com.nitelestate.property.HouseNumbers;
 import com.nitelestate.property.Property;
 import com.nitelestate.property.PropertyRepository;
 import com.nitelestate.property.dto.PropertyResponse;
@@ -77,13 +78,16 @@ public class ResidentService {
      */
     @Transactional
     public ResidentWithPropertyResponse createWithProperty(ResidentWithPropertyRequest request) {
-        if (propertyRepository.existsByHouseNumberIgnoreCase(request.houseNumber())) {
-            throw new ConflictException("A property with house number " + request.houseNumber() + " already exists");
+        String houseNumber = request.houseNumber() == null || request.houseNumber().isBlank()
+                ? HouseNumbers.next(propertyRepository, request.road())
+                : request.houseNumber().trim();
+        if (propertyRepository.existsByHouseNumberIgnoreCase(houseNumber)) {
+            throw new ConflictException("A property with house number " + houseNumber + " already exists");
         }
 
         Property property = new Property();
         property.setRoad(request.road());
-        property.setHouseNumber(request.houseNumber());
+        property.setHouseNumber(houseNumber);
         property.setAddress(request.address());
         property.setPostcode(request.postcode());
         property.setPropertyType(request.propertyType());

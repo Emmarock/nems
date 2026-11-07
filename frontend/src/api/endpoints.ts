@@ -112,7 +112,8 @@ export const residentsApi = {
     residentType: Resident['residentType']
     emergencyContact?: string
     road: string
-    houseNumber: string
+    /** Omit to get the next number on the road (HouseNumbers.next on the server). */
+    houseNumber?: string
     address: string
     postcode?: string
     propertyType: Property['propertyType']

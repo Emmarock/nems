@@ -68,7 +68,7 @@ export function NewResidentWithPropertyModal({
         residentType,
         emergencyContact: emergencyContact || undefined,
         road,
-        houseNumber,
+        houseNumber: houseNumber.trim() || undefined,
         address,
         postcode: postcode || undefined,
         propertyType,
@@ -140,8 +140,13 @@ export function NewResidentWithPropertyModal({
                 <input id="rwp-road" required value={road} onChange={(e) => setRoad(e.target.value)} />
               </div>
               <div className="form-field">
-                <label htmlFor="rwp-houseNumber">House number</label>
-                <input id="rwp-houseNumber" required value={houseNumber} onChange={(e) => setHouseNumber(e.target.value)} />
+                <label htmlFor="rwp-houseNumber">House number (optional)</label>
+                <input
+                  id="rwp-houseNumber"
+                  value={houseNumber}
+                  placeholder={road.trim() ? `Blank = next on ${road.trim().toUpperCase()}` : 'Blank = next on the road'}
+                  onChange={(e) => setHouseNumber(e.target.value)}
+                />
               </div>
               <div className="form-field full">
                 <label htmlFor="rwp-address">Address</label>
