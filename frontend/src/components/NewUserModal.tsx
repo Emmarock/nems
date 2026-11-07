@@ -3,6 +3,7 @@ import { usersApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { Resident, Role } from '../api/types'
 import { ResidentPicker } from './ResidentPicker'
+import { generateStrongPassword } from '../utils/password'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'SUPER_ADMIN', label: 'Super Admin' },
@@ -27,6 +28,7 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [role, setRole] = useState<Role>('RESIDENT')
   const [resident, setResident] = useState<Resident | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +48,13 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
       if (next.phone && next.phone !== 'UNKNOWN') {
         setPhone(next.phone)
       }
+      // Use the email already on the resident's record, so their login matches it.
+      if (next.email) {
+        setEmail(next.email)
+      }
+      // A strong random password; it's sent to the resident with their login details.
+      setPassword(generateStrongPassword())
+      setShowPassword(true)
     }
   }
 
@@ -120,14 +129,36 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
               </div>
               <div className="form-field full">
                 <label htmlFor="newUserPassword">Password</label>
-                <input
-                  id="newUserPassword"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    id="newUserPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    style={{ flex: 1, fontFamily: showPassword ? 'monospace' : undefined }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => {
+                      setPassword(generateStrongPassword())
+                      setShowPassword(true)
+                    }}
+                  >
+                    Generate
+                  </button>
+                  <button type="button" className="btn btn-sm" onClick={() => setShowPassword((v) => !v)}>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {resident && (
+                  <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                    A strong random password was generated. It's sent to the resident with their login details.
+                  </p>
+                )}
               </div>
             </div>
           </div>
