@@ -13,22 +13,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/** CCTV face search - admins only, since results are biometric matches on named people. */
+/**
+ * CCTV face search - searching is admins only, since results are biometric matches on named
+ * people. The whole feature sits behind nitel.face-match.enabled (NITEL_FACE_MATCH_ENABLED).
+ */
 @RestController
 @RequestMapping("/api/v1/face-search")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN')")
 public class FaceSearchController {
 
     private final FaceSearchService faceSearchService;
     private final FaceEngine faceEngine;
 
+    /** Readable by any signed-in user: the frontend hides every face-search mention when this is false. */
     @GetMapping("/status")
+    @PreAuthorize("isAuthenticated()")
     public Map<String, Boolean> status() {
         return Map.of("enabled", faceEngine.isEnabled());
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN')")
     public FaceSearchResponse search(@Valid @RequestBody FaceSearchRequest request) {
         return faceSearchService.search(request.image(), request.note());
     }

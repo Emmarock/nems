@@ -2,6 +2,7 @@ package com.nitelestate.facematch;
 
 import com.nitelestate.audit.AuditService;
 import com.nitelestate.common.exception.BadRequestException;
+import com.nitelestate.common.exception.NotFoundException;
 import com.nitelestate.facematch.dto.FaceSearchResponse;
 import com.nitelestate.facematch.dto.FaceSearchResponse.Candidate;
 import com.nitelestate.facematch.dto.FaceSearchResponse.FaceResult;
@@ -48,7 +49,8 @@ public class FaceSearchService {
 
     public FaceSearchResponse search(String imageDataUri, String note) {
         if (!faceEngine.isEnabled()) {
-            throw new BadRequestException("Face matching isn't switched on for this estate yet - an administrator needs to configure it");
+            // Switched off: behave as if the feature doesn't exist.
+            throw new NotFoundException("Face search is not available");
         }
         byte[] bytes = ImageData.decode(imageDataUri);
         if (bytes == null) {

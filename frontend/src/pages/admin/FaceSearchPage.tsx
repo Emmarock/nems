@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { faceSearchApi } from '../../api/endpoints'
 import type { FaceCandidate, FaceSearchResult } from '../../api/types'
 import { StatusBadge } from '../../components/StatusBadge'
 import { apiErrorMessage } from '../../api/client'
+import { useFaceSearchEnabled } from '../../hooks/useFaceSearchEnabled'
+import { LoadingState } from '../../components/LoadingState'
 
 /** Rekognition's inline image limit. */
 const MAX_BYTES = 5 * 1024 * 1024
@@ -22,19 +25,12 @@ function readAsDataUri(file: File): Promise<string> {
  * (FaceSearchService). Results are leads to verify, never proof on their own.
  */
 export function FaceSearchPage() {
-  const [enabled, setEnabled] = useState<boolean | null>(null)
+  const enabled = useFaceSearchEnabled()
   const [image, setImage] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [searching, setSearching] = useState(false)
   const [result, setResult] = useState<FaceSearchResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    faceSearchApi
-      .status()
-      .then((s) => setEnabled(s.enabled))
-      .catch(() => setEnabled(false))
-  }, [])
 
   async function handleFile(file: File | undefined) {
     setError(null)
@@ -65,6 +61,10 @@ export function FaceSearchPage() {
     }
   }
 
+  // Switched off for this estate: the page doesn't exist as far as the UI is concerned.
+  if (enabled === null) return <LoadingState />
+  if (!enabled) return <Navigate to="/" replace />
+
   return (
     <div>
       <div className="page-header" data-tour="/face-search">
@@ -76,16 +76,6 @@ export function FaceSearchPage() {
         </div>
       </div>
 
-      {enabled === false && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <strong>Face matching isn't switched on yet.</strong>
-          <p className="muted" style={{ marginBottom: 0 }}>
-            An administrator needs to set up the AWS Rekognition settings on the server (NITEL_FACE_MATCH_ENABLED and
-            AWS credentials). On the first start after that, photos already registered are indexed automatically
-            in the background.
-          </p>
-        </div>
-      )}
 
       <div className="card" style={{ marginBottom: 16, borderLeft: '4px solid var(--color-warning, #d97706)' }}>
         <strong>A match is a lead, not proof.</strong>
@@ -117,7 +107,7 @@ export function FaceSearchPage() {
             />
           </label>
           <div>
-            <button className="btn btn-primary" disabled={!image || searching || enabled === false} onClick={handleSearch}>
+            <button className="btn btn-primary" disabled={!image || searching} onClick={handleSearch}>
               {searching ? 'Searching…' : 'Search faces'}
             </button>
           </div>

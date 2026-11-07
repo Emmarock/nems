@@ -8,11 +8,12 @@ import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
 import { RfidRequestAction } from '../../components/RfidRequestAction'
 import { buildScanUrl } from '../../utils/scanUrl'
+import { useFaceSearchEnabled } from '../../hooks/useFaceSearchEnabled'
 
 const EMPTY: PageResponse<Worker> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'photo', label: 'Worker photo (required, also used to check estate CCTV in security investigations)', type: 'image', required: true, full: true },
+  { name: 'photo', label: 'Worker photo (required)', type: 'image', required: true, full: true },
   { name: 'fullName', label: 'Worker full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   { name: 'nationalId', label: 'National / Work ID' },
@@ -33,6 +34,11 @@ const FIELDS: FieldConfig[] = [
 ]
 
 export function WorkersPage() {
+  // Only tell people their photo is checked against CCTV when face search is actually switched on.
+  const faceSearchEnabled = useFaceSearchEnabled()
+  const fields = faceSearchEnabled
+    ? FIELDS.map((f) => (f.name === 'photo' ? { ...f, label: `${f.label}, also used to check estate CCTV in security investigations` } : f))
+    : FIELDS
   const [result, setResult] = useState<PageResponse<Worker>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
@@ -181,7 +187,7 @@ export function WorkersPage() {
       {modalOpen && (
         <FormModal
           title="Request worker access"
-          fields={FIELDS}
+          fields={fields}
           onSubmit={handleSubmit}
           onClose={() => setModalOpen(false)}
         />
@@ -190,7 +196,7 @@ export function WorkersPage() {
       {editing && (
         <FormModal
           title={`Edit worker — ${editing.fullName}`}
-          fields={FIELDS}
+          fields={fields}
           initial={editing}
           submitLabel="Save changes"
           onSubmit={handleEditSubmit}

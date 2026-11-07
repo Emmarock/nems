@@ -89,6 +89,10 @@ public class UserService {
         user.setRole(request.role());
         user.setResidentId(request.residentId());
         user.setStatus(UserStatus.ACTIVE);
+        // The admin chose (or generated) this password, so the holder must replace it with their
+        // own on first login - same as bulk-created accounts. The welcome message carries a
+        // one-click "set your password" link.
+        user.setMustChangePassword(true);
         user = userRepository.save(user);
         notifyNewAccount(user, request.password(), user.isMustChangePassword());
         return UserResponse.from(user);

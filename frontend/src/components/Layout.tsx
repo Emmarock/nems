@@ -29,6 +29,7 @@ import {
   WrenchIcon,
 } from './icons'
 import type { Role } from '../api/types'
+import { useFaceSearchEnabled } from '../hooks/useFaceSearchEnabled'
 
 interface NavItem {
   to: string
@@ -37,6 +38,8 @@ interface NavItem {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   /** Hidden from a RESIDENT whose residentType is TENANT — see isLandlord. */
   landlordOnly?: boolean
+  /** Hidden unless CCTV face search is switched on for the estate — see useFaceSearchEnabled. */
+  faceSearchOnly?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -49,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/visitors', label: 'Visitors', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY', 'PRO'], icon: PersonBadgeIcon },
   { to: '/workers', label: 'Workers', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY', 'PRO'], icon: WrenchIcon },
   { to: '/household-members', label: 'Household Members', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY'], icon: PersonBadgeIcon },
-  { to: '/face-search', label: 'CCTV Face Search', roles: ['SUPER_ADMIN', 'CDA_ADMIN'], icon: CameraIcon },
+  { to: '/face-search', label: 'CCTV Face Search', roles: ['SUPER_ADMIN', 'CDA_ADMIN'], icon: CameraIcon, faceSearchOnly: true },
   { to: '/levies', label: 'Levies & Invoices', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY'], icon: CoinsIcon },
   { to: '/payments', label: 'Payments', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'PRO'], icon: CoinsIcon },
   { to: '/stickers', label: 'Vehicle Stickers', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY'], icon: CarIcon },
@@ -78,6 +81,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const location = useLocation()
+  const faceSearchEnabled = useFaceSearchEnabled()
 
   useEffect(() => {
     setNavOpen(false)
@@ -85,7 +89,12 @@ export function Layout({ children }: { children: ReactNode }) {
 
   if (!user) return null
 
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role) && (!item.landlordOnly || isLandlord(user)))
+  const items = NAV_ITEMS.filter(
+    (item) =>
+      item.roles.includes(user.role) &&
+      (!item.landlordOnly || isLandlord(user)) &&
+      (!item.faceSearchOnly || faceSearchEnabled === true),
+  )
   // Every tour step now navigates to a real page and spotlights something on it (see
   // tour/tourSteps's `route` field) rather than pointing at the sidebar link itself - so the
   // sidebar just stays out of the way, collapsed, for the whole tour instead of competing for

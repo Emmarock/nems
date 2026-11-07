@@ -52,7 +52,8 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
       if (next.email) {
         setEmail(next.email)
       }
-      // A strong random password; it's sent to the resident with their login details.
+      // A strong random temporary password; it's sent with their login details and must be
+      // replaced on first login (UserService.create sets mustChangePassword).
       setPassword(generateStrongPassword())
       setShowPassword(true)
     }
@@ -154,11 +155,11 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
-                {resident && (
-                  <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-                    A strong random password was generated. It's sent to the resident with their login details.
-                  </p>
-                )}
+                <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
+                  {resident ? 'A strong random password was generated. ' : ''}
+                  This is a temporary password: it's sent with the login details, and they'll be asked to set
+                  their own password the first time they log in.
+                </p>
               </div>
             </div>
           </div>

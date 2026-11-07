@@ -9,11 +9,12 @@ import { QrCodeModal } from '../../components/QrCodeModal'
 import { buildScanUrl } from '../../utils/scanUrl'
 import { apiErrorMessage } from '../../api/client'
 import { isLandlord, useAuth } from '../../auth/AuthContext'
+import { useFaceSearchEnabled } from '../../hooks/useFaceSearchEnabled'
 
 const EMPTY: PageResponse<HouseholdMember> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 const FIELDS: FieldConfig[] = [
-  { name: 'photo', label: 'Photo (also used to check estate CCTV in security investigations)', type: 'image', full: true },
+  { name: 'photo', label: 'Photo', type: 'image', full: true },
   { name: 'fullName', label: 'Full name', required: true, full: true },
   { name: 'phone', label: 'Phone', required: true },
   {
@@ -38,6 +39,11 @@ const FIELDS: FieldConfig[] = [
  * sponsor (here) or the landlord/an admin revokes it.
  */
 export function HouseholdMembersPage() {
+  // Only tell people their photo is checked against CCTV when face search is actually switched on.
+  const faceSearchEnabled = useFaceSearchEnabled()
+  const fields = faceSearchEnabled
+    ? FIELDS.map((f) => (f.name === 'photo' ? { ...f, label: `${f.label}, also used to check estate CCTV in security investigations` } : f))
+    : FIELDS
   const { user } = useAuth()
   // Reinstating is the landlord's call, never a tenant's (the server enforces this too).
   const canReinstate = isLandlord(user)
@@ -168,7 +174,7 @@ export function HouseholdMembersPage() {
       {modalOpen && (
         <FormModal
           title="Request household pass"
-          fields={FIELDS}
+          fields={fields}
           onSubmit={handleSubmit}
           onClose={() => setModalOpen(false)}
         />
@@ -177,7 +183,7 @@ export function HouseholdMembersPage() {
       {editing && (
         <FormModal
           title={`Edit household member — ${editing.fullName}`}
-          fields={FIELDS}
+          fields={fields}
           initial={editing}
           submitLabel="Save changes"
           onSubmit={handleEditSubmit}
