@@ -22,6 +22,8 @@ import com.nitelestate.resident.Resident;
 import com.nitelestate.resident.ResidentRepository;
 import com.nitelestate.resident.ResidentType;
 import com.nitelestate.sticker.StickerRequestService;
+import com.nitelestate.user.OfficeNotificationService;
+import com.nitelestate.user.Role;
 import com.nitelestate.user.User;
 import com.nitelestate.user.UserRepository;
 import jakarta.persistence.criteria.Subquery;
@@ -56,6 +58,11 @@ public class PaymentService {
     private final StickerRequestService stickerRequestService;
     private final NotificationService notificationService;
     private final AuditService auditService;
+    private final OfficeNotificationService officeNotificationService;
+
+    /** Offices emailed when a resident submits a receipt (OfficeNotificationService). */
+    static final java.util.List<Role> RECEIPT_REVIEW_OFFICES = java.util.List.of(
+            Role.SECRETARY, Role.CDA_ADMIN, Role.TREASURER, Role.PRO, Role.FINANCIAL_SECRETARY);
 
     /**
      * Back-office entry (spec §5 Phase 1) - a staff member confirming a bank transfer/cash/cheque
@@ -118,6 +125,7 @@ public class PaymentService {
 
         auditService.record("Payment", payment.getId(), "SUBMIT_RECEIPT",
                 "resident=" + residentId + " levy=" + levy.getName() + " amount=" + request.amount());
+        notifyOfficesOfReceipt(payment, resident.getFullName(), levy.getName(), false);
         return toResponse(payment);
     }
 
@@ -240,9 +248,9 @@ public class PaymentService {
     /** Treasurer/financial secretary confirms the bank alert matches - the payment counts as paid. */
     @Transactional
     public PaymentResponse approve(Long id, Long approverUserId, PaymentReviewRequest request) {
-        Payment payment = get(id);
+        Payment payment = getForUpdate(id);
         if (payment.getStatus() != PaymentStatus.PENDING_APPROVAL) {
-            throw new BadRequestException("Only payments pending approval can be approved");
+            throw new BadRequestException(alreadyDecided(payment));
         }
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setApprovedByUserId(approverUserId);
@@ -259,9 +267,9 @@ public class PaymentService {
      * the resident can submit a fresh receipt against the same invoice. */
     @Transactional
     public PaymentResponse reject(Long id, Long approverUserId, PaymentReviewRequest request) {
-        Payment payment = get(id);
+        Payment payment = getForUpdate(id);
         if (payment.getStatus() != PaymentStatus.PENDING_APPROVAL) {
-            throw new BadRequestException("Only payments pending approval can be rejected");
+            throw new BadRequestException(alreadyDecided(payment));
         }
         payment.setStatus(PaymentStatus.REJECTED);
         payment.setApprovedByUserId(approverUserId);
@@ -270,6 +278,106 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
         auditService.record("Payment", payment.getId(), "REJECT", request.notes());
         return toResponse(payment);
+    }
+
+    /**
+     * Super admin only: sends an approved or rejected payment back to PENDING_APPROVAL so it can
+     * be decided again. Approval and rejection are otherwise final. Balances follow automatically
+     * (they're summed from SUCCESS payments); a receipt email already sent to the resident is not
+     * recalled. The review offices are emailed again so someone picks it up.
+     */
+    @Transactional
+    public PaymentResponse revert(Long id, Long adminUserId, PaymentReviewRequest request) {
+        Payment payment = getForUpdate(id);
+        if (payment.getStatus() != PaymentStatus.SUCCESS && payment.getStatus() != PaymentStatus.REJECTED) {
+            throw new BadRequestException("Only an approved or rejected payment can be reverted");
+        }
+        PaymentStatus previous = payment.getStatus();
+        payment.setStatus(PaymentStatus.PENDING_APPROVAL);
+        payment.setApprovedByUserId(null);
+        payment.setApprovedAt(null);
+        String reason = request.notes() == null || request.notes().isBlank() ? null : request.notes().trim();
+        payment.setReviewNotes(reason == null ? null : "Reverted by admin: " + reason);
+        payment = paymentRepository.save(payment);
+        auditService.record("Payment", payment.getId(), "REVERT",
+                "from=" + previous + " by=" + adminUserId + (reason == null ? "" : " reason=" + reason));
+
+        Resident resident = residentRepository.findById(payment.getResidentId()).orElse(null);
+        String levyName = payment.getInvoiceId() != null
+                ? invoiceRepository.findById(payment.getInvoiceId()).map(Invoice::getDescription).orElse(null)
+                : null;
+        notifyOfficesOfReceipt(payment, resident != null ? resident.getFullName() : null, levyName, true);
+        return toResponse(payment);
+    }
+
+    private Payment getForUpdate(Long id) {
+        return paymentRepository.findByIdForUpdate(id).orElseThrow(() -> NotFoundException.of("Payment", id));
+    }
+
+    private String alreadyDecided(Payment payment) {
+        String decision = switch (payment.getStatus()) {
+            case SUCCESS -> "approved";
+            case REJECTED -> "rejected";
+            default -> "not awaiting approval";
+        };
+        String by = payment.getApprovedByUserId() == null ? "" : userRepository.findById(payment.getApprovedByUserId())
+                .map(u -> " by " + u.getFullName()).orElse("");
+        return "This payment has already been " + decision + by + ". That decision is final - only the super admin can revert it.";
+    }
+
+    /** At most this many payments are listed in one digest; the rest are behind the Payments page link. */
+    private static final int DIGEST_LIMIT = 50;
+
+    /**
+     * Emails the review offices one digest of every payment still awaiting approval, each with its
+     * review link - the daily PendingPaymentDigestJob, or the super admin's "send now". Sends
+     * nothing when none are pending. Returns how many payments were pending.
+     */
+    @Transactional(readOnly = true)
+    public int sendPendingDigest() {
+        List<Payment> pending = paymentRepository.findAllByStatusOrderByPaidAtAsc(PaymentStatus.PENDING_APPROVAL);
+        if (pending.isEmpty()) {
+            return 0;
+        }
+        java.time.format.DateTimeFormatter date = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")
+                .withZone(java.time.ZoneId.of("Africa/Lagos"));
+        StringBuilder message = new StringBuilder(pending.size() == 1
+                ? "1 payment receipt is awaiting approval:\n"
+                : pending.size() + " payment receipts are awaiting approval:\n");
+        for (Payment p : pending.subList(0, Math.min(DIGEST_LIMIT, pending.size()))) {
+            String who = residentRepository.findById(p.getResidentId()).map(Resident::getFullName).orElse("Resident #" + p.getResidentId());
+            String levy = p.getInvoiceId() == null ? null
+                    : invoiceRepository.findById(p.getInvoiceId()).map(Invoice::getDescription).orElse(null);
+            message.append("\n- ").append(who).append(": ₦").append(String.format("%,.2f", p.getAmount()))
+                    .append(levy != null ? " for " + levy : "")
+                    .append(", submitted ").append(date.format(p.getPaidAt()))
+                    .append("\n  ").append(officeNotificationService.appLink("/payments?review=" + p.getId()));
+        }
+        if (pending.size() > DIGEST_LIMIT) {
+            message.append("\n\n...and ").append(pending.size() - DIGEST_LIMIT).append(" more.");
+        }
+        message.append("\n\nSee them all: ").append(officeNotificationService.appLink("/payments?status=PENDING_APPROVAL"))
+                .append("\n\nThe first approval or rejection of each is final.");
+        officeNotificationService.notifyOffices(RECEIPT_REVIEW_OFFICES,
+                "Payments awaiting approval: " + pending.size(), message.toString());
+        auditService.record("Payment", 0L, "PENDING_DIGEST", pending.size() + " pending");
+        return pending.size();
+    }
+
+    /** Emails the review offices a link straight to the payment on the Payments page. */
+    private void notifyOfficesOfReceipt(Payment payment, String residentName, String levyName, boolean reverted) {
+        String link = officeNotificationService.appLink("/payments?review=" + payment.getId());
+        String who = residentName != null ? residentName : "A resident";
+        String what = levyName != null ? " for " + levyName : "";
+        String amount = "₦" + String.format("%,.2f", payment.getAmount());
+        String message = reverted
+                ? "A payment of " + amount + " from " + who + what + " has been sent back for review by the super admin."
+                  + "\n\nReview it, then approve or reject it: " + link
+                : who + " has submitted a payment receipt of " + amount + what + "."
+                  + "\n\nReview it, then approve or reject it: " + link
+                  + "\n\nThe first approval or rejection is final.";
+        String subject = (reverted ? "Payment back for review: " : "New payment receipt: ") + who + " - " + amount;
+        officeNotificationService.notifyOffices(RECEIPT_REVIEW_OFFICES, subject, message);
     }
 
     public PaymentResponse findById(Long id) {

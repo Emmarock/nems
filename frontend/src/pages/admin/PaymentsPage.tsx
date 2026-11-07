@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthContext'
+import { apiErrorMessage } from '../../api/client'
 import { paymentsApi } from '../../api/endpoints'
-import type { PageResponse, Payment, PaymentStatus } from '../../api/types'
+import type { PageResponse, Payment, PaymentStatus, Role } from '../../api/types'
 import { DataTable } from '../../components/DataTable'
 import { FormModal, type FieldConfig } from '../../components/FormModal'
 import { ReceiptReviewModal } from '../../components/ReceiptReviewModal'
@@ -38,14 +41,28 @@ const STATUS_OPTIONS: { value: PaymentStatus | ''; label: string }[] = [
   { value: 'PENDING', label: 'Pending (gateway)' },
 ]
 
+/** Offices that can record payments and approve/reject receipts (PaymentController). */
+const REVIEWER_ROLES: Role[] = ['SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY']
+
 export function PaymentsPage() {
+  const { user } = useAuth()
+  const canReview = !!user && REVIEWER_ROLES.includes(user.role)
+  const canRevert = user?.role === 'SUPER_ADMIN'
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [linkError, setLinkError] = useState<string | null>(null)
   const [result, setResult] = useState<PageResponse<Payment>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [reviewing, setReviewing] = useState<Payment | null>(null)
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState<PaymentStatus | ''>('')
+  // The digest email's "See them all" link opens /payments?status=PENDING_APPROVAL.
+  const [status, setStatus] = useState<PaymentStatus | ''>(() => {
+    const fromLink = new URLSearchParams(window.location.search).get('status')
+    return STATUS_OPTIONS.some((o) => o.value === fromLink) ? (fromLink as PaymentStatus) : ''
+  })
+  const [digestBusy, setDigestBusy] = useState(false)
+  const [digestNotice, setDigestNotice] = useState<string | null>(null)
   const debouncedQuery = useDebouncedValue(query)
   const { openResident } = useEntityDetail()
 
@@ -63,6 +80,44 @@ export function PaymentsPage() {
   useEffect(() => {
     setPage(0)
   }, [debouncedQuery, status])
+
+  // "Review it here" link from the new-receipt email: /payments?review=<id> opens that payment.
+  const reviewId = Number(searchParams.get('review'))
+  useEffect(() => {
+    if (!reviewId) return
+    setLinkError(null)
+    paymentsApi
+      .get(reviewId)
+      .then(setReviewing)
+      .catch((err) => setLinkError(apiErrorMessage(err)))
+  }, [reviewId])
+
+  /** Same digest the offices get every morning at 8am, sent immediately. */
+  async function sendDigest() {
+    setDigestBusy(true)
+    setDigestNotice(null)
+    setLinkError(null)
+    try {
+      const { pending } = await paymentsApi.sendPendingDigest()
+      setDigestNotice(
+        pending === 0
+          ? 'No payments are awaiting approval, so nothing was sent.'
+          : `Emailed the review offices a list of ${pending} payment${pending === 1 ? '' : 's'} awaiting approval.`,
+      )
+    } catch (err) {
+      setLinkError(apiErrorMessage(err))
+    } finally {
+      setDigestBusy(false)
+    }
+  }
+
+  function closeReview() {
+    setReviewing(null)
+    if (searchParams.has('review')) {
+      searchParams.delete('review')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }
 
   async function handleSubmit(values: Record<string, unknown>) {
     await paymentsApi.recordManual({
@@ -84,9 +139,18 @@ export function PaymentsPage() {
             Back-office payments and resident-submitted receipts awaiting review.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          + Record payment
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {canRevert && (
+            <button className="btn" disabled={digestBusy} onClick={sendDigest}>
+              {digestBusy ? 'Sending…' : 'Email pending payments now'}
+            </button>
+          )}
+          {canReview && (
+            <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+              + Record payment
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -103,6 +167,9 @@ export function PaymentsPage() {
           ))}
         </select>
       </div>
+
+      {linkError && <p className="error-text">{linkError}</p>}
+      {digestNotice && <p className="success-text">{digestNotice}</p>}
 
       <DataTable
         loading={loading}
@@ -131,13 +198,13 @@ export function PaymentsPage() {
           { key: 'paidAt', label: 'Paid at', render: (p) => new Date(p.paidAt).toLocaleString() },
         ]}
         actions={(p) =>
-          p.status === 'PENDING_APPROVAL' ? (
+          p.status === 'PENDING_APPROVAL' && canReview ? (
             <button className="btn btn-sm btn-primary" onClick={() => setReviewing(p)}>
               Review
             </button>
-          ) : p.receiptImage ? (
+          ) : p.receiptImage || p.status === 'PENDING_APPROVAL' || (canRevert && (p.status === 'SUCCESS' || p.status === 'REJECTED')) ? (
             <button className="btn btn-sm" onClick={() => setReviewing(p)}>
-              View receipt
+              {p.receiptImage ? 'View receipt' : 'View'}
             </button>
           ) : null
         }
@@ -149,7 +216,15 @@ export function PaymentsPage() {
         <FormModal title="Record payment" fields={FIELDS} onSubmit={handleSubmit} onClose={() => setModalOpen(false)} />
       )}
 
-      {reviewing && <ReceiptReviewModal payment={reviewing} onClose={() => setReviewing(null)} onDone={load} />}
+      {reviewing && (
+        <ReceiptReviewModal
+          payment={reviewing}
+          onClose={closeReview}
+          onDone={load}
+          canDecide={canReview}
+          canRevert={canRevert}
+        />
+      )}
     </div>
   )
 }

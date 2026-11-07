@@ -528,7 +528,7 @@ public class UserService {
         return isRealEmail(user.getEmail()) ? user.getEmail() : null;
     }
 
-    private boolean isRealEmail(String email) {
+    static boolean isRealEmail(String email) {
         return email != null && !email.toLowerCase().endsWith(SYNTHETIC_EMAIL_DOMAIN);
     }
 

@@ -181,7 +181,7 @@ export default function App() {
         <Route
           path="/payments"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'PRO']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'PRO']}>
               {withLayout(<PaymentsPage />)}
             </ProtectedRoute>
           }

@@ -63,4 +63,12 @@ public class User extends BaseEntity {
     private String resetTokenHash;
 
     private Instant resetTokenExpiresAt;
+
+    /**
+     * The office holder's own email (staff roles only), set by them on their profile. Task
+     * notifications for their office go here instead of the account's login email, which is
+     * often a shared office address - see OfficeNotificationService.
+     */
+    @Column(length = 255)
+    private String personalEmail;
 }

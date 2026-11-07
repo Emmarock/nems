@@ -4,6 +4,7 @@ import { isLandlord, useAuth } from '../auth/AuthContext'
 import { useTour } from '../tour/TourContext'
 import { NotificationBell } from './NotificationBell'
 import { ChangePasswordModal } from './ChangePasswordModal'
+import { OfficeProfileModal } from './OfficeProfileModal'
 import { TourOverlay } from './TourOverlay'
 import { Footer } from './Footer'
 import {
@@ -54,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/household-members', label: 'Household Members', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY'], icon: PersonBadgeIcon },
   { to: '/face-search', label: 'CCTV Face Search', roles: ['SUPER_ADMIN', 'CDA_ADMIN'], icon: CameraIcon, faceSearchOnly: true },
   { to: '/levies', label: 'Levies & Invoices', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY'], icon: CoinsIcon },
-  { to: '/payments', label: 'Payments', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'PRO'], icon: CoinsIcon },
+  { to: '/payments', label: 'Payments', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'PRO'], icon: CoinsIcon },
   { to: '/stickers', label: 'Vehicle Stickers', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY'], icon: CarIcon },
   { to: '/complaints', label: 'Complaints', roles: ['SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE', 'PRO'], icon: ComplaintIcon },
   { to: '/announcements', label: 'Announcements', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY', 'MAINTENANCE', 'PRO', 'RESIDENT'], icon: MegaphoneIcon },
@@ -79,6 +80,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
   const tour = useTour()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const location = useLocation()
   const faceSearchEnabled = useFaceSearchEnabled()
@@ -127,6 +129,12 @@ export function Layout({ children }: { children: ReactNode }) {
             (see .sidebar-footer in index.css) — pinned to the bottom of the slide-out menu
             instead of crowding the topbar on a narrow screen. */}
         <div className="sidebar-footer">
+          {user.role !== 'RESIDENT' && (
+            <button type="button" className="sidebar-link sidebar-footer-btn" onClick={() => setProfileModalOpen(true)}>
+              <UserBadgeIcon />
+              Office profile
+            </button>
+          )}
           <button type="button" className="sidebar-link sidebar-footer-btn" onClick={() => setPasswordModalOpen(true)}>
             <KeyIcon />
             Change password
@@ -163,6 +171,11 @@ export function Layout({ children }: { children: ReactNode }) {
             </span>
             {/* Hidden below 768px — the same two actions live at the bottom of the sidebar menu there. */}
             <div className="topbar-account-actions">
+              {user.role !== 'RESIDENT' && (
+                <button className="btn btn-sm" onClick={() => setProfileModalOpen(true)}>
+                  Office profile
+                </button>
+              )}
               <button className="btn btn-sm" onClick={() => setPasswordModalOpen(true)}>
                 Change password
               </button>
@@ -177,6 +190,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </div>
 
       {passwordModalOpen && <ChangePasswordModal onClose={() => setPasswordModalOpen(false)} />}
+      {profileModalOpen && <OfficeProfileModal onClose={() => setProfileModalOpen(false)} />}
       <TourOverlay />
     </div>
   )

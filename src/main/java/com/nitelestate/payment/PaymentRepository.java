@@ -1,13 +1,22 @@
 package com.nitelestate.payment;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpecificationExecutor<Payment> {
+
+    /** Row-locked read, so two reviewers deciding the same receipt at once can't both succeed. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Payment p where p.id = :id")
+    java.util.Optional<Payment> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
+    List<Payment> findAllByStatusOrderByPaidAtAsc(PaymentStatus status);
 
     @Query("select coalesce(sum(p.amount), 0) from Payment p where p.residentId = :residentId and p.status = 'SUCCESS'")
     BigDecimal sumSuccessfulAmountByResident(Long residentId);

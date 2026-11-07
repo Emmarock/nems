@@ -669,3 +669,23 @@ export interface FaceSearchResult {
   facesFound: number
   faces: { faceImage: string; candidates: FaceCandidate[] }[]
 }
+
+/** A staff member's office profile - see officeProfileApi. */
+export interface OfficeProfile {
+  fullName: string
+  /** The login email, often a shared office address. */
+  email: string
+  role: Role
+  /** Where notifications for their office are emailed; null falls back to the login email. */
+  personalEmail: string | null
+}
+
+/** An estate office and the resident the super admin assigned to it (null fields = unassigned). */
+export interface OfficeHolder {
+  role: Role
+  residentId: number | null
+  residentName: string | null
+  residentEmail: string | null
+  residentPhone: string | null
+  propertyHouseNumber: string | null
+}

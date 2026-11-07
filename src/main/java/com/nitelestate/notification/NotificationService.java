@@ -81,7 +81,10 @@ public class NotificationService {
         entry.setChannel(event.channel());
         // Redacted before it's persisted - this table is a durable log, not the delivery itself
         // (that's sender.send below, which still gets the real message). See Redaction.
-        entry.setMessage(Redaction.redact(event.message()));
+        // The log column holds 2000 characters; long messages (e.g. a pending-payments digest) are
+        // trimmed in the log only - the full message is still sent.
+        String logged = Redaction.redact(event.message());
+        entry.setMessage(logged.length() > 2000 ? logged.substring(0, 1997) + "..." : logged);
 
         NotificationSender sender = senders.get(event.channel());
         try {

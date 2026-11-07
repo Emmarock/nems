@@ -23,33 +23,49 @@ public class PaymentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY')")
     public PaymentResponse recordManual(@Valid @RequestBody PaymentRecordRequest request) {
         return paymentService.recordManual(request, currentUser.userId());
     }
 
-    /** Treasurer/financial secretary confirms a resident-submitted receipt against the bank alert
-     * they received (spec: payments must be validated before counting as paid). */
+    /** Treasurer/financial secretary/secretary confirms a resident-submitted receipt against the
+     * bank alert they received (spec: payments must be validated before counting as paid). The
+     * first approval or rejection is final - see revert. */
     @PutMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY')")
     public PaymentResponse approve(@PathVariable Long id, @RequestBody(required = false) PaymentReviewRequest request) {
         return paymentService.approve(id, currentUser.userId(), request != null ? request : new PaymentReviewRequest(null));
     }
 
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY')")
     public PaymentResponse reject(@PathVariable Long id, @RequestBody(required = false) PaymentReviewRequest request) {
         return paymentService.reject(id, currentUser.userId(), request != null ? request : new PaymentReviewRequest(null));
     }
 
+    /** Super admin: email the review offices a digest of every payment awaiting approval right now
+     * (the same digest PendingPaymentDigestJob sends each morning). */
+    @PostMapping("/pending-digest")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public java.util.Map<String, Integer> sendPendingDigest() {
+        return java.util.Map.of("pending", paymentService.sendPendingDigest());
+    }
+
+    /** Approval and rejection are final; only the super admin can send one back for review. */
+    @PutMapping("/{id}/revert")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public PaymentResponse revert(@PathVariable Long id, @RequestBody(required = false) PaymentReviewRequest request) {
+        return paymentService.revert(id, currentUser.userId(), request != null ? request : new PaymentReviewRequest(null));
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN', 'PRO')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN', 'PRO')")
     public PaymentResponse findById(@PathVariable Long id) {
         return paymentService.findById(id);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'CDA_ADMIN', 'PRO')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'CDA_ADMIN', 'PRO')")
     public PageResponse<PaymentResponse> findAll(@RequestParam(required = false) String q,
                                                   @RequestParam(required = false) Long residentId,
                                                   @RequestParam(required = false) PaymentStatus status,

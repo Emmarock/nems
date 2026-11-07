@@ -38,6 +38,11 @@ export function redirectToLogin(message?: string) {
   }
 }
 
+/** Remember where a signed-out visitor was heading (e.g. a link from an email) so login can take them there. */
+export function rememberPostLoginRedirect(path: string) {
+  if (!path.startsWith('/login')) sessionStorage.setItem(REDIRECT_KEY, path)
+}
+
 export function consumePostLoginRedirect(): string | null {
   const path = sessionStorage.getItem(REDIRECT_KEY)
   sessionStorage.removeItem(REDIRECT_KEY)

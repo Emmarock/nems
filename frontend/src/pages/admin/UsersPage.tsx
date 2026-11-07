@@ -10,6 +10,8 @@ import { ResetPasswordModal } from '../../components/ResetPasswordModal'
 import { BulkCreateResidentAccountsModal } from '../../components/BulkCreateResidentAccountsModal'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { apiErrorMessage } from '../../api/client'
+import { useAuth } from '../../auth/AuthContext'
+import { OfficeHoldersSection } from '../../components/OfficeHoldersSection'
 
 function inviteStatus(user: User): string | null {
   if (!user.mustChangePassword) return null
@@ -19,6 +21,8 @@ function inviteStatus(user: User): string | null {
 const EMPTY: PageResponse<User> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
 export function UsersPage() {
+  const { user: me } = useAuth()
+  const isSuperAdmin = me?.role === 'SUPER_ADMIN'
   const [result, setResult] = useState<PageResponse<User>>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -94,6 +98,8 @@ export function UsersPage() {
           </button>
         </div>
       </div>
+
+      {isSuperAdmin && <OfficeHoldersSection />}
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search users by name, email, role…" />
 

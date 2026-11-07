@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { isLandlord, useAuth } from './AuthContext'
 import type { Role } from '../api/types'
-import { getToken } from '../api/client'
+import { getToken, rememberPostLoginRedirect } from '../api/client'
 
 const FORCE_PASSWORD_CHANGE_PATH = '/change-password'
 
@@ -25,6 +25,8 @@ export function ProtectedRoute({
   const location = useLocation()
 
   if (!getToken() || !user) {
+    // e.g. the "review this payment" link in an office email: come back here after signing in.
+    rememberPostLoginRedirect(location.pathname + location.search)
     return <Navigate to="/login" replace />
   }
   if (user.mustChangePassword && location.pathname !== FORCE_PASSWORD_CHANGE_PATH) {

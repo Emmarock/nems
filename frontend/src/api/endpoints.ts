@@ -13,6 +13,8 @@ import type {
   Dashboard,
   Gate,
   FaceSearchResult,
+  OfficeProfile,
+  OfficeHolder,
   HouseholdMember,
   HouseholdMemberLookup,
   HouseholdMemberStatus,
@@ -206,6 +208,26 @@ export const paymentsApi = {
     client.post<Payment>('/payments', body).then((r) => r.data),
   approve: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/approve`, { notes }).then((r) => r.data),
   reject: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/reject`, { notes }).then((r) => r.data),
+  get: (id: number) => client.get<Payment>(`/payments/${id}`).then((r) => r.data),
+  /** Super admin only: send an approved/rejected payment back to awaiting approval. */
+  revert: (id: number, notes?: string) => client.put<Payment>(`/payments/${id}/revert`, { notes }).then((r) => r.data),
+  /** Super admin: email the review offices a digest of everything awaiting approval now. */
+  sendPendingDigest: () => client.post<{ pending: number }>('/payments/pending-digest').then((r) => r.data),
+}
+
+/** Super admin: which resident holds each estate office (used for office email notifications). */
+export const officeHoldersApi = {
+  list: () => client.get<OfficeHolder[]>('/office-holders').then((r) => r.data),
+  assign: (role: Role, residentId: number) =>
+    client.put<OfficeHolder>(`/office-holders/${role}`, { residentId }).then((r) => r.data),
+  unassign: (role: Role) => client.delete<OfficeHolder>(`/office-holders/${role}`).then((r) => r.data),
+}
+
+/** Staff self-service: the personal email that notifications for their office go to. */
+export const officeProfileApi = {
+  get: () => client.get<OfficeProfile>('/account/office-profile').then((r) => r.data),
+  update: (personalEmail: string | null) =>
+    client.put<OfficeProfile>('/account/office-profile', { personalEmail }).then((r) => r.data),
 }
 
 export const meApi = {
