@@ -109,6 +109,13 @@ export function ReceiptReviewModal({
                 </p>
               )}
               {revertable && (
+                <p style={{ fontSize: 13, margin: '12px 0 0' }}>
+                  {payment.status === 'SUCCESS'
+                    ? `Reverting puts this payment back to awaiting approval: ₦${payment.amount.toLocaleString()} will no longer count as paid, so it's added back to ${payment.residentName ?? 'the resident'}'s outstanding balance until it's approved again. The resident is emailed that the approval was reversed.`
+                    : "Reverting puts this payment back to awaiting approval. The outstanding balance doesn't change, because a rejected payment was never counted as paid."}
+                </p>
+              )}
+              {revertable && (
                 <div className="form-field full" style={{ marginTop: 12 }}>
                   <label htmlFor="revertNotes">Reason for reverting (optional)</label>
                   <textarea id="revertNotes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />

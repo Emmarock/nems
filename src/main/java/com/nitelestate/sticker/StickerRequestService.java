@@ -91,6 +91,20 @@ public class StickerRequestService {
         });
     }
 
+    /** The approved payment that issued this sticker was reverted by the super admin and nothing
+     * else pays its invoice: back to awaiting payment (PaymentService.revert). No-op otherwise. */
+    @Transactional
+    public void onPaymentReverted(Long invoiceId) {
+        stickerRequestRepository.findByInvoiceId(invoiceId).ifPresent(sr -> {
+            if (sr.getStatus() == StickerStatus.ISSUED) {
+                sr.setStatus(StickerStatus.PENDING_PAYMENT);
+                sr.setIssuedAt(null);
+                stickerRequestRepository.save(sr);
+                auditService.record("StickerRequest", sr.getId(), "UNISSUE", "payment reverted");
+            }
+        });
+    }
+
     /** residentId null lists every sticker request (admin/treasurer view); non-null scopes to one
      * resident's own ("My vehicles" / sticker status). */
     public PageResponse<StickerRequestResponse> search(Long residentId, Pageable pageable) {

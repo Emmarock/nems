@@ -18,6 +18,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
 
     List<Payment> findAllByStatusOrderByPaidAtAsc(PaymentStatus status);
 
+    boolean existsByInvoiceIdAndStatus(Long invoiceId, PaymentStatus status);
+
     @Query("select coalesce(sum(p.amount), 0) from Payment p where p.residentId = :residentId and p.status = 'SUCCESS'")
     BigDecimal sumSuccessfulAmountByResident(Long residentId);
 

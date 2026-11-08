@@ -282,9 +282,14 @@ public class PaymentService {
 
     /**
      * Super admin only: sends an approved or rejected payment back to PENDING_APPROVAL so it can
-     * be decided again. Approval and rejection are otherwise final. Balances follow automatically
-     * (they're summed from SUCCESS payments); a receipt email already sent to the resident is not
-     * recalled. The review offices are emailed again so someone picks it up.
+     * be decided again. Approval and rejection are otherwise final.
+     * <p>
+     * Reverting an approval takes the amount back off what the resident has paid, so it's owed
+     * again: every balance (account, per-levy, arrears list, gate arrears check) is summed live
+     * from SUCCESS payments only. A vehicle sticker that approval issued goes back to awaiting
+     * payment, unless another approved payment still covers its invoice. Reverting a rejection
+     * changes no balance - a rejected payment never counted. A receipt email already sent to the
+     * resident is not recalled. The review offices are emailed again so someone picks it up.
      */
     @Transactional
     public PaymentResponse revert(Long id, Long adminUserId, PaymentReviewRequest request) {
@@ -300,7 +305,16 @@ public class PaymentService {
         payment.setReviewNotes(reason == null ? null : "Reverted by admin: " + reason);
         payment = paymentRepository.save(payment);
         auditService.record("Payment", payment.getId(), "REVERT",
-                "from=" + previous + " by=" + adminUserId + (reason == null ? "" : " reason=" + reason));
+                "from=" + previous + " by=" + adminUserId
+                        + (previous == PaymentStatus.SUCCESS ? " amount=" + payment.getAmount() + " is outstanding again" : "")
+                        + (reason == null ? "" : " reason=" + reason));
+        if (previous == PaymentStatus.SUCCESS && payment.getInvoiceId() != null
+                && !paymentRepository.existsByInvoiceIdAndStatus(payment.getInvoiceId(), PaymentStatus.SUCCESS)) {
+            stickerRequestService.onPaymentReverted(payment.getInvoiceId());
+        }
+        if (previous == PaymentStatus.SUCCESS) {
+            notifyResidentOfRevertedApproval(payment, reason);
+        }
 
         Resident resident = residentRepository.findById(payment.getResidentId()).orElse(null);
         String levyName = payment.getInvoiceId() != null
@@ -308,6 +322,21 @@ public class PaymentService {
                 : null;
         notifyOfficesOfReceipt(payment, resident != null ? resident.getFullName() : null, levyName, true);
         return toResponse(payment);
+    }
+
+    /** The resident was told their payment was confirmed (and sent a receipt); tell them it no
+     * longer is. Skipped when they have no email on file, same as sendReceipt. */
+    private void notifyResidentOfRevertedApproval(Payment payment, String reason) {
+        Resident resident = residentRepository.findById(payment.getResidentId()).orElse(null);
+        if (resident == null || resident.getEmail() == null || resident.getEmail().isBlank()) {
+            return;
+        }
+        String levyDescription = payment.getInvoiceId() != null
+                ? invoiceRepository.findById(payment.getInvoiceId()).map(Invoice::getDescription).orElse(null)
+                : null;
+        notificationService.dispatch(NotificationChannel.EMAIL, resident.getEmail(),
+                MessageTemplates.paymentApprovalReverted(resident.getFullName(), payment.getAmount(), levyDescription, reason),
+                "Payment approval reversed");
     }
 
     private Payment getForUpdate(Long id) {

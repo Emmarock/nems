@@ -79,6 +79,16 @@ class PaymentReceiptReviewIntegrationTest {
         return r.getBody();
     }
 
+    /** The resident's own balance: [totalPaid, outstanding]. */
+    private java.math.BigDecimal[] balance(String residentToken) {
+        var r = restTemplate.exchange(baseUrl() + "/me/account/balance", HttpMethod.GET,
+                new HttpEntity<>(authHeaders(residentToken)), Map.class);
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return new java.math.BigDecimal[] {
+                new java.math.BigDecimal(r.getBody().get("totalPaid").toString()),
+                new java.math.BigDecimal(r.getBody().get("outstanding").toString())};
+    }
+
     private HttpStatus putStatus(String path, String token) {
         return HttpStatus.valueOf(restTemplate.exchange(baseUrl() + path, HttpMethod.PUT,
                 new HttpEntity<>(Map.of(), authHeaders(token)), Map.class).getStatusCode().value());
@@ -129,8 +139,12 @@ class PaymentReceiptReviewIntegrationTest {
         assertThat(email).as("office email to the secretary's personal address").isNotNull();
 
         // The secretary approves; the decision is then final for every reviewer.
+        java.math.BigDecimal[] beforeApproval = balance(residentToken);
         assertThat(put("/payments/" + paymentId + "/approve", Map.of("notes", "Matches bank alert"), secretaryToken)
                 .get("status")).isEqualTo("SUCCESS");
+        java.math.BigDecimal[] afterApproval = balance(residentToken);
+        assertThat(afterApproval[0].subtract(beforeApproval[0])).isEqualByComparingTo("5000");
+        assertThat(beforeApproval[1].subtract(afterApproval[1])).isEqualByComparingTo("5000");
         String treasurerToken = login("treasurer@nitelestate.local", "Passw0rd!");
         assertThat(putStatus("/payments/" + paymentId + "/reject", treasurerToken)).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(putStatus("/payments/" + paymentId + "/approve", secretaryToken)).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -140,10 +154,32 @@ class PaymentReceiptReviewIntegrationTest {
         assertThat(putStatus("/payments/" + paymentId + "/revert", secretaryToken)).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(put("/payments/" + paymentId + "/revert", Map.of("notes", "Wrong levy"), adminToken)
                 .get("status")).isEqualTo("PENDING_APPROVAL");
+        // Reverting an approval puts the amount back on the outstanding balance...
+        java.math.BigDecimal[] afterRevert = balance(residentToken);
+        assertThat(afterRevert[0]).isEqualByComparingTo(beforeApproval[0]);
+        assertThat(afterRevert[1]).isEqualByComparingTo(beforeApproval[1]);
+        // ...and the resident is told, with the reason.
+        boolean residentTold = false;
+        for (int i = 0; i < 50 && !residentTold; i++) {
+            residentTold = notificationLogRepository.findAll().stream().anyMatch(l ->
+                    l.getRecipient().equals("resident@nitelestate.local")
+                            && l.getMessage().contains("has been reversed") && l.getMessage().contains("Wrong levy"));
+            if (!residentTold) Thread.sleep(200);
+        }
+        assertThat(residentTold).as("resident emailed about the reversed approval").isTrue();
+        long reversalEmails = notificationLogRepository.findAll().stream()
+                .filter(l -> l.getMessage().contains("has been reversed")).count();
 
-        // Back in review, it can be decided again.
+        // Back in review, it can be decided again. A rejection never touches the balance...
         assertThat(put("/payments/" + paymentId + "/reject", Map.of("notes", "No matching alert"), treasurerToken)
                 .get("status")).isEqualTo("REJECTED");
+        assertThat(balance(residentToken)[1]).isEqualByComparingTo(beforeApproval[1]);
+        // ...and neither does reverting it - nor does it email the resident (nothing was confirmed to them).
+        assertThat(put("/payments/" + paymentId + "/revert", Map.of(), adminToken).get("status")).isEqualTo("PENDING_APPROVAL");
+        assertThat(balance(residentToken)[1]).isEqualByComparingTo(beforeApproval[1]);
+        Thread.sleep(1000);
+        assertThat(notificationLogRepository.findAll().stream()
+                .filter(l -> l.getMessage().contains("has been reversed")).count()).isEqualTo(reversalEmails);
     }
 
     @Test

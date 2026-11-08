@@ -104,6 +104,28 @@ public final class MessageTemplates {
         return message.toString();
     }
 
+    /**
+     * Sent to the resident when the super admin reverts an approval of their payment (see
+     * PaymentService.revert): the earlier confirmation and receipt no longer stand, the amount is
+     * owed again, and the payment is back in review. reason and levyDescription may be null.
+     */
+    public static String paymentApprovalReverted(String residentFullName, BigDecimal amount, String levyDescription,
+                                                 String reason) {
+        StringBuilder message = new StringBuilder()
+                .append("Hi ").append(residentFullName).append(", the approval of your payment of ").append(formatAmount(amount));
+        if (levyDescription != null) {
+            message.append(" for ").append(levyDescription);
+        }
+        message.append(" has been reversed by the estate administrator on ").append(BRAND).append(".");
+        if (reason != null) {
+            message.append("\n\nReason: ").append(reason);
+        }
+        message.append("\n\nThe receipt we sent you for this payment is no longer valid, and the amount has been added back ")
+                .append("to your outstanding balance. Your payment is back under review - you'll hear from us again once it's ")
+                .append("approved or rejected. If you have questions, please contact the estate office.");
+        return message.toString();
+    }
+
     private static String formatAmount(BigDecimal amount) {
         return "₦" + String.format("%,.2f", amount);
     }
