@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { authApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
+import { PasswordInput } from './PasswordInput'
 
 export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const [currentPassword, setCurrentPassword] = useState('')
@@ -58,9 +59,8 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
               {error && <p className="error-text">{error}</p>}
               <div className="form-field" style={{ marginBottom: 14 }}>
                 <label htmlFor="currentPassword">Current password</label>
-                <input
+                <PasswordInput
                   id="currentPassword"
-                  type="password"
                   required
                   autoComplete="current-password"
                   value={currentPassword}
@@ -69,9 +69,8 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="form-field" style={{ marginBottom: 14 }}>
                 <label htmlFor="newPassword">New password</label>
-                <input
+                <PasswordInput
                   id="newPassword"
-                  type="password"
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -81,9 +80,8 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="form-field">
                 <label htmlFor="confirmPassword">Confirm new password</label>
-                <input
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   required
                   minLength={8}
                   autoComplete="new-password"

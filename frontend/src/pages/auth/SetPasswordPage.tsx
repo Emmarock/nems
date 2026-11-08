@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { authApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
 import { Footer } from '../../components/Footer'
+import { PasswordInput } from '../../components/PasswordInput'
 
 /**
  * Lands here from the one-time link in an onboarding email (?token=...) — unauthenticated, the
@@ -70,9 +71,8 @@ export function SetPasswordPage() {
         <form onSubmit={handleSubmit}>
           <div className="form-field" style={{ marginBottom: 14 }}>
             <label htmlFor="newPassword">New password</label>
-            <input
+            <PasswordInput
               id="newPassword"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               minLength={8}
@@ -81,9 +81,8 @@ export function SetPasswordPage() {
           </div>
           <div className="form-field" style={{ marginBottom: 8 }}>
             <label htmlFor="confirmPassword">Confirm new password</label>
-            <input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={8}

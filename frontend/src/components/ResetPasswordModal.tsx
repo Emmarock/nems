@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { usersApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
+import { PasswordInput } from './PasswordInput'
 
 export function ResetPasswordModal({
   userId,
@@ -70,9 +71,8 @@ export function ResetPasswordModal({
               {error && <p className="error-text">{error}</p>}
               <div className="form-field" style={{ marginBottom: 14 }}>
                 <label htmlFor="newPassword">New password</label>
-                <input
+                <PasswordInput
                   id="newPassword"
-                  type="password"
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -82,9 +82,8 @@ export function ResetPasswordModal({
               </div>
               <div className="form-field">
                 <label htmlFor="confirmPassword">Confirm new password</label>
-                <input
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   required
                   minLength={8}
                   autoComplete="new-password"

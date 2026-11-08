@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../api/client'
 import type { Resident, Role } from '../api/types'
 import { ResidentPicker } from './ResidentPicker'
 import { generateStrongPassword } from '../utils/password'
+import { PasswordInput } from './PasswordInput'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: 'SUPER_ADMIN', label: 'Super Admin' },
@@ -131,15 +132,16 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
               <div className="form-field full">
                 <label htmlFor="newUserPassword">Password</label>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <input
+                  <PasswordInput
                     id="newUserPassword"
-                    type={showPassword ? 'text' : 'password'}
+                    visible={showPassword}
+                    onVisibleChange={setShowPassword}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
                     autoComplete="new-password"
-                    style={{ flex: 1, fontFamily: showPassword ? 'monospace' : undefined }}
+                    style={{ flex: 1 }}
                   />
                   <button
                     type="button"
@@ -150,9 +152,6 @@ export function NewUserModal({ onClose, onCreated }: { onClose: () => void; onCr
                     }}
                   >
                     Generate
-                  </button>
-                  <button type="button" className="btn btn-sm" onClick={() => setShowPassword((v) => !v)}>
-                    {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
                 <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>

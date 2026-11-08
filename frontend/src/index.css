@@ -1729,3 +1729,48 @@ select:disabled {
   justify-content: space-between;
   gap: 8px;
 }
+
+/* PasswordInput: eye button sits inside the right edge of the field. */
+.password-input {
+  position: relative;
+  display: flex;
+}
+
+.password-input input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding-right: 40px;
+}
+
+.password-input-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted, var(--color-text));
+  cursor: pointer;
+}
+
+.password-input-toggle:hover {
+  color: var(--color-text);
+}
+
+.password-input-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.password-input-toggle svg {
+  width: 18px;
+  height: 18px;
+}

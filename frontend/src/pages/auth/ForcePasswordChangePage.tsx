@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { authApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
 import { Footer } from '../../components/Footer'
+import { PasswordInput } from '../../components/PasswordInput'
 
 /**
  * Blocks the app entirely (see ProtectedRoute) until a bulk-created or admin-reset account sets
@@ -53,9 +54,8 @@ export function ForcePasswordChangePage() {
         <form onSubmit={handleSubmit}>
           <div className="form-field" style={{ marginBottom: 14 }}>
             <label htmlFor="currentPassword">Temporary password</label>
-            <input
+            <PasswordInput
               id="currentPassword"
-              type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
@@ -63,9 +63,8 @@ export function ForcePasswordChangePage() {
           </div>
           <div className="form-field" style={{ marginBottom: 14 }}>
             <label htmlFor="newPassword">New password</label>
-            <input
+            <PasswordInput
               id="newPassword"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               minLength={8}
@@ -74,9 +73,8 @@ export function ForcePasswordChangePage() {
           </div>
           <div className="form-field" style={{ marginBottom: 8 }}>
             <label htmlFor="confirmPassword">Confirm new password</label>
-            <input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={8}

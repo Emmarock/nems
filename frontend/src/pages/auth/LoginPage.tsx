@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { apiErrorMessage, consumeAuthMessage, consumePostLoginRedirect } from '../../api/client'
 import { Footer } from '../../components/Footer'
+import { PasswordInput } from '../../components/PasswordInput'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -47,9 +48,8 @@ export function LoginPage() {
           </div>
           <div className="form-field" style={{ marginBottom: 8 }}>
             <label htmlFor="password">Password</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
