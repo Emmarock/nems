@@ -20,12 +20,14 @@ import com.nitelestate.vehicle.dto.MeVehicleRequest;
 import com.nitelestate.vehicle.dto.VehicleLookupResponse;
 import com.nitelestate.vehicle.dto.VehicleRequest;
 import com.nitelestate.vehicle.dto.VehicleResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +46,7 @@ public class VehicleService {
     private final AccessEventService accessEventService;
     private final AccessPolicyService accessPolicyService;
     private final AuditService auditService;
+    private final String appBaseUrl;
 
     /**
      * {@code @Lazy} on accessPolicyService breaks a circular bean dependency: AccessPolicyService
@@ -54,13 +57,15 @@ public class VehicleService {
      */
     public VehicleService(VehicleRepository vehicleRepository, ResidentRepository residentRepository,
                            PropertyRepository propertyRepository, AccessEventService accessEventService,
-                           @Lazy AccessPolicyService accessPolicyService, AuditService auditService) {
+                           @Lazy AccessPolicyService accessPolicyService, AuditService auditService,
+                           @Value("${nitel.app.base-url}") String appBaseUrl) {
         this.vehicleRepository = vehicleRepository;
         this.residentRepository = residentRepository;
         this.propertyRepository = propertyRepository;
         this.accessEventService = accessEventService;
         this.accessPolicyService = accessPolicyService;
         this.auditService = auditService;
+        this.appBaseUrl = appBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
@@ -254,6 +259,55 @@ public class VehicleService {
             auditService.record("Vehicle", vehicle.getId(), "ISSUE_ACCESS_PASS", null);
         }
         return vehicle.getQrToken();
+    }
+
+    /**
+     * The printable sticker register: every ACTIVE vehicle in the estate with its gate QR code and
+     * owner, sorted by owner then plate so each resident's vehicles sit together when it's shared
+     * out. A vehicle that has never had a pass issued gets one now (same token getOrCreateQrToken
+     * would mint), so every sticker printed from the register works at the gate. Pending and
+     * deactivated vehicles are left out — neither can hold a valid pass.
+     */
+    @Transactional
+    public byte[] generateStickerReportPdf() {
+        List<Vehicle> vehicles = vehicleRepository.findAllByStatus(VehicleStatus.ACTIVE);
+        int issued = 0;
+        for (Vehicle vehicle : vehicles) {
+            if (vehicle.getQrToken() == null) {
+                vehicle.setQrToken(UUID.randomUUID().toString());
+                issued++;
+            }
+        }
+        if (issued > 0) {
+            vehicleRepository.saveAll(vehicles);
+        }
+        auditService.record("Vehicle", null, "EXPORT_STICKER_REGISTER",
+                vehicles.size() + " vehicle(s), " + issued + " new pass(es) issued");
+
+        Map<Long, Resident> owners = residentRepository.findAllById(
+                        vehicles.stream().map(Vehicle::getResidentId).distinct().toList())
+                .stream().collect(Collectors.toMap(Resident::getId, r -> r));
+        Map<Long, String> houseNumbers = propertyRepository.findAllById(
+                        owners.values().stream().map(Resident::getPropertyId).filter(Objects::nonNull).distinct().toList())
+                .stream().collect(Collectors.toMap(Property::getId, Property::getHouseNumber, (a, b) -> a));
+
+        List<VehicleStickerReportPdf.Row> rows = vehicles.stream()
+                .map(v -> {
+                    Resident owner = owners.get(v.getResidentId());
+                    String description = java.util.stream.Stream.of(v.getColour(), v.getMake(), v.getModel())
+                            .filter(part -> part != null && !part.isBlank())
+                            .collect(Collectors.joining(" "));
+                    return new VehicleStickerReportPdf.Row(
+                            v.getPlateNumber(),
+                            appBaseUrl + "/scan/vehicle/" + v.getQrToken(),
+                            owner != null ? owner.getFullName() : null,
+                            owner != null && owner.getPropertyId() != null ? houseNumbers.get(owner.getPropertyId()) : null,
+                            description);
+                })
+                .sorted(Comparator.comparing((VehicleStickerReportPdf.Row r) -> r.ownerName() == null ? "" : r.ownerName().toLowerCase())
+                        .thenComparing(VehicleStickerReportPdf.Row::plateNumber))
+                .toList();
+        return VehicleStickerReportPdf.render(rows);
     }
 
     /**

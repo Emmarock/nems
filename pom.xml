@@ -111,6 +111,13 @@
             <version>3.0.5</version>
         </dependency>
 
+        <!-- QR codes drawn into PDFs - the vehicle sticker register (see vehicle.VehicleStickerReportPdf). -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+
         <!-- Test -->
         <!-- CCTV face matching (see com.nitelestate.facematch). Only used when nitel.face-match.enabled=true. -->
         <dependency>

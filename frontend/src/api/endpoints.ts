@@ -156,6 +156,8 @@ export const vehiclesApi = {
   get: (id: number) => client.get<Vehicle>(`/vehicles/${id}`).then((r) => r.data),
   create: (body: Omit<Vehicle, 'id' | 'status' | 'residentName' | 'residentPhone'>) => client.post<Vehicle>('/vehicles', body).then((r) => r.data),
   accessPass: (id: number) => client.get<{ qrToken: string }>(`/vehicles/${id}/access-pass`).then((r) => r.data.qrToken),
+  /** PDF of every active vehicle (plate, QR tag, owner) for printing the annual stickers. Issues any missing passes. */
+  stickerReport: () => client.get('/vehicles/sticker-report', { responseType: 'blob' }).then((r) => r.data as Blob),
   /** Landlord self-service: tenant-registered vehicles on the caller's own property awaiting approval. */
   pendingApproval: (params: { page?: number; size?: number } = {}) =>
     client.get<PageResponse<Vehicle>>('/vehicles/pending-approval', { params }).then((r) => r.data),

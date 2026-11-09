@@ -3,6 +3,7 @@ package com.nitelestate.vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpecificationExecutor<Vehicle> {
@@ -15,4 +16,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpec
 
     /** Caps how many of a tenant's vehicles a landlord can approve into ACTIVE (see VehicleService.approve). */
     long countByResidentIdAndStatus(Long residentId, VehicleStatus status);
+
+    /** Every vehicle in one status - the sticker register (VehicleService.generateStickerReportPdf) takes all ACTIVE ones. */
+    List<Vehicle> findAllByStatus(VehicleStatus status);
 }

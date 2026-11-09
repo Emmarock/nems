@@ -15,7 +15,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.List;
 import java.util.Map;
 
 import com.nitelestate.notification.NotificationLog;
@@ -111,7 +110,7 @@ class OfficeHolderNotificationIntegrationTest {
         // Only the super admin manages office holders.
         String treasurerToken = login("treasurer@nitelestate.local", "Passw0rd!");
         assertThat(restTemplate.exchange(baseUrl() + "/office-holders", HttpMethod.GET,
-                new HttpEntity<>(authHeaders(treasurerToken)), List.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                new HttpEntity<>(authHeaders(treasurerToken)), String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
         var levy = restTemplate.postForEntity(baseUrl() + "/levies", new HttpEntity<>(Map.of(
                 "name", "Office Holder Levy", "amount", 2500, "frequency", "ONE_TIME", "active", true), authHeaders(adminToken)), Map.class);

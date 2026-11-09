@@ -10,10 +10,15 @@ import com.nitelestate.vehicle.dto.VehicleResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -98,6 +103,22 @@ public class VehicleController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECURITY')")
     public Map<String, String> accessPass(@PathVariable Long id) {
         return Map.of("qrToken", vehicleService.getOrCreateQrToken(id));
+    }
+
+    /**
+     * Downloadable PDF of every active vehicle (plate number, QR tag, owner) for sharing with
+     * residents and printing the annual windscreen stickers. Issues a pass to any active vehicle
+     * that doesn't have one yet, so the printed QR always works at the gate.
+     */
+    @GetMapping("/sticker-report")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY')")
+    public ResponseEntity<byte[]> stickerReport() {
+        byte[] pdf = vehicleService.generateStickerReportPdf();
+        String filename = "vehicle-stickers-" + LocalDate.now() + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     /** Gate-side QR scan: identifies the vehicle and its owner before deciding to grant access (spec §9). */

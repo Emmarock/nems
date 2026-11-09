@@ -10,6 +10,9 @@ import { QrCodeModal } from '../../components/QrCodeModal'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { buildScanUrl } from '../../utils/scanUrl'
+import { downloadBlob } from '../../utils/downloadBlob'
+import { apiErrorMessage } from '../../api/client'
+import { useAuth } from '../../auth/AuthContext'
 
 const EMPTY: PageResponse<Vehicle> = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
 
@@ -23,6 +26,23 @@ export function VehiclesPage() {
   const { openResident } = useEntityDetail()
   const [qrVehicle, setQrVehicle] = useState<Vehicle | null>(null)
   const [qrToken, setQrToken] = useState<string | null>(null)
+  const { user } = useAuth()
+  const canDownloadStickers = !!user && ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY'].includes(user.role)
+  const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+
+  async function handleStickerDownload() {
+    setDownloading(true)
+    setDownloadError(null)
+    try {
+      const blob = await vehiclesApi.stickerReport()
+      downloadBlob(blob, `vehicle-stickers-${new Date().toISOString().slice(0, 10)}.pdf`)
+    } catch (err) {
+      setDownloadError(apiErrorMessage(err))
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   async function openAccessPass(v: Vehicle) {
     setQrVehicle(v)
@@ -51,10 +71,19 @@ export function VehiclesPage() {
           <h1>Vehicles</h1>
           <p className="page-subtitle">Registered ahead of ANPR.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          + Register vehicle
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {canDownloadStickers && (
+            <button className="btn" disabled={downloading} onClick={handleStickerDownload}>
+              {downloading ? 'Generating…' : 'Download sticker PDF'}
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+            + Register vehicle
+          </button>
+        </div>
       </div>
+
+      {downloadError && <p className="error-text">{downloadError}</p>}
 
       <SearchInput value={query} onChange={setQuery} placeholder="Search vehicles by plate, make, model, colour…" />
 
