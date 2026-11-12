@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
+import { LinkQrTagModal } from '../../components/LinkQrTagModal'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { buildScanUrl } from '../../utils/scanUrl'
@@ -28,6 +29,8 @@ export function VehiclesPage() {
   const [qrToken, setQrToken] = useState<string | null>(null)
   const { user } = useAuth()
   const canDownloadStickers = !!user && ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'SECURITY'].includes(user.role)
+  const canLinkTags = !!user && ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'SECURITY'].includes(user.role)
+  const [linkingVehicle, setLinkingVehicle] = useState<Vehicle | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
@@ -109,15 +112,31 @@ export function VehiclesPage() {
           { key: 'status', label: 'Status', render: (v) => <StatusBadge value={v.status} /> },
         ]}
         actions={(v) => (
-          <button className="btn btn-sm" onClick={() => openAccessPass(v)}>
-            View QR pass
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-sm" onClick={() => openAccessPass(v)}>
+              View QR pass
+            </button>
+            {canLinkTags && v.status === 'ACTIVE' && (
+              <button className="btn btn-sm" onClick={() => setLinkingVehicle(v)}>
+                Link QR tag
+              </button>
+            )}
+          </div>
         )}
       />
 
       <Pagination page={result.page} totalPages={result.totalPages} totalElements={result.totalElements} onPageChange={setPage} />
 
       {modalOpen && <RegisterVehicleModal onClose={() => setModalOpen(false)} onCreated={load} />}
+
+      {linkingVehicle && (
+        <LinkQrTagModal
+          kind="VEHICLE"
+          subjectId={linkingVehicle.id}
+          subjectLabel={linkingVehicle.plateNumber}
+          onClose={() => setLinkingVehicle(null)}
+        />
+      )}
 
       {qrVehicle && qrToken && (
         <QrCodeModal

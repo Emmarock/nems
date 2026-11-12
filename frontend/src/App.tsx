@@ -26,6 +26,7 @@ import { VehiclesPage as PortalVehiclesPage } from './pages/portal/VehiclesPage'
 import { ResidentsPage } from './pages/admin/ResidentsPage'
 import { PropertiesPage } from './pages/admin/PropertiesPage'
 import { VehiclesPage } from './pages/admin/VehiclesPage'
+import { QrTagsPage } from './pages/admin/QrTagsPage'
 import { WorkersAdminPage } from './pages/admin/WorkersAdminPage'
 import { HouseholdMembersAdminPage } from './pages/admin/HouseholdMembersAdminPage'
 import { FaceSearchPage } from './pages/admin/FaceSearchPage'
@@ -127,6 +128,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY', 'PRO']}>
               {withLayout(<VehiclesPage />)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/qr-tags"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY']}>
+              {withLayout(<QrTagsPage />)}
             </ProtectedRoute>
           }
         />

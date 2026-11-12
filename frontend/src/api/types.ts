@@ -689,3 +689,26 @@ export interface OfficeHolder {
   residentPhone: string | null
   propertyHouseNumber: string | null
 }
+
+export type QrTagKind = 'VEHICLE' | 'PROPERTY'
+
+export interface QrTag {
+  id: number
+  kind: QrTagKind
+  code: string
+  batchNo: number
+  /** AVAILABLE: not linked yet. ASSIGNED: the live pass of its vehicle/property. VOID: was linked, since replaced - can't be reused. */
+  status: 'AVAILABLE' | 'ASSIGNED' | 'VOID'
+  subjectId: number | null
+  assignedAt: string | null
+}
+
+export interface QrTagBatch {
+  batchNo: number
+  kind: QrTagKind
+  total: number
+  linked: number
+  firstCode: string
+  lastCode: string
+  createdAt: string
+}

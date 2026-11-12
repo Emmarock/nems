@@ -56,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/face-search', label: 'CCTV Face Search', roles: ['SUPER_ADMIN', 'CDA_ADMIN'], icon: CameraIcon, faceSearchOnly: true },
   { to: '/levies', label: 'Levies & Invoices', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY'], icon: CoinsIcon },
   { to: '/payments', label: 'Payments', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECRETARY', 'PRO'], icon: CoinsIcon },
+  { to: '/qr-tags', label: 'QR Tags', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY'], icon: RfidIcon },
   { to: '/stickers', label: 'Vehicle Stickers', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY'], icon: CarIcon },
   { to: '/complaints', label: 'Complaints', roles: ['SUPER_ADMIN', 'SECRETARY', 'MAINTENANCE', 'PRO'], icon: ComplaintIcon },
   { to: '/announcements', label: 'Announcements', roles: ['SUPER_ADMIN', 'CDA_ADMIN', 'SECRETARY', 'TREASURER', 'FINANCIAL_SECRETARY', 'SECURITY', 'MAINTENANCE', 'PRO', 'RESIDENT'], icon: MegaphoneIcon },

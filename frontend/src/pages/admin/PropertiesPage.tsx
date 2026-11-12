@@ -7,6 +7,8 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { SearchInput } from '../../components/SearchInput'
 import { Pagination } from '../../components/Pagination'
 import { QrCodeModal } from '../../components/QrCodeModal'
+import { LinkQrTagModal } from '../../components/LinkQrTagModal'
+import { useAuth } from '../../auth/AuthContext'
 import { useEntityDetail } from '../../entityDetail/EntityDetailContext'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { buildScanUrl } from '../../utils/scanUrl'
@@ -67,6 +69,9 @@ export function PropertiesPage() {
   const { openResident } = useEntityDetail()
   const [qrProperty, setQrProperty] = useState<Property | null>(null)
   const [qrToken, setQrToken] = useState<string | null>(null)
+  const [linkingProperty, setLinkingProperty] = useState<Property | null>(null)
+  const { user } = useAuth()
+  const canLinkTags = !!user && ['SUPER_ADMIN', 'CDA_ADMIN', 'TREASURER', 'FINANCIAL_SECRETARY'].includes(user.role)
 
   async function openAccessPass(p: Property) {
     setQrProperty(p)
@@ -156,6 +161,11 @@ export function PropertiesPage() {
             <button className="btn btn-sm" onClick={() => openAccessPass(p)}>
               View QR pass
             </button>
+            {canLinkTags && (
+              <button className="btn btn-sm" onClick={() => setLinkingProperty(p)}>
+                Link QR tag
+              </button>
+            )}
             <button className="btn btn-sm" onClick={() => { setEditing(p); setModalOpen(true) }}>
               Edit
             </button>
@@ -172,6 +182,15 @@ export function PropertiesPage() {
           initial={editing ?? {}}
           onSubmit={handleSubmit}
           onClose={() => { setModalOpen(false); setEditing(null) }}
+        />
+      )}
+
+      {linkingProperty && (
+        <LinkQrTagModal
+          kind="PROPERTY"
+          subjectId={linkingProperty.id}
+          subjectLabel={linkingProperty.houseNumber}
+          onClose={() => setLinkingProperty(null)}
         />
       )}
 

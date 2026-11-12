@@ -1,11 +1,6 @@
 package com.nitelestate.vehicle;
 
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.EncodeHintType;
-import com.google.zxing.WriterException;
-import com.google.zxing.common.BitMatrix;
-import com.google.zxing.qrcode.QRCodeWriter;
-import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.nitelestate.common.pdf.QrPdf;
 import org.openpdf.text.Document;
 import org.openpdf.text.DocumentException;
 import org.openpdf.text.Element;
@@ -18,7 +13,6 @@ import org.openpdf.text.Rectangle;
 import org.openpdf.text.pdf.PdfContentByte;
 import org.openpdf.text.pdf.PdfPCell;
 import org.openpdf.text.pdf.PdfPTable;
-import org.openpdf.text.pdf.PdfTemplate;
 import org.openpdf.text.pdf.PdfWriter;
 
 import java.awt.Color;
@@ -27,7 +21,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Renders the downloadable vehicle sticker register (see VehicleService.generateStickerReportPdf):
@@ -35,8 +28,7 @@ import java.util.Map;
  * estate can share it with residents and print the annual stickers from it. Same brand colours
  * as resident.ResidentArrearsReportPdf (each PDF class is self-contained, by convention).
  *
- * <p>QR codes are drawn as vector squares rather than embedded bitmaps, so they stay sharp at
- * whatever size the sticker is printed.
+ * <p>QR codes are drawn by common.pdf.QrPdf (vector, sharp at any print size).
  */
 public final class VehicleStickerReportPdf {
 
@@ -125,11 +117,8 @@ public final class VehicleStickerReportPdf {
             // The plate goes under the QR as well, so a QR cut out on its own is still identifiable.
             PdfPCell qr = baseCell();
             qr.setHorizontalAlignment(Element.ALIGN_CENTER);
-            Image image = Image.getInstance(qrTemplate(canvas, row.scanUrl()));
+            Image image = QrPdf.image(canvas, row.scanUrl(), QR_SIZE);
             image.setAlignment(Element.ALIGN_CENTER);
-            // A cell otherwise stretches an image to its full width; keep the QR at its intended print size.
-            image.setWidthPercentage(0);
-            image.scaleAbsolute(QR_SIZE, QR_SIZE);
             qr.addElement(image);
             Paragraph qrCaption = new Paragraph(row.plateNumber(), new Font(Font.HELVETICA, 8, Font.BOLD, INK));
             qrCaption.setAlignment(Element.ALIGN_CENTER);
@@ -144,30 +133,6 @@ public final class VehicleStickerReportPdf {
             table.addCell(owner);
         }
         return table;
-    }
-
-    private static PdfTemplate qrTemplate(PdfContentByte canvas, String content) {
-        BitMatrix matrix;
-        try {
-            matrix = new QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, 0, 0,
-                    Map.of(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M, EncodeHintType.MARGIN, 2));
-        } catch (WriterException e) {
-            throw new IllegalStateException("Failed to encode vehicle QR code", e);
-        }
-        int modules = matrix.getWidth();
-        float module = QR_SIZE / modules;
-        PdfTemplate template = canvas.createTemplate(QR_SIZE, QR_SIZE);
-        template.setColorFill(Color.BLACK);
-        for (int y = 0; y < modules; y++) {
-            for (int x = 0; x < modules; x++) {
-                if (matrix.get(x, y)) {
-                    // PDF's origin is bottom-left; the matrix's is top-left.
-                    template.rectangle(x * module, QR_SIZE - (y + 1) * module, module, module);
-                }
-            }
-        }
-        template.fill();
-        return template;
     }
 
     private static PdfPCell baseCell() {

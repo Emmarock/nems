@@ -1,5 +1,8 @@
 import { client } from './client'
 import type {
+  QrTag,
+  QrTagBatch,
+  QrTagKind,
   AccessEvent,
   AccessPolicy,
   PaymentAccount,
@@ -489,6 +492,26 @@ export const stickerRequestsApi = {
     client.get<PageResponse<StickerRequest>>('/sticker-requests', { params }).then((r) => r.data),
   request: (vehicleId: number) =>
     client.post<StickerRequest>('/sticker-requests', { vehicleId }).then((r) => r.data),
+}
+
+/** Pre-generated QR tags: print stickers in bulk, then link each one to a vehicle or property. */
+export const qrTagsApi = {
+  /** Generates a new batch and returns its printable sheet. */
+  generate: (kind: QrTagKind, count: number) =>
+    client.post('/qr-tags/batches', { kind, count }, { responseType: 'blob' }).then((r) => ({
+      blob: r.data as Blob,
+      batchNo: Number(r.headers['x-batch-no']),
+    })),
+  batches: () => client.get<QrTagBatch[]>('/qr-tags/batches').then((r) => r.data),
+  /** Reprints an earlier batch - same codes, nothing new generated. */
+  batchPdf: (batchNo: number) =>
+    client.get(`/qr-tags/batches/${batchNo}/pdf`, { responseType: 'blob' }).then((r) => r.data as Blob),
+  /** code: the printed code (V-000123), or the scanned QR text. */
+  assign: (kind: QrTagKind, subjectId: number, code: string) =>
+    client.post<QrTag>('/qr-tags/assign', { kind, subjectId, code }).then((r) => r.data),
+  /** The printed tag behind the current pass, or null when the pass didn't come from a printed tag. */
+  current: (kind: QrTagKind, subjectId: number) =>
+    client.get<QrTag | ''>('/qr-tags/current', { params: { kind, subjectId } }).then((r) => (r.status === 204 || !r.data ? null : r.data)),
 }
 
 /** CCTV face search - admins only. image is a base64 data URI of a still from the footage. */
